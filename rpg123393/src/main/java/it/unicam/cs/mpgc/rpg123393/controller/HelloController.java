@@ -23,7 +23,6 @@ import java.util.List;
  */
 public class HelloController {
 
-    // --- Elementi FXML ---
     @FXML private Label     playerStatsLabel;
     @FXML private Label     enemyStatsLabel;
     @FXML private Label     playerBlockLabel;
@@ -35,7 +34,6 @@ public class HelloController {
     @FXML private TextArea  consoleArea;
     @FXML private ImageView playerImage;
 
-    // --- Stato della sessione ---
     private GameService gameService;
     private String      imagePath;
     private String      playerName;
@@ -43,18 +41,31 @@ public class HelloController {
     private int         vitalita;
 
     // -------------------------------------------------------
-    // Inizializzazione — due overload:
-    //   1) nuova partita (CreationController): crea un GameService fresco
-    //   2) continua partita (VictoryController): riusa il GameService esistente
+    // Inizializzazione
     // -------------------------------------------------------
 
-    /** Chiamato da CreationController: avvia una nuova partita. */
+    /**
+     * Chiamato da CreationController: nuova partita da zero.
+     * Crea il GameService, il player, poi avvia la battaglia.
+     */
     public void initData(String name, int forza, int vitalita, String imagePath) {
-        initData(name, forza, vitalita, imagePath, new GameService());
-        gameService.createPlayer(name, forza, vitalita);
+        this.playerName  = name;
+        this.forza       = forza;
+        this.vitalita    = vitalita;
+        this.imagePath   = imagePath;
+        this.gameService = new GameService();
+        gameService.createPlayer(name, forza, vitalita); // player creato PRIMA di startBattle
+
+        loadPlayerImage(imagePath);
+        log("Benvenuto, " + name + "! Preparati a combattere.");
+        startBattle();
     }
 
-    /** Chiamato da VictoryController: riusa il GameService con progressione intatta. */
+    /**
+     * Chiamato da VictoryController / GameOverController:
+     * riusa il GameService esistente (progressione intatta).
+     * Il player è già presente nel gameService ricevuto.
+     */
     public void initData(String name, int forza, int vitalita, String imagePath, GameService existingService) {
         this.playerName  = name;
         this.forza       = forza;
