@@ -2,8 +2,8 @@ plugins {
     java
     application
     id("org.javamodularity.moduleplugin") version "1.8.15"
-    id("org.openjfx.javafxplugin") version "0.0.13"
-    id("org.beryx.jlink") version "2.25.0"
+    id("org.openjfx.javafxplugin") version "0.1.0"      // era 0.0.13
+    id("org.beryx.jlink") version "3.0.0"               // era 2.25.0
 }
 
 group = "it.unicam.cs.mpgc"
@@ -17,7 +17,7 @@ val junitVersion = "5.12.1"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)   // <-- era 25, abbassato a 21 LTS
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
