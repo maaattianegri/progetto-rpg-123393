@@ -24,6 +24,9 @@
                    style="-fx-text-fill: #ff6b6b; -fx-font-size: 14px; -fx-font-weight: bold;"/>
             <Label fx:id="enemyIntentLabel" text="Intento Nemico: --"
                    style="-fx-text-fill: #ffd166; -fx-font-size: 12px;"/>
+            <!-- Livello e XP del giocatore: aggiornata da HelloController.updateUI() -->
+            <Label fx:id="levelLabel" text="Lv. 1  XP: 0/100"
+                   style="-fx-text-fill: #c77dff; -fx-font-size: 12px; -fx-font-weight: bold;"/>
         </VBox>
     </top>
 
@@ -55,7 +58,7 @@
                         prefWidth="210" prefHeight="300"
                         style="-fx-background-color: #2a2a4a; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;"/>
             </HBox>
-            <Button text="Fine Turno ▶" onAction="#onEndTurnClick"
+            <Button text="Fine Turno &#9654;" onAction="#onEndTurnClick"
                     style="-fx-background-color: #e63946; -fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 40; -fx-background-radius: 8; -fx-cursor: hand;"/>
         </VBox>
     </bottom>
