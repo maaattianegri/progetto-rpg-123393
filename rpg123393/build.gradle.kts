@@ -1,9 +1,8 @@
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     java
     application
-    id("org.javamodularity.moduleplugin") version "1.8.15"
-    id("org.openjfx.javafxplugin") version "0.1.0"      // era 0.0.13
-    id("org.beryx.jlink") version "3.0.0"               // era 2.25.0
 }
 
 group = "it.unicam.cs.mpgc"
@@ -14,6 +13,7 @@ repositories {
 }
 
 val junitVersion = "5.12.1"
+val javafxVersion = "21.0.6"
 
 java {
     toolchain {
@@ -25,29 +25,35 @@ tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
-application {
-    mainModule.set("it.unicam.cs.mpgc.rpg123393")
-    mainClass.set("it.unicam.cs.mpgc.rpg123393.HelloApplication")
-}
-
-javafx {
-    version = "21.0.6"
-    modules = listOf("javafx.controls", "javafx.fxml")
+// Rileva la piattaforma corrente per scaricare i jar JavaFX giusti
+val currentOS: OperatingSystem = OperatingSystem.current()
+val platform = when {
+    currentOS.isWindows -> "win"
+    currentOS.isMacOsX  -> "mac"
+    else                -> "linux"
 }
 
 dependencies {
+    // JavaFX — jar nativi per la piattaforma corrente
+    implementation("org.openjfx:javafx-base:${javafxVersion}:${platform}")
+    implementation("org.openjfx:javafx-graphics:${javafxVersion}:${platform}")
+    implementation("org.openjfx:javafx-controls:${javafxVersion}:${platform}")
+    implementation("org.openjfx:javafx-fxml:${javafxVersion}:${platform}")
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+application {
+    mainClass.set("it.unicam.cs.mpgc.rpg123393.HelloApplication")
+
+    // Passa i moduli JavaFX alla JVM a runtime
+    applicationDefaultJvmArgs = listOf(
+        "--module-path", configurations.runtimeClasspath.get().asPath,
+        "--add-modules", "javafx.controls,javafx.fxml"
+    )
 }
 
-jlink {
-    imageZip.set(layout.buildDirectory.file("/distributions/app-${javafx.platform.classifier}.zip"))
-    options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
-    launcher {
-        name = "app"
-    }
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
