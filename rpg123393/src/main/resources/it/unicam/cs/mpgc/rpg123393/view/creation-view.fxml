@@ -12,11 +12,23 @@
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.CreationController"
       style="-fx-background-color: #1a1a2e; -fx-padding: 60;">
 
-    <Label text="⚔ ARENA MASTER ⚔"
+    <Label text="&#x2694; ARENA MASTER &#x2694;"
            style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
 
     <Label text="La Forgia degli Eroi"
            style="-fx-font-size: 18px; -fx-text-fill: #a0a0c0;"/>
+
+    <!-- Sezione Continua Partita: visibile solo se esiste un salvataggio -->
+    <VBox fx:id="continueSection" alignment="CENTER" spacing="8"
+          style="-fx-background-color: #2a3a2a; -fx-padding: 16; -fx-background-radius: 10; -fx-border-color: #4a7a4a; -fx-border-radius: 10; -fx-border-width: 1;"
+          visible="false" managed="false">
+        <Label text="&#x1F4BE; Partita salvata trovata"
+               style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #7ecf7e;"/>
+        <Label fx:id="continueInfoLabel" text=""
+               style="-fx-font-size: 12px; -fx-text-fill: #a0c0a0;"/>
+        <Button text="Continua partita" onAction="#onContinue"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 24; -fx-background-radius: 6; -fx-cursor: hand;"/>
+    </VBox>
 
     <VBox alignment="CENTER" spacing="10">
         <Label text="Nome del tuo Eroe:"
@@ -34,7 +46,7 @@
 
         <VBox alignment="CENTER" spacing="8"
               style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
-            <Label text="🛡" style="-fx-font-size: 48px;"/>
+            <Label text="&#x1F6E1;" style="-fx-font-size: 48px;"/>
             <Label text="Guerriero" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
             <Label text="Vigore 8 · Arcano 3" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
             <Label text="Danno elevato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
@@ -44,7 +56,7 @@
 
         <VBox alignment="CENTER" spacing="8"
               style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
-            <Label text="🧙" style="-fx-font-size: 48px;"/>
+            <Label text="&#x1F9D9;" style="-fx-font-size: 48px;"/>
             <Label text="Mago" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
             <Label text="Vigore 3 · Arcano 8" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
             <Label text="Mana abbondante" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
@@ -54,7 +66,7 @@
 
         <VBox alignment="CENTER" spacing="8"
               style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
-            <Label text="🐉" style="-fx-font-size: 48px;"/>
+            <Label text="&#x1F409;" style="-fx-font-size: 48px;"/>
             <Label text="Dracomante" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
             <Label text="Vigore 6 · Arcano 6" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
             <Label text="Bilanciato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
