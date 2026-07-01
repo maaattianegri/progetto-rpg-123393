@@ -48,7 +48,7 @@ public class GameCharacter {
     public int getCurrentHp()         { return currentHp; }
     public int getMaxHp()             { return maxHp; }
     public int getCurrentMana()       { return currentMana; }
-    public int getMaxMana()           { return maxMana; }   // <-- nuovo
+    public int getMaxMana()           { return maxMana; }
     public int getBlock()             { return block; }
 
     // --- Setter per level up ---
@@ -58,8 +58,8 @@ public class GameCharacter {
      * Usato da GameService.addXpAndLevelUp() quando il personaggio sale di livello.
      */
     public void setMaxHp(int newMaxHp) {
-        int bonus     = newMaxHp - this.maxHp;
-        this.maxHp    = newMaxHp;
+        int bonus      = newMaxHp - this.maxHp;
+        this.maxHp     = newMaxHp;
         this.currentHp = Math.min(this.currentHp + bonus, this.maxHp);
     }
 
@@ -69,5 +69,25 @@ public class GameCharacter {
      */
     public void setMaxMana(int newMaxMana) {
         this.maxMana = newMaxMana;
+    }
+
+    // --- Setter per restore da salvataggio ---
+
+    /**
+     * Imposta direttamente gli HP correnti.
+     * Usato SOLO da GameService.restoreFromState() per ripristinare un save.
+     * Non usare durante il combattimento: usa takeDamage() invece.
+     */
+    public void setCurrentHp(int currentHp) {
+        this.currentHp = Math.max(0, Math.min(currentHp, this.maxHp));
+    }
+
+    /**
+     * Imposta direttamente il mana corrente.
+     * Usato SOLO da GameService.restoreFromState() per ripristinare un save.
+     * Non usare durante il combattimento: usa useMana()/restoreMana() invece.
+     */
+    public void setCurrentMana(int currentMana) {
+        this.currentMana = Math.max(0, Math.min(currentMana, this.maxMana));
     }
 }
