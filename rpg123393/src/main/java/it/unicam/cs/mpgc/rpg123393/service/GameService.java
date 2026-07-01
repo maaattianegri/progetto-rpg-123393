@@ -34,9 +34,16 @@ public class GameService {
     // Inizializzazione partita
     // -------------------------------------------------------
 
-    public void createPlayer(String name, int forza, int vitalita) {
-        int maxHp   = 50 + (vitalita * 10);
-        int maxMana = 3  + (forza / 2);
+    /**
+     * Crea il personaggio del giocatore.
+     *
+     * @param name   nome del personaggio
+     * @param vigore governa gli HP massimi  (ex "forza")
+     * @param arcano governa il mana massimo (ex "vitalita")
+     */
+    public void createPlayer(String name, int vigore, int arcano) {
+        int maxHp   = 50 + (vigore * 10);  // Guerriero V8 → 130 HP
+        int maxMana = 3  + (arcano / 2);   // Mago A8 → 7 mana
         player = new GameCharacter(name, maxHp, maxMana);
         buildStarterDeck();
     }
@@ -98,7 +105,6 @@ public class GameService {
 
     /**
      * Aggiunge XP al giocatore e gestisce level up multipli.
-     * Ad ogni salto di livello applica i bonus HP e Mana al personaggio.
      * Restituisce i messaggi da mostrare nel log.
      */
     public List<String> addXpAndLevelUp(int xpGained) {
@@ -109,9 +115,8 @@ public class GameService {
             playerXp = levelService.consumeXpForLevelUp(playerXp, playerLevel);
             playerLevel++;
 
-            // Applica i bonus al personaggio
-            int newMaxHp   = player.getMaxHp()   + levelService.hpBonusOnLevelUp(playerLevel);
-            int newMaxMana = player.getMaxMana()  + levelService.manaBonusOnLevelUp(playerLevel);
+            int newMaxHp   = player.getMaxHp()  + levelService.hpBonusOnLevelUp(playerLevel);
+            int newMaxMana = player.getMaxMana() + levelService.manaBonusOnLevelUp(playerLevel);
             player.setMaxHp(newMaxHp);
             player.setMaxMana(newMaxMana);
 

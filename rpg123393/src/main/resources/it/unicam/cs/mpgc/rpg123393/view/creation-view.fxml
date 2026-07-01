@@ -36,7 +36,7 @@
               style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
             <Label text="🛡" style="-fx-font-size: 48px;"/>
             <Label text="Guerriero" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
-            <Label text="Forza 8 · Vitalità 3" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Vigore 8 · Arcano 3" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
             <Label text="Danno elevato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
             <Button text="Scegli" onAction="#selectWarrior"
                     style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
@@ -46,7 +46,7 @@
               style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
             <Label text="🧙" style="-fx-font-size: 48px;"/>
             <Label text="Mago" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
-            <Label text="Forza 3 · Vitalità 8" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Vigore 3 · Arcano 8" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
             <Label text="Mana abbondante" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
             <Button text="Scegli" onAction="#selectMage"
                     style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
@@ -56,7 +56,7 @@
               style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
             <Label text="🐉" style="-fx-font-size: 48px;"/>
             <Label text="Dracomante" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
-            <Label text="Forza 6 · Vitalità 6" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Vigore 6 · Arcano 6" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
             <Label text="Bilanciato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
             <Button text="Scegli" onAction="#selectDragon"
                     style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
