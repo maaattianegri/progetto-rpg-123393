@@ -5,7 +5,10 @@ import it.unicam.cs.mpgc.rpg123393.model.FireballCard;
 import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.StrikeCard;
+import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -27,8 +30,14 @@ public class GameService {
     private int           playerLevel = 1;
     private int           playerXp    = 0;
 
-    private List<ICard>   deck = new ArrayList<>();
-    private ICard[]       hand = new ICard[3];
+    // Metadati necessari per la serializzazione del GameState
+    private int    vigore;
+    private int    arcano;
+    private String className;
+    private String imagePath;
+
+    private List<ICard> deck = new ArrayList<>();
+    private ICard[]     hand = new ICard[3];
 
     // -------------------------------------------------------
     // Inizializzazione partita
@@ -37,15 +46,31 @@ public class GameService {
     /**
      * Crea il personaggio del giocatore.
      *
-     * @param name   nome del personaggio
-     * @param vigore governa gli HP massimi  (ex "forza")
-     * @param arcano governa il mana massimo (ex "vitalita")
+     * @param name      nome del personaggio
+     * @param vigore    governa gli HP massimi
+     * @param arcano    governa il mana massimo
+     * @param className nome della classe scelta (es. "Guerriero")
+     * @param imagePath path immagine personaggio
      */
-    public void createPlayer(String name, int vigore, int arcano) {
-        int maxHp   = 50 + (vigore * 10);  // Guerriero V8 → 130 HP
-        int maxMana = 3  + (arcano / 2);   // Mago A8 → 7 mana
+    public void createPlayer(String name, int vigore, int arcano, String className, String imagePath) {
+        this.vigore    = vigore;
+        this.arcano    = arcano;
+        this.className = className;
+        this.imagePath = imagePath;
+
+        int maxHp   = 50 + (vigore * 10);
+        int maxMana = 3  + (arcano / 2);
         player = new GameCharacter(name, maxHp, maxMana);
         buildStarterDeck();
+    }
+
+    /**
+     * Overload retrocompatibile: usato dai controller che non passano ancora
+     * className e imagePath. className e imagePath rimangono null finché
+     * non vengono impostati tramite i setter dedicati.
+     */
+    public void createPlayer(String name, int vigore, int arcano) {
+        createPlayer(name, vigore, arcano, null, null);
     }
 
     private void buildStarterDeck() {
@@ -126,6 +151,54 @@ public class GameService {
     }
 
     // -------------------------------------------------------
+    // Persistenza
+    // -------------------------------------------------------
+
+    /**
+     * Crea un GameState serializzabile a partire dallo stato corrente.
+     * Chiamato da VictoryController prima di invocare SaveRepository.save().
+     */
+    public GameState toGameState() {
+        String now = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+        return new GameState(
+                player.getName(),
+                player.getMaxHp(),
+                player.getCurrentHp(),
+                player.getMaxMana(),
+                player.getCurrentMana(),
+                playerLevel,
+                playerXp,
+                now,
+                className  != null ? className  : "",
+                imagePath  != null ? imagePath  : ""
+        );
+    }
+
+    /**
+     * Ripristina lo stato del gioco da un GameState caricato.
+     * Chiamato da HelloApplication dopo un load() riuscito.
+     */
+    public void restoreFromState(GameState state) {
+        this.vigore    = (state.getPlayerMaxHp()  - 50) / 10;
+        this.arcano    = (state.getPlayerMaxMana() - 3)  * 2;
+        this.className = state.getClassName();
+        this.imagePath = state.getImagePath();
+        this.playerLevel = state.getPlayerLevel();
+        this.playerXp    = state.getPlayerXp();
+
+        player = new GameCharacter(
+                state.getPlayerName(),
+                state.getPlayerMaxHp(),
+                state.getPlayerMaxMana()
+        );
+        player.setCurrentHp(state.getPlayerCurrentHp());
+        player.setCurrentMana(state.getPlayerCurrentMana());
+
+        buildStarterDeck();
+    }
+
+    // -------------------------------------------------------
     // Getter per la UI
     // -------------------------------------------------------
 
@@ -135,4 +208,11 @@ public class GameService {
     public int           getPlayerLevel() { return playerLevel; }
     public int           getPlayerXp()    { return playerXp; }
     public int           getXpRequired()  { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int           getVigore()      { return vigore; }
+    public int           getArcano()      { return arcano; }
+    public String        getClassName()   { return className; }
+    public String        getImagePath()   { return imagePath; }
+
+    public void setClassName(String className)  { this.className = className; }
+    public void setImagePath(String imagePath)  { this.imagePath = imagePath; }
 }
