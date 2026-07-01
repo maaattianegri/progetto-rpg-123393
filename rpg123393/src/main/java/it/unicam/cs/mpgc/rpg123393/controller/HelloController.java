@@ -4,6 +4,7 @@ import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -11,6 +12,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -24,13 +26,13 @@ import java.util.List;
  */
 public class HelloController {
 
-    // --- Stats pannello nemico ---
+    // --- Pannello nemico ---
     @FXML private Label       enemyNameLabel;
     @FXML private Label       enemyStatsLabel;
     @FXML private Label       enemyIntentLabel;
     @FXML private ProgressBar enemyHpBar;
 
-    // --- Stats pannello giocatore ---
+    // --- Pannello giocatore ---
     @FXML private Label       playerNameLabel;
     @FXML private Label       playerHpLabel;
     @FXML private Label       playerManaLabel;
@@ -58,7 +60,6 @@ public class HelloController {
     // Inizializzazione
     // -------------------------------------------------------
 
-    /** Nuova partita da zero (senza className). */
     public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
         this.vigore      = vigore;
@@ -72,7 +73,6 @@ public class HelloController {
         startBattle();
     }
 
-    /** Nuova partita con className esplicito — save completo dalla prima vittoria. */
     public void initData(String name, int vigore, int arcano,
                          String imagePath, String className) {
         this.playerName  = name;
@@ -86,7 +86,6 @@ public class HelloController {
         startBattle();
     }
 
-    /** Continua partita — riusa GameService esistente (progressione intatta). */
     public void initData(String name, int vigore, int arcano,
                          String imagePath, GameService existingService) {
         this.playerName  = name;
@@ -202,7 +201,6 @@ public class HelloController {
         var p = gameService.getPlayer();
         var e = gameService.getEnemy();
 
-        // --- Giocatore ---
         if (playerNameLabel != null) playerNameLabel.setText(p.getName());
         playerHpLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         playerManaLabel.setText(p.getCurrentMana() + "/" + p.getMaxMana());
@@ -216,12 +214,15 @@ public class HelloController {
         playerXpBar.setProgress(xpReq > 0 ? (double) xpCur / xpReq : 0);
         levelLabel.setText("Lv. " + gameService.getPlayerLevel());
 
-        // --- Nemico ---
         enemyNameLabel.setText(e.getName());
         enemyStatsLabel.setText("HP: " + e.getCurrentHp() + "/" + e.getMaxHp());
         enemyHpBar.setProgress((double) e.getCurrentHp() / e.getMaxHp());
     }
 
+    /**
+     * Disegna ogni carta come VBox stilizzata con emoji, nome e costo mana.
+     * Usa colori diversi per tipo di carta invece di SVG (non supportato da JavaFX).
+     */
     private void refreshCardButtons() {
         ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
@@ -230,26 +231,71 @@ public class HelloController {
             ICard  card   = hand[i];
             Button button = buttons[i];
 
-            // Prova prima il path assoluto, poi quello relativo al classloader
-            InputStream stream = getClass().getResourceAsStream(card.getImagePath());
-            if (stream == null) {
-                stream = getClass().getClassLoader()
-                        .getResourceAsStream(card.getImagePath().replaceFirst("^/", ""));
-            }
-
-            if (stream != null) {
-                ImageView iv = new ImageView(new Image(stream));
-                iv.setFitWidth(186);
-                iv.setFitHeight(256);
-                iv.setPreserveRatio(false);
-                button.setGraphic(iv);
-                button.setText("");
-            } else {
-                button.setGraphic(null);
-                button.setText(card.getName() + "\n" + card.getManaCost() + " mana");
-            }
+            button.setGraphic(buildCardGraphic(card));
+            button.setText("");
             button.setDisable(false);
         }
+    }
+
+    /**
+     * Costruisce il grafico visivo di una carta: emoji grande, nome, costo mana.
+     * Il colore del bordo cambia in base al tipo di carta.
+     */
+    private VBox buildCardGraphic(ICard card) {
+        String name = card.getName();
+        int    cost = card.getManaCost();
+
+        // Emoji e colore per tipo carta
+        String emoji;
+        String borderColor;
+        String glowColor;
+
+        if (name.toLowerCase().contains("fuoco") || name.toLowerCase().contains("fireball")
+                || name.toLowerCase().contains("fiamma")) {
+            emoji = "🔥";
+            borderColor = "#e67e22";
+            glowColor   = "#e67e22";
+        } else if (name.toLowerCase().contains("difesa") || name.toLowerCase().contains("scudo")
+                || name.toLowerCase().contains("defend") || name.toLowerCase().contains("fortezza")) {
+            emoji = "🛡";
+            borderColor = "#3498db";
+            glowColor   = "#3498db";
+        } else {
+            // Attacco generico (colpo, spada, frenesia, ecc.)
+            emoji = "⚔️";
+            borderColor = "#e74c3c";
+            glowColor   = "#e74c3c";
+        }
+
+        // Mana cost label in alto a destra: pallini blu
+        String manaStr = "🔵".repeat(Math.min(cost, 6));
+
+        Label emojiLabel = new Label(emoji);
+        emojiLabel.setStyle("-fx-font-size: 52px;");
+
+        Label nameLabel = new Label(name);
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-wrap-text: true; -fx-text-alignment: center;");
+        nameLabel.setMaxWidth(160);
+        nameLabel.setWrapText(true);
+
+        Label manaLabel = new Label(manaStr);
+        manaLabel.setStyle("-fx-font-size: 14px; -fx-padding: 6 0 0 0;");
+
+        VBox card_box = new VBox(10, emojiLabel, nameLabel, manaLabel);
+        card_box.setAlignment(Pos.CENTER);
+        card_box.setStyle(
+            "-fx-background-color: #1e1e3a;"
+            + "-fx-background-radius: 10;"
+            + "-fx-border-color: " + borderColor + ";"
+            + "-fx-border-radius: 10;"
+            + "-fx-border-width: 2;"
+            + "-fx-padding: 16;"
+            + "-fx-pref-width: 170;"
+            + "-fx-pref-height: 240;"
+            + "-fx-effect: dropshadow(gaussian, " + glowColor + ", 10, 0.3, 0, 0);"
+        );
+
+        return card_box;
     }
 
     private void updateEnemyIntent() {
