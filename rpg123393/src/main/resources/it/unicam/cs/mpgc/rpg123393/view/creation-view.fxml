@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+
+<VBox alignment="CENTER" spacing="30.0" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="it.unicam.cs.mpgc.rpg123393.controller.CreationController"
+      style="-fx-background-color: #1a1a2e; -fx-padding: 60;">
+
+    <Label text="⚔ ARENA MASTER ⚔"
+           style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
+
+    <Label text="La Forgia degli Eroi"
+           style="-fx-font-size: 18px; -fx-text-fill: #a0a0c0;"/>
+
+    <VBox alignment="CENTER" spacing="10">
+        <Label text="Nome del tuo Eroe:"
+               style="-fx-font-size: 14px; -fx-text-fill: #cccccc;"/>
+        <TextField fx:id="nameField"
+                   promptText="Inserisci il nome..."
+                   maxWidth="300"
+                   style="-fx-font-size: 14px; -fx-background-color: #2a2a4a; -fx-text-fill: white; -fx-prompt-text-fill: #666688; -fx-padding: 10; -fx-background-radius: 8;"/>
+    </VBox>
+
+    <Label text="Scegli la tua Classe:"
+           style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
+
+    <HBox alignment="CENTER" spacing="20">
+
+        <VBox alignment="CENTER" spacing="8"
+              style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
+            <Label text="🛡" style="-fx-font-size: 48px;"/>
+            <Label text="Guerriero" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
+            <Label text="Vigore 8 · Arcano 3" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Danno elevato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
+            <Button text="Scegli" onAction="#selectWarrior"
+                    style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
+        </VBox>
+
+        <VBox alignment="CENTER" spacing="8"
+              style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
+            <Label text="🧙" style="-fx-font-size: 48px;"/>
+            <Label text="Mago" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
+            <Label text="Vigore 3 · Arcano 8" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Mana abbondante" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
+            <Button text="Scegli" onAction="#selectMage"
+                    style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
+        </VBox>
+
+        <VBox alignment="CENTER" spacing="8"
+              style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12; -fx-min-width: 160;">
+            <Label text="🐉" style="-fx-font-size: 48px;"/>
+            <Label text="Dracomante" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
+            <Label text="Vigore 6 · Arcano 6" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Bilanciato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
+            <Button text="Scegli" onAction="#selectDragon"
+                    style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
+        </VBox>
+
+    </HBox>
+
+</VBox>

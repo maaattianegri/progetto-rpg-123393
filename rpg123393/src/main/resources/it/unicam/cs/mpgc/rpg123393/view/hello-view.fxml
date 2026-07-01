@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="it.unicam.cs.mpgc.rpg123393.controller.HelloController"
+            style="-fx-background-color: #1a1a2e;">
+
+    <!-- TOP: statistiche -->
+    <top>
+        <VBox style="-fx-background-color: #16213e; -fx-padding: 12; -fx-spacing: 4;">
+            <Label fx:id="playerStatsLabel" text="Giocatore HP: -- | MANA: --"
+                   style="-fx-text-fill: #4ecca3; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <Label fx:id="playerBlockLabel" text="Scudo: 0"
+                   style="-fx-text-fill: #a0c4ff; -fx-font-size: 12px;"/>
+            <Label fx:id="enemyStatsLabel" text="Nemico HP: --"
+                   style="-fx-text-fill: #ff6b6b; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <Label fx:id="enemyIntentLabel" text="Intento Nemico: --"
+                   style="-fx-text-fill: #ffd166; -fx-font-size: 12px;"/>
+            <!-- Livello e XP del giocatore: aggiornata da HelloController.updateUI() -->
+            <Label fx:id="levelLabel" text="Lv. 1  XP: 0/100"
+                   style="-fx-text-fill: #c77dff; -fx-font-size: 12px; -fx-font-weight: bold;"/>
+        </VBox>
+    </top>
+
+    <!-- CENTER: immagine personaggio + log -->
+    <center>
+        <HBox spacing="16" style="-fx-padding: 16;">
+            <ImageView fx:id="playerImage"
+                       fitWidth="160" fitHeight="200"
+                       preserveRatio="true"/>
+            <TextArea fx:id="consoleArea"
+                      editable="false"
+                      wrapText="true"
+                      style="-fx-control-inner-background: #0f3460; -fx-text-fill: #e0e0e0; -fx-font-family: monospace; -fx-font-size: 13px;"
+                      HBox.hgrow="ALWAYS"/>
+        </HBox>
+    </center>
+
+    <!-- BOTTOM: carte + fine turno -->
+    <bottom>
+        <VBox alignment="CENTER" spacing="10" style="-fx-padding: 16; -fx-background-color: #16213e;">
+            <HBox alignment="CENTER" spacing="16">
+                <Button fx:id="cardBtn0" text="Carta 1" onAction="#onCard0Click"
+                        prefWidth="210" prefHeight="300"
+                        style="-fx-background-color: #2a2a4a; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                <Button fx:id="cardBtn1" text="Carta 2" onAction="#onCard1Click"
+                        prefWidth="210" prefHeight="300"
+                        style="-fx-background-color: #2a2a4a; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                <Button fx:id="cardBtn2" text="Carta 3" onAction="#onCard2Click"
+                        prefWidth="210" prefHeight="300"
+                        style="-fx-background-color: #2a2a4a; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;"/>
+            </HBox>
+            <Button text="Fine Turno &#9654;" onAction="#onEndTurnClick"
+                    style="-fx-background-color: #e63946; -fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 40; -fx-background-radius: 8; -fx-cursor: hand;"/>
+        </VBox>
+    </bottom>
+
+</BorderPane>

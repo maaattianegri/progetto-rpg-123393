@@ -12,12 +12,9 @@ public class StrikeCard implements ICard {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
             target.takeDamage(6);
-            System.out.println(user.getName() + " usa " + getName() + " e infligge 6 danni a " + target.getName() + "!");
-        } else {
-            System.out.println("Mana insufficiente per usare " + getName() + "!");
         }
     }
 
     @Override
-    public String getImagePath() { return "/images/strike.jpg"; }
+    public String getImagePath() { return "/images/strike.svg"; }
 }

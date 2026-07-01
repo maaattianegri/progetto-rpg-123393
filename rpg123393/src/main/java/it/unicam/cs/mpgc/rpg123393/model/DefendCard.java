@@ -12,10 +12,9 @@ public class DefendCard implements ICard {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
             user.addBlock(6);
-            System.out.println(user.getName() + " ottiene 6 di Armatura!");
         }
     }
 
     @Override
-    public String getImagePath() { return "/images/defend.jpg"; }
+    public String getImagePath() { return "/images/defend.svg"; }
 }
