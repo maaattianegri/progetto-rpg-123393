@@ -7,14 +7,16 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
 
-<ScrollPane fitToWidth="true"
+<ScrollPane fitToWidth="true" fitToHeight="false"
+            hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="it.unicam.cs.mpgc.rpg123393.controller.CreationController"
-            style="-fx-background-color: #1a1a2e; -fx-border-color: transparent;">
+            style="-fx-background: #1a1a2e; -fx-background-color: #1a1a2e; -fx-border-color: transparent;"
+            pannable="false">
 
   <VBox alignment="CENTER" spacing="30.0"
-        style="-fx-background-color: #1a1a2e; -fx-padding: 60;">
+        style="-fx-background-color: #1a1a2e; -fx-padding: 60; -fx-min-height: 100%;">
 
     <Label text="&#x2694; ARENA MASTER &#x2694;"
            style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
