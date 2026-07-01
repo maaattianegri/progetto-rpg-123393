@@ -5,6 +5,11 @@ import it.unicam.cs.mpgc.rpg123393.model.FireballCard;
 import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.StrikeCard;
+import it.unicam.cs.mpgc.rpg123393.model.player.ArcaneStormCard;
+import it.unicam.cs.mpgc.rpg123393.model.player.DevastatingStrikeCard;
+import it.unicam.cs.mpgc.rpg123393.model.player.DragonClawCard;
+import it.unicam.cs.mpgc.rpg123393.model.player.HolyShieldCard;
+import it.unicam.cs.mpgc.rpg123393.model.player.PoisonBladeCard;
 import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
 
 import java.time.LocalDateTime;
@@ -15,8 +20,6 @@ import java.util.Random;
 
 /**
  * Coordina il flusso principale del gioco.
- * Tiene lo stato della sessione corrente (giocatore, nemico, mazzo, mano)
- * e delega le regole a BattleService, LevelService ed EnemyFactory.
  */
 public class GameService {
 
@@ -30,7 +33,6 @@ public class GameService {
     private int           playerLevel = 1;
     private int           playerXp    = 0;
 
-    // Metadati necessari per la serializzazione del GameState
     private int    vigore;
     private int    arcano;
     private String className;
@@ -40,18 +42,9 @@ public class GameService {
     private ICard[]     hand = new ICard[3];
 
     // -------------------------------------------------------
-    // Inizializzazione partita
+    // Inizializzazione
     // -------------------------------------------------------
 
-    /**
-     * Crea il personaggio del giocatore.
-     *
-     * @param name      nome del personaggio
-     * @param vigore    governa gli HP massimi
-     * @param arcano    governa il mana massimo
-     * @param className nome della classe scelta (es. "Guerriero")
-     * @param imagePath path immagine personaggio
-     */
     public void createPlayer(String name, int vigore, int arcano, String className, String imagePath) {
         this.vigore    = vigore;
         this.arcano    = arcano;
@@ -61,25 +54,65 @@ public class GameService {
         int maxHp   = 50 + (vigore * 10);
         int maxMana = 3  + (arcano / 2);
         player = new GameCharacter(name, maxHp, maxMana);
-        buildStarterDeck();
+        buildStarterDeck(className);
     }
 
-    /**
-     * Overload retrocompatibile: usato dai controller che non passano ancora
-     * className e imagePath. className e imagePath rimangono null finché
-     * non vengono impostati tramite i setter dedicati.
-     */
     public void createPlayer(String name, int vigore, int arcano) {
         createPlayer(name, vigore, arcano, null, null);
     }
 
-    private void buildStarterDeck() {
+    /**
+     * Costruisce il mazzo iniziale in base alla classe scelta.
+     * Ogni classe ha 2 carte base comuni + 2 carte esclusive che definiscono lo stile.
+     */
+    private void buildStarterDeck(String className) {
         deck.clear();
-        deck.add(new StrikeCard());
-        deck.add(new StrikeCard());
-        deck.add(new DefendCard());
-        deck.add(new DefendCard());
-        deck.add(new FireballCard());
+        if (className == null) className = "";
+        switch (className) {
+            case "Guerriero" -> {
+                deck.add(new StrikeCard());           // 6 danni, 1 mana
+                deck.add(new StrikeCard());
+                deck.add(new DefendCard());           // 6 scudo, 1 mana
+                deck.add(new DevastatingStrikeCard()); // 12 danni, 2 mana
+                deck.add(new DevastatingStrikeCard());
+            }
+            case "Mago" -> {
+                deck.add(new FireballCard());         // 8 danni, 2 mana
+                deck.add(new FireballCard());
+                deck.add(new DefendCard());
+                deck.add(new ArcaneStormCard());      // 10+2*veleno danni, 3 mana
+                deck.add(new ArcaneStormCard());
+            }
+            case "Dracomante" -> {
+                deck.add(new StrikeCard());
+                deck.add(new FireballCard());
+                deck.add(new DefendCard());
+                deck.add(new DragonClawCard());       // 6 danni + 4 scudo, 2 mana
+                deck.add(new DragonClawCard());
+            }
+            case "Paladino" -> {
+                deck.add(new StrikeCard());
+                deck.add(new DefendCard());           // 6 scudo, 1 mana
+                deck.add(new DefendCard());
+                deck.add(new HolyShieldCard());       // 12 scudo + 4 HP, 2 mana
+                deck.add(new HolyShieldCard());
+            }
+            case "Assassino" -> {
+                deck.add(new StrikeCard());
+                deck.add(new PoisonBladeCard());      // 3 danni + 3 stack veleno, 1 mana
+                deck.add(new PoisonBladeCard());
+                deck.add(new PoisonBladeCard());
+                deck.add(new DefendCard());
+            }
+            default -> {
+                // Fallback generico (save vecchi senza className)
+                deck.add(new StrikeCard());
+                deck.add(new StrikeCard());
+                deck.add(new DefendCard());
+                deck.add(new DefendCard());
+                deck.add(new FireballCard());
+            }
+        }
     }
 
     // -------------------------------------------------------
@@ -92,8 +125,19 @@ public class GameService {
     }
 
     public void startPlayerTurn() {
-        battleService.startTurn(player);
+        String poisonMsg = battleService.startTurn(player);
         drawHand();
+        // Il messaggio veleno viene gestito da HelloController tramite getPendingMessage()
+        this.pendingMessage = poisonMsg;
+    }
+
+    private String pendingMessage = "";
+
+    /** Messaggio generato durante startPlayerTurn (es. danno veleno). */
+    public String getPendingMessage() {
+        String msg = pendingMessage;
+        pendingMessage = "";
+        return msg;
     }
 
     private void drawHand() {
@@ -115,9 +159,10 @@ public class GameService {
     }
 
     public String doEnemyTurn() {
-        battleService.startTurn(enemy);
+        String poisonMsg = battleService.startTurn(enemy);
         List<ICard> enemyCards = enemyFactory.getCardsForEnemy(enemy);
-        return battleService.enemyPlayRandomCard(enemy, player, enemyCards);
+        String actionMsg = battleService.enemyPlayRandomCard(enemy, player, enemyCards);
+        return poisonMsg.isEmpty() ? actionMsg : poisonMsg + "\n" + actionMsg;
     }
 
     public boolean isBattleOver()    { return battleService.isBattleOver(player, enemy); }
@@ -125,26 +170,19 @@ public class GameService {
     public boolean isPlayerVictory() { return battleService.isPlayerVictory(player, enemy); }
 
     // -------------------------------------------------------
-    // Progressione (XP e level up)
+    // Progressione
     // -------------------------------------------------------
 
-    /**
-     * Aggiunge XP al giocatore e gestisce level up multipli.
-     * Restituisce i messaggi da mostrare nel log.
-     */
     public List<String> addXpAndLevelUp(int xpGained) {
         playerXp += xpGained;
         List<String> messages = new ArrayList<>();
-
         while (levelService.shouldLevelUp(playerXp, playerLevel)) {
             playerXp = levelService.consumeXpForLevelUp(playerXp, playerLevel);
             playerLevel++;
-
             int newMaxHp   = player.getMaxHp()  + levelService.hpBonusOnLevelUp(playerLevel);
             int newMaxMana = player.getMaxMana() + levelService.manaBonusOnLevelUp(playerLevel);
             player.setMaxHp(newMaxHp);
             player.setMaxMana(newMaxMana);
-
             messages.add(levelService.levelUpMessage(player.getName(), playerLevel));
         }
         return messages;
@@ -154,31 +192,18 @@ public class GameService {
     // Persistenza
     // -------------------------------------------------------
 
-    /**
-     * Crea un GameState serializzabile a partire dallo stato corrente.
-     * Chiamato da VictoryController prima di invocare SaveRepository.save().
-     */
     public GameState toGameState() {
         String now = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
         return new GameState(
-                player.getName(),
-                player.getMaxHp(),
-                player.getCurrentHp(),
-                player.getMaxMana(),
-                player.getCurrentMana(),
-                playerLevel,
-                playerXp,
-                now,
+                player.getName(), player.getMaxHp(), player.getCurrentHp(),
+                player.getMaxMana(), player.getCurrentMana(),
+                playerLevel, playerXp, now,
                 className  != null ? className  : "",
                 imagePath  != null ? imagePath  : ""
         );
     }
 
-    /**
-     * Ripristina lo stato del gioco da un GameState caricato.
-     * Chiamato da HelloApplication dopo un load() riuscito.
-     */
     public void restoreFromState(GameState state) {
         this.vigore    = (state.getPlayerMaxHp()  - 50) / 10;
         this.arcano    = (state.getPlayerMaxMana() - 3)  * 2;
@@ -186,20 +211,15 @@ public class GameService {
         this.imagePath = state.getImagePath();
         this.playerLevel = state.getPlayerLevel();
         this.playerXp    = state.getPlayerXp();
-
         player = new GameCharacter(
-                state.getPlayerName(),
-                state.getPlayerMaxHp(),
-                state.getPlayerMaxMana()
-        );
+                state.getPlayerName(), state.getPlayerMaxHp(), state.getPlayerMaxMana());
         player.setCurrentHp(state.getPlayerCurrentHp());
         player.setCurrentMana(state.getPlayerCurrentMana());
-
-        buildStarterDeck();
+        buildStarterDeck(this.className);
     }
 
     // -------------------------------------------------------
-    // Getter per la UI
+    // Getter
     // -------------------------------------------------------
 
     public GameCharacter getPlayer()      { return player; }
@@ -212,7 +232,6 @@ public class GameService {
     public int           getArcano()      { return arcano; }
     public String        getClassName()   { return className; }
     public String        getImagePath()   { return imagePath; }
-
     public void setClassName(String className)  { this.className = className; }
     public void setImagePath(String imagePath)  { this.imagePath = imagePath; }
 }
