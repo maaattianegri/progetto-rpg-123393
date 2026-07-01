@@ -7,6 +7,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -23,11 +24,24 @@ import java.util.List;
  */
 public class HelloController {
 
-    @FXML private Label     playerStatsLabel;
-    @FXML private Label     enemyStatsLabel;
-    @FXML private Label     playerBlockLabel;
-    @FXML private Label     enemyIntentLabel;
-    @FXML private Label     levelLabel;
+    // --- Stats pannello nemico ---
+    @FXML private Label       enemyNameLabel;
+    @FXML private Label       enemyStatsLabel;
+    @FXML private Label       enemyIntentLabel;
+    @FXML private ProgressBar enemyHpBar;
+
+    // --- Stats pannello giocatore ---
+    @FXML private Label       playerNameLabel;
+    @FXML private Label       playerHpLabel;
+    @FXML private Label       playerManaLabel;
+    @FXML private Label       playerXpLabel;
+    @FXML private Label       playerBlockLabel;
+    @FXML private Label       levelLabel;
+    @FXML private ProgressBar playerHpBar;
+    @FXML private ProgressBar playerManaBar;
+    @FXML private ProgressBar playerXpBar;
+
+    // --- Carte e log ---
     @FXML private Button    cardBtn0;
     @FXML private Button    cardBtn1;
     @FXML private Button    cardBtn2;
@@ -44,11 +58,7 @@ public class HelloController {
     // Inizializzazione
     // -------------------------------------------------------
 
-    /**
-     * Chiamato da CreationController: nuova partita da zero.
-     * Crea il GameService, il player, poi avvia la battaglia.
-     * className è passato a GameService per la corretta serializzazione del save.
-     */
+    /** Nuova partita da zero (senza className). */
     public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
         this.vigore      = vigore;
@@ -57,16 +67,12 @@ public class HelloController {
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano);
         gameService.setImagePath(imagePath);
-
         loadPlayerImage(imagePath);
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
 
-    /**
-     * Overload con className esplicito: usato da CreationController
-     * quando la classe è nota, così il save avrà className popolato.
-     */
+    /** Nuova partita con className esplicito — save completo dalla prima vittoria. */
     public void initData(String name, int vigore, int arcano,
                          String imagePath, String className) {
         this.playerName  = name;
@@ -75,16 +81,12 @@ public class HelloController {
         this.imagePath   = imagePath;
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano, className, imagePath);
-
         loadPlayerImage(imagePath);
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
 
-    /**
-     * Chiamato da VictoryController: riusa il GameService esistente
-     * (progressione intatta: livello, XP, HP correnti conservati).
-     */
+    /** Continua partita — riusa GameService esistente (progressione intatta). */
     public void initData(String name, int vigore, int arcano,
                          String imagePath, GameService existingService) {
         this.playerName  = name;
@@ -92,9 +94,8 @@ public class HelloController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.gameService = existingService;
-
         loadPlayerImage(imagePath);
-        log("Benvenuto, " + name + "! Preparati a combattere.");
+        log("Bentornato, " + name + "! Continua la tua avventura.");
         startBattle();
     }
 
@@ -127,7 +128,7 @@ public class HelloController {
 
     private void playCard(int index, Button button) {
         if (!gameService.canPlayCard(index)) {
-            log("Mana insufficiente per questa carta!");
+            log("❌ Mana insufficiente per questa carta!");
             return;
         }
         log(gameService.playCard(index));
@@ -147,7 +148,7 @@ public class HelloController {
     }
 
     // -------------------------------------------------------
-    // Esito battaglia → naviga a Victory o Game Over
+    // Esito battaglia
     // -------------------------------------------------------
 
     private void handleBattleEnd() {
@@ -172,7 +173,6 @@ public class HelloController {
                     getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/victory-view.fxml"));
             Stage stage = (Stage) consoleArea.getScene().getWindow();
             stage.setScene(new Scene(loader.load(), 800, 600));
-
             VictoryController ctrl = loader.getController();
             ctrl.initData(gameService, xpGained, levelUpMsgs,
                     playerName, vigore, arcano, imagePath);
@@ -187,7 +187,6 @@ public class HelloController {
                     getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml"));
             Stage stage = (Stage) consoleArea.getScene().getWindow();
             stage.setScene(new Scene(loader.load(), 800, 500));
-
             GameOverController ctrl = loader.getController();
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) {
@@ -203,22 +202,24 @@ public class HelloController {
         var p = gameService.getPlayer();
         var e = gameService.getEnemy();
 
-        playerStatsLabel.setText(
-            p.getName()
-            + "  HP: " + p.getCurrentHp() + "/" + p.getMaxHp()
-            + "  MANA: " + p.getCurrentMana() + "/" + p.getMaxMana()
-        );
-        playerBlockLabel.setText("Scudo: " + p.getBlock());
-        enemyStatsLabel.setText(
-            e.getName() + "  HP: " + e.getCurrentHp() + "/" + e.getMaxHp()
-        );
-        if (levelLabel != null) {
-            levelLabel.setText(
-                "Lv. " + gameService.getPlayerLevel()
-                + "  XP: " + gameService.getPlayerXp()
-                + "/" + gameService.getXpRequired()
-            );
-        }
+        // --- Giocatore ---
+        if (playerNameLabel != null) playerNameLabel.setText(p.getName());
+        playerHpLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
+        playerManaLabel.setText(p.getCurrentMana() + "/" + p.getMaxMana());
+        playerBlockLabel.setText("🛡 " + p.getBlock());
+        playerHpBar.setProgress((double) p.getCurrentHp()   / p.getMaxHp());
+        playerManaBar.setProgress((double) p.getCurrentMana() / p.getMaxMana());
+
+        int xpReq = gameService.getXpRequired();
+        int xpCur = gameService.getPlayerXp();
+        playerXpLabel.setText(xpCur + "/" + xpReq);
+        playerXpBar.setProgress(xpReq > 0 ? (double) xpCur / xpReq : 0);
+        levelLabel.setText("Lv. " + gameService.getPlayerLevel());
+
+        // --- Nemico ---
+        enemyNameLabel.setText(e.getName());
+        enemyStatsLabel.setText("HP: " + e.getCurrentHp() + "/" + e.getMaxHp());
+        enemyHpBar.setProgress((double) e.getCurrentHp() / e.getMaxHp());
     }
 
     private void refreshCardButtons() {
@@ -229,17 +230,23 @@ public class HelloController {
             ICard  card   = hand[i];
             Button button = buttons[i];
 
+            // Prova prima il path assoluto, poi quello relativo al classloader
             InputStream stream = getClass().getResourceAsStream(card.getImagePath());
+            if (stream == null) {
+                stream = getClass().getClassLoader()
+                        .getResourceAsStream(card.getImagePath().replaceFirst("^/", ""));
+            }
+
             if (stream != null) {
                 ImageView iv = new ImageView(new Image(stream));
-                iv.setFitWidth(200);
-                iv.setFitHeight(280);
+                iv.setFitWidth(186);
+                iv.setFitHeight(256);
                 iv.setPreserveRatio(false);
                 button.setGraphic(iv);
                 button.setText("");
             } else {
                 button.setGraphic(null);
-                button.setText(card.getName() + "\n(" + card.getManaCost() + " mana)");
+                button.setText(card.getName() + "\n" + card.getManaCost() + " mana");
             }
             button.setDisable(false);
         }
@@ -247,9 +254,7 @@ public class HelloController {
 
     private void updateEnemyIntent() {
         if (enemyIntentLabel != null && gameService.getEnemy() != null) {
-            enemyIntentLabel.setText(
-                "Intento: " + gameService.getEnemy().getName() + " si prepara ad agire."
-            );
+            enemyIntentLabel.setText("⚔️ " + gameService.getEnemy().getName() + " si prepara ad agire");
         }
     }
 
@@ -262,6 +267,9 @@ public class HelloController {
     private void loadPlayerImage(String path) {
         if (path == null) return;
         InputStream stream = getClass().getResourceAsStream(path);
+        if (stream == null)
+            stream = getClass().getClassLoader()
+                    .getResourceAsStream(path.replaceFirst("^/", ""));
         if (stream != null) playerImage.setImage(new Image(stream));
     }
 
