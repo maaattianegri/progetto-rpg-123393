@@ -96,17 +96,23 @@ public class HelloController {
     private void startBattle() {
         gameService.startBattle();
         log("\n=== NUOVO SCONTRO ===");
-        log("Il tuo avversario è: " + gameService.getEnemy().getName());
+        log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurn();
     }
 
     private void startPlayerTurn() {
         gameService.startPlayerTurn();
+        String pending = gameService.getPendingMessage();
+        if (pending != null && !pending.isEmpty()) log(pending);
         log("\n--- IL TUO TURNO ---");
         updateEnemyIntent();
         refreshCardButtons();
         updateUI();
     }
+
+    // -------------------------------------------------------
+    // Azioni giocatore
+    // -------------------------------------------------------
 
     @FXML private void onCard0Click() { playCard(0, cardBtn0); }
     @FXML private void onCard1Click() { playCard(1, cardBtn1); }
@@ -140,7 +146,6 @@ public class HelloController {
     private void handleBattleEnd() {
         log("\n" + gameService.getBattleResult());
         disableAllCardButtons();
-
         if (gameService.isPlayerVictory()) {
             int xpGained = 50 + gameService.getPlayerLevel() * 20;
             List<String> msgs = gameService.addXpAndLevelUp(xpGained);
@@ -159,11 +164,8 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/victory-view.fxml");
             VictoryController ctrl = loader.getController();
-            ctrl.initData(gameService, xpGained, levelUpMsgs,
-                    playerName, vigore, arcano, imagePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            ctrl.initData(gameService, xpGained, levelUpMsgs, playerName, vigore, arcano, imagePath);
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     private void navigateToGameOver() {
@@ -173,13 +175,11 @@ public class HelloController {
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml");
             GameOverController ctrl = loader.getController();
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     // -------------------------------------------------------
-    // Aggiornamento UI
+    // UI
     // -------------------------------------------------------
 
     private void updateUI() {
@@ -189,8 +189,12 @@ public class HelloController {
         if (playerNameLabel != null) playerNameLabel.setText(p.getName());
         playerHpLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         playerManaLabel.setText(p.getCurrentMana() + "/" + p.getMaxMana());
-        playerBlockLabel.setText("[Scudo: " + p.getBlock() + "]");
-        playerHpBar.setProgress((double) p.getCurrentHp()   / p.getMaxHp());
+
+        String blockText = "[Scudo: " + p.getBlock() + "]";
+        if (p.getPoison() > 0) blockText += "  [Veleno: " + p.getPoison() + "]";
+        playerBlockLabel.setText(blockText);
+
+        playerHpBar.setProgress((double) p.getCurrentHp()    / p.getMaxHp());
         playerManaBar.setProgress((double) p.getCurrentMana() / p.getMaxMana());
 
         int xpReq = gameService.getXpRequired();
@@ -199,7 +203,9 @@ public class HelloController {
         playerXpBar.setProgress(xpReq > 0 ? (double) xpCur / xpReq : 0);
         levelLabel.setText("Lv. " + gameService.getPlayerLevel());
 
-        enemyNameLabel.setText(e.getName());
+        String enemyName = e.getName();
+        if (e.getPoison() > 0) enemyName += "  [Veleno: " + e.getPoison() + "]"; 
+        enemyNameLabel.setText(enemyName);
         enemyStatsLabel.setText("HP: " + e.getCurrentHp() + "/" + e.getMaxHp());
         enemyHpBar.setProgress((double) e.getCurrentHp() / e.getMaxHp());
     }
@@ -217,33 +223,27 @@ public class HelloController {
     private VBox buildCardGraphic(ICard card) {
         String name = card.getName();
         int    cost = card.getManaCost();
+        String nameLower = name.toLowerCase();
 
         String symbol;
         String borderColor;
         String glowColor;
 
-        String nameLower = name.toLowerCase();
-        if (nameLower.contains("fuoco") || nameLower.contains("fireball")
+        if (nameLower.contains("veleno") || nameLower.contains("avvelena") || nameLower.contains("lama")) {
+            symbol = "~~~"; borderColor = "#27ae60"; glowColor = "#27ae60";
+        } else if (nameLower.contains("scudo") || nameLower.contains("sacro")
+                || nameLower.contains("defend") || nameLower.contains("fortezza")) {
+            symbol = "[ ]"; borderColor = "#3498db"; glowColor = "#3498db";
+        } else if (nameLower.contains("fuoco") || nameLower.contains("fireball")
                 || nameLower.contains("fiamma") || nameLower.contains("arcana")
-                || nameLower.contains("fulmine") || nameLower.contains("nova")) {
-            symbol = "***";
-            borderColor = "#e67e22";
-            glowColor   = "#e67e22";
-        } else if (nameLower.contains("difesa") || nameLower.contains("scudo")
-                || nameLower.contains("defend") || nameLower.contains("fortezza")
-                || nameLower.contains("legno") || nameLower.contains("rigeneraz")
-                || nameLower.contains("scagli")) {
-            symbol = "[ ]";
-            borderColor = "#3498db";
-            glowColor   = "#3498db";
+                || nameLower.contains("tempesta") || nameLower.contains("artiglio")) {
+            symbol = "***"; borderColor = "#e67e22"; glowColor = "#e67e22";
         } else {
-            symbol = "/ \\";
-            borderColor = "#e74c3c";
-            glowColor   = "#e74c3c";
+            symbol = "/ \\"; borderColor = "#e74c3c"; glowColor = "#e74c3c";
         }
 
-        // Costo mana come barre testo
-        String manaStr = "[" + "*".repeat(Math.min(cost, 6)) + "." .repeat(Math.max(0, 6 - cost)) + "]";
+        String manaStr = "[" + "*".repeat(Math.min(cost, 6))
+                + ".".repeat(Math.max(0, 6 - cost)) + "]";
 
         Label symbolLabel = new Label(symbol);
         symbolLabel.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: " + borderColor + ";");
@@ -277,27 +277,21 @@ public class HelloController {
     }
 
     private void updateEnemyIntent() {
-        if (enemyIntentLabel != null && gameService.getEnemy() != null) {
+        if (enemyIntentLabel != null && gameService.getEnemy() != null)
             enemyIntentLabel.setText(">> " + gameService.getEnemy().getName() + " si prepara ad agire");
-        }
     }
 
     private void disableAllCardButtons() {
-        cardBtn0.setDisable(true);
-        cardBtn1.setDisable(true);
-        cardBtn2.setDisable(true);
+        cardBtn0.setDisable(true); cardBtn1.setDisable(true); cardBtn2.setDisable(true);
     }
 
     private void loadPlayerImage(String path) {
         if (path == null) return;
         InputStream stream = getClass().getResourceAsStream(path);
         if (stream == null)
-            stream = getClass().getClassLoader()
-                    .getResourceAsStream(path.replaceFirst("^/", ""));
+            stream = getClass().getClassLoader().getResourceAsStream(path.replaceFirst("^/", ""));
         if (stream != null) playerImage.setImage(new Image(stream));
     }
 
-    private void log(String msg) {
-        consoleArea.appendText(msg + "\n");
-    }
+    private void log(String msg) { consoleArea.appendText(msg + "\n"); }
 }

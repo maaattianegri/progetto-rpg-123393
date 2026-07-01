@@ -33,10 +33,9 @@ public class CreationController {
                     continueSection.setManaged(true);
                     continueInfoLabel.setText(
                             loadedState.getPlayerName()
-                            + "  ·  " + loadedState.getClassName()
-                            + "  ·  Livello " + loadedState.getPlayerLevel()
-                            + "  ·  Salvato: " + loadedState.getSaveDate()
-                    );
+                            + "  -  " + loadedState.getClassName()
+                            + "  -  Livello " + loadedState.getPlayerLevel()
+                            + "  -  Salvato: " + loadedState.getSaveDate());
                 }
             } catch (IOException e) {
                 System.err.println("[WARN] Impossibile leggere il salvataggio: " + e.getMessage());
@@ -53,51 +52,42 @@ public class CreationController {
         try {
             GameService gameService = new GameService();
             gameService.restoreFromState(loadedState);
-            gameService.startBattle();
-
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-
             HelloController ctrl = loader.getController();
-            ctrl.initData(
-                    loadedState.getPlayerName(),
-                    gameService.getVigore(),
-                    gameService.getArcano(),
-                    loadedState.getImagePath(),
-                    gameService
-            );
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            ctrl.initData(loadedState.getPlayerName(),
+                    gameService.getVigore(), gameService.getArcano(),
+                    loadedState.getImagePath(), gameService);
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
-    @FXML private void selectWarrior(ActionEvent event) {
-        startGame(event, 8, 3, "/images/tank.jpg", "Guerriero");
+    @FXML private void selectWarrior(ActionEvent e) {
+        startGame(e, 8, 3, "/images/tank.jpg", "Guerriero");
     }
-
-    @FXML private void selectMage(ActionEvent event) {
-        startGame(event, 3, 8, "/images/mago.jpg", "Mago");
+    @FXML private void selectMage(ActionEvent e) {
+        startGame(e, 3, 8, "/images/mago.jpg", "Mago");
     }
-
-    @FXML private void selectDragon(ActionEvent event) {
-        startGame(event, 6, 6, "/images/dragon.jpg", "Dracomante");
+    @FXML private void selectDragon(ActionEvent e) {
+        startGame(e, 6, 6, "/images/dragon.jpg", "Dracomante");
+    }
+    @FXML private void selectPaladin(ActionEvent e) {
+        startGame(e, 7, 5, "/images/tank.jpg", "Paladino");
+    }
+    @FXML private void selectAssassin(ActionEvent e) {
+        startGame(e, 4, 6, "/images/mago.jpg", "Assassino");
     }
 
     private void startGame(ActionEvent event, int vigore, int arcano,
                            String imagePath, String className) {
         try {
             String playerName = nameField.getText().trim();
-            if (playerName.isEmpty()) { playerName = "Eroe Sconosciuto"; }
-
+            if (playerName.isEmpty()) playerName = "Eroe Sconosciuto";
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-
             HelloController ctrl = loader.getController();
             ctrl.initData(playerName, vigore, arcano, imagePath, className);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ex) { ex.printStackTrace(); }
     }
 }
