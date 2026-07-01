@@ -8,7 +8,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -19,39 +23,31 @@ import java.util.List;
 public class HelloController {
 
     // --- Elementi FXML ---
-    @FXML private Label    playerStatsLabel;
-    @FXML private Label    enemyStatsLabel;
-    @FXML private Label    playerBlockLabel;
-    @FXML private Label    enemyIntentLabel;
-    @FXML private Label    levelLabel;
-    @FXML private Button   cardBtn0;
-    @FXML private Button   cardBtn1;
-    @FXML private Button   cardBtn2;
-    @FXML private TextArea consoleArea;
+    @FXML private Label     playerStatsLabel;
+    @FXML private Label     enemyStatsLabel;
+    @FXML private Label     playerBlockLabel;
+    @FXML private Label     enemyIntentLabel;
+    @FXML private Label     levelLabel;
+    @FXML private Button    cardBtn0;
+    @FXML private Button    cardBtn1;
+    @FXML private Button    cardBtn2;
+    @FXML private TextArea  consoleArea;
     @FXML private ImageView playerImage;
 
-    // --- Servizio di gioco (unica dipendenza dalla logica) ---
+    // --- Servizio di gioco ---
     private GameService gameService;
-
-    // Percorso immagine personaggio, passato da CreationController
-    private String imagePath;
+    private String      imagePath;
 
     // -------------------------------------------------------
     // Inizializzazione
     // -------------------------------------------------------
 
-    /**
-     * Chiamato da CreationController dopo la scelta della classe.
-     * Inizializza GameService e avvia il primo scontro.
-     */
     public void initData(String name, int forza, int vitalita, String imagePath) {
         this.imagePath   = imagePath;
         this.gameService = new GameService();
-
         gameService.createPlayer(name, forza, vitalita);
 
-        playerImage.setImage(new Image(getClass().getResourceAsStream(imagePath)));
-
+        loadPlayerImage(imagePath);
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
@@ -60,7 +56,6 @@ public class HelloController {
     // Flusso di battaglia
     // -------------------------------------------------------
 
-    /** Avvia un nuovo scontro contro un nemico scalato sul livello corrente. */
     private void startBattle() {
         gameService.startBattle();
         log("\n=== NUOVO SCONTRO ===");
@@ -68,7 +63,6 @@ public class HelloController {
         startPlayerTurn();
     }
 
-    /** Prepara il turno del giocatore: aggiorna la mano e la UI. */
     private void startPlayerTurn() {
         gameService.startPlayerTurn();
         log("\n--- IL TUO TURNO ---");
@@ -78,7 +72,7 @@ public class HelloController {
     }
 
     // -------------------------------------------------------
-    // Azioni giocatore (chiamate dai bottoni FXML)
+    // Azioni giocatore
     // -------------------------------------------------------
 
     @FXML private void onCard0Click() { playCard(0, cardBtn0); }
@@ -90,34 +84,24 @@ public class HelloController {
             log("Mana insufficiente per questa carta!");
             return;
         }
-        String msg = gameService.playCard(index);
-        log(msg);
+        log(gameService.playCard(index));
         button.setDisable(true);
         updateUI();
-
-        if (gameService.isBattleOver()) {
-            handleBattleEnd();
-        }
+        if (gameService.isBattleOver()) handleBattleEnd();
     }
 
     @FXML
     private void onEndTurnClick() {
         if (gameService.isBattleOver()) return;
-
         log("\n--- TURNO DEL NEMICO ---");
-        String enemyMsg = gameService.doEnemyTurn();
-        log(enemyMsg);
+        log(gameService.doEnemyTurn());
         updateUI();
-
-        if (gameService.isBattleOver()) {
-            handleBattleEnd();
-        } else {
-            startPlayerTurn();
-        }
+        if (gameService.isBattleOver()) handleBattleEnd();
+        else startPlayerTurn();
     }
 
     // -------------------------------------------------------
-    // Gestione esito battaglia
+    // Esito battaglia
     // -------------------------------------------------------
 
     private void handleBattleEnd() {
@@ -125,42 +109,57 @@ public class HelloController {
         disableAllCardButtons();
 
         if (gameService.isPlayerVictory()) {
-            // XP guadagnata: base 50 + livello nemico * 20
             int xpGained = 50 + gameService.getPlayerLevel() * 20;
-            List<String> levelUpMsgs = gameService.addXpAndLevelUp(xpGained);
-
+            List<String> msgs = gameService.addXpAndLevelUp(xpGained);
             log("Hai guadagnato " + xpGained + " XP!");
-            for (String lvMsg : levelUpMsgs) {
-                log("🌟 " + lvMsg);
-            }
+            msgs.forEach(m -> log("⭐ " + m));
             updateUI();
-
-            // TODO: aggiungere pulsante "Prossimo scontro" nella FXML
-            // Per ora il giocatore può solo vedere il risultato
+            // Mostra il bottone "Prossimo Scontro"
+            showNextBattleButton();
         }
+    }
+
+    /**
+     * Crea dinamicamente un bottone "Prossimo Scontro" e lo aggiunge
+     * al pannello centrale (workaround finché non è in FXML).
+     * Fix 4 lo sposterà nella FXML in modo permanente.
+     */
+    private void showNextBattleButton() {
+        // cardBtn2 viene riusato come "Prossimo Scontro" finché non abbiamo la FXML definitiva
+        cardBtn2.setDisable(false);
+        cardBtn2.setGraphic(null);
+        cardBtn2.setText("⚔️ Prossimo Scontro");
+        cardBtn2.setStyle("-fx-background-color: #4ecca3; -fx-text-fill: #1a1a2e; "
+                        + "-fx-font-size: 14px; -fx-font-weight: bold; "
+                        + "-fx-background-radius: 10; -fx-cursor: hand;");
+        // Sovrascrivi l'handler: al click lancia un nuovo scontro
+        cardBtn2.setOnAction(e -> {
+            cardBtn2.setText("Carta 3");
+            cardBtn2.setStyle("-fx-background-color: #2a2a4a; -fx-text-fill: white; "
+                            + "-fx-background-radius: 10; -fx-cursor: hand;");
+            cardBtn2.setOnAction(ev -> onCard2Click());
+            startBattle();
+        });
     }
 
     // -------------------------------------------------------
     // Aggiornamento UI
     // -------------------------------------------------------
 
-    /** Aggiorna tutte le label con i dati correnti di GameService. */
     private void updateUI() {
-        var player = gameService.getPlayer();
-        var enemy  = gameService.getEnemy();
+        var p = gameService.getPlayer();
+        var e = gameService.getEnemy();
 
+        // FIX 3: getMaxMana() al posto di getMaxHp() per il mana
         playerStatsLabel.setText(
-            player.getName()
-            + "  HP: " + player.getCurrentHp() + "/" + player.getMaxHp()
-            + "  MANA: " + player.getCurrentMana() + "/" + player.getMaxHp()
+            p.getName()
+            + "  HP: " + p.getCurrentHp() + "/" + p.getMaxHp()
+            + "  MANA: " + p.getCurrentMana() + "/" + p.getMaxMana()
         );
-        playerBlockLabel.setText("Scudo: " + player.getBlock());
+        playerBlockLabel.setText("Scudo: " + p.getBlock());
         enemyStatsLabel.setText(
-            enemy.getName()
-            + "  HP: " + enemy.getCurrentHp() + "/" + enemy.getMaxHp()
+            e.getName() + "  HP: " + e.getCurrentHp() + "/" + e.getMaxHp()
         );
-
-        // Livello e XP (usa levelLabel se presente in FXML)
         if (levelLabel != null) {
             levelLabel.setText(
                 "Lv. " + gameService.getPlayerLevel()
@@ -170,27 +169,42 @@ public class HelloController {
         }
     }
 
-    /** Mostra le carte pescate nella mano aggiornando i bottoni. */
+    /**
+     * Aggiorna i bottoni delle carte con le immagini della mano corrente.
+     * Null-safe: se l'immagine non si carica mostra un fallback testuale
+     * invece di crashare.
+     */
     private void refreshCardButtons() {
-        ICard[] hand    = gameService.getHand();
+        ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
 
         for (int i = 0; i < buttons.length; i++) {
-            ICard card = hand[i];
-            Image cardImg = new Image(getClass().getResourceAsStream(card.getImagePath()));
-            ImageView iv  = new ImageView(cardImg);
-            iv.setFitWidth(200);
-            iv.setFitHeight(280);
-            iv.setPreserveRatio(false);
-            buttons[i].setGraphic(iv);
-            buttons[i].setDisable(false);
+            ICard  card   = hand[i];
+            Button button = buttons[i];
+
+            InputStream stream = getClass().getResourceAsStream(card.getImagePath());
+            if (stream != null) {
+                // Immagine trovata: mostrala normalmente
+                ImageView iv = new ImageView(new Image(stream));
+                iv.setFitWidth(200);
+                iv.setFitHeight(280);
+                iv.setPreserveRatio(false);
+                button.setGraphic(iv);
+                button.setText("");
+            } else {
+                // Immagine mancante: fallback testuale, nessun crash
+                button.setGraphic(null);
+                button.setText(card.getName() + "\n(" + card.getManaCost() + " mana)");
+            }
+            button.setDisable(false);
         }
     }
 
-    /** Aggiorna la label dell'intento nemico (attacco stimato). */
     private void updateEnemyIntent() {
         if (enemyIntentLabel != null && gameService.getEnemy() != null) {
-            enemyIntentLabel.setText("Intento: " + gameService.getEnemy().getName() + " si prepara ad agire.");
+            enemyIntentLabel.setText(
+                "Intento: " + gameService.getEnemy().getName() + " si prepara ad agire."
+            );
         }
     }
 
@@ -200,7 +214,16 @@ public class HelloController {
         cardBtn2.setDisable(true);
     }
 
-    /** Scrive una riga nel log visibile a schermo. */
+    /**
+     * Carica l'immagine del personaggio in modo null-safe.
+     * Se il path non esiste non crasha, lascia l'ImageView vuota.
+     */
+    private void loadPlayerImage(String path) {
+        if (path == null) return;
+        InputStream stream = getClass().getResourceAsStream(path);
+        if (stream != null) playerImage.setImage(new Image(stream));
+    }
+
     private void log(String msg) {
         consoleArea.appendText(msg + "\n");
     }
