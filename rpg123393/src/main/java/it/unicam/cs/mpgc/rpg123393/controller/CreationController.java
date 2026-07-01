@@ -91,17 +91,14 @@ public class CreationController {
     // Nuova partita — selezione classe
     // -------------------------------------------------------
 
-    // Guerriero: Vigore 8 · Arcano 3
     @FXML private void selectWarrior(ActionEvent event) {
         startGame(event, 8, 3, "/images/tank.jpg", "Guerriero");
     }
 
-    // Mago: Vigore 3 · Arcano 8
     @FXML private void selectMage(ActionEvent event) {
         startGame(event, 3, 8, "/images/mago.jpg", "Mago");
     }
 
-    // Dracomante: Vigore 6 · Arcano 6
     @FXML private void selectDragon(ActionEvent event) {
         startGame(event, 6, 6, "/images/dragon.jpg", "Dracomante");
     }
@@ -116,11 +113,8 @@ public class CreationController {
                     getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml"));
             Parent root = loader.load();
 
-            HelloController battleController = loader.getController();
-            battleController.initData(playerName, vigore, arcano, imagePath);
-
-            // Passa className e imagePath al GameService tramite il controller
-            // (il controller li salverà quando creerà il GameService internamente)
+            HelloController ctrl = loader.getController();
+            ctrl.initData(playerName, vigore, arcano, imagePath, className);
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root, 700, 750));
