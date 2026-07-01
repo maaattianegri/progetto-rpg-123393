@@ -12,10 +12,9 @@ public class FireballCard implements ICard {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
             target.takeDamage(14);
-            System.out.println(user.getName() + " lancia una Palla di Fuoco!");
         }
     }
 
     @Override
-    public String getImagePath() { return "/images/fireball.jpg"; }
+    public String getImagePath() { return "/images/fireball.svg"; }
 }
