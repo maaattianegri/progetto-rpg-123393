@@ -5,7 +5,6 @@ import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -19,20 +18,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-/**
- * Controller della schermata di battaglia.
- * Responsabilità: aggiornare la UI in base ai risultati restituiti da GameService.
- * NON contiene logica di gioco: ogni decisione è delegata a GameService.
- */
 public class HelloController {
 
-    // --- Pannello nemico ---
     @FXML private Label       enemyNameLabel;
     @FXML private Label       enemyStatsLabel;
     @FXML private Label       enemyIntentLabel;
     @FXML private ProgressBar enemyHpBar;
 
-    // --- Pannello giocatore ---
     @FXML private Label       playerNameLabel;
     @FXML private Label       playerHpLabel;
     @FXML private Label       playerManaLabel;
@@ -43,7 +35,6 @@ public class HelloController {
     @FXML private ProgressBar playerManaBar;
     @FXML private ProgressBar playerXpBar;
 
-    // --- Carte e log ---
     @FXML private Button    cardBtn0;
     @FXML private Button    cardBtn1;
     @FXML private Button    cardBtn2;
@@ -117,17 +108,13 @@ public class HelloController {
         updateUI();
     }
 
-    // -------------------------------------------------------
-    // Azioni giocatore
-    // -------------------------------------------------------
-
     @FXML private void onCard0Click() { playCard(0, cardBtn0); }
     @FXML private void onCard1Click() { playCard(1, cardBtn1); }
     @FXML private void onCard2Click() { playCard(2, cardBtn2); }
 
     private void playCard(int index, Button button) {
         if (!gameService.canPlayCard(index)) {
-            log("❌ Mana insufficiente per questa carta!");
+            log("[!] Mana insufficiente per questa carta!");
             return;
         }
         log(gameService.playCard(index));
@@ -158,7 +145,7 @@ public class HelloController {
             int xpGained = 50 + gameService.getPlayerLevel() * 20;
             List<String> msgs = gameService.addXpAndLevelUp(xpGained);
             log("Hai guadagnato " + xpGained + " XP!");
-            msgs.forEach(m -> log("⭐ " + m));
+            msgs.forEach(m -> log("** " + m));
             updateUI();
             navigateToVictory(xpGained, msgs);
         } else {
@@ -168,10 +155,9 @@ public class HelloController {
 
     private void navigateToVictory(int xpGained, List<String> levelUpMsgs) {
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/victory-view.fxml"));
             Stage stage = (Stage) consoleArea.getScene().getWindow();
-            stage.setScene(new Scene(loader.load(), 800, 600));
+            FXMLLoader loader = SceneNavigator.navigateTo(
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/victory-view.fxml");
             VictoryController ctrl = loader.getController();
             ctrl.initData(gameService, xpGained, levelUpMsgs,
                     playerName, vigore, arcano, imagePath);
@@ -182,10 +168,9 @@ public class HelloController {
 
     private void navigateToGameOver() {
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml"));
             Stage stage = (Stage) consoleArea.getScene().getWindow();
-            stage.setScene(new Scene(loader.load(), 800, 500));
+            FXMLLoader loader = SceneNavigator.navigateTo(
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml");
             GameOverController ctrl = loader.getController();
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) {
@@ -204,7 +189,7 @@ public class HelloController {
         if (playerNameLabel != null) playerNameLabel.setText(p.getName());
         playerHpLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         playerManaLabel.setText(p.getCurrentMana() + "/" + p.getMaxMana());
-        playerBlockLabel.setText("🛡 " + p.getBlock());
+        playerBlockLabel.setText("[Scudo: " + p.getBlock() + "]");
         playerHpBar.setProgress((double) p.getCurrentHp()   / p.getMaxHp());
         playerManaBar.setProgress((double) p.getCurrentMana() / p.getMaxMana());
 
@@ -219,88 +204,81 @@ public class HelloController {
         enemyHpBar.setProgress((double) e.getCurrentHp() / e.getMaxHp());
     }
 
-    /**
-     * Disegna ogni carta come VBox stilizzata con emoji, nome e costo mana.
-     * Usa colori diversi per tipo di carta invece di SVG (non supportato da JavaFX).
-     */
     private void refreshCardButtons() {
         ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
-
         for (int i = 0; i < buttons.length; i++) {
-            ICard  card   = hand[i];
-            Button button = buttons[i];
-
-            button.setGraphic(buildCardGraphic(card));
-            button.setText("");
-            button.setDisable(false);
+            buttons[i].setGraphic(buildCardGraphic(hand[i]));
+            buttons[i].setText("");
+            buttons[i].setDisable(false);
         }
     }
 
-    /**
-     * Costruisce il grafico visivo di una carta: emoji grande, nome, costo mana.
-     * Il colore del bordo cambia in base al tipo di carta.
-     */
     private VBox buildCardGraphic(ICard card) {
         String name = card.getName();
         int    cost = card.getManaCost();
 
-        // Emoji e colore per tipo carta
-        String emoji;
+        String symbol;
         String borderColor;
         String glowColor;
 
-        if (name.toLowerCase().contains("fuoco") || name.toLowerCase().contains("fireball")
-                || name.toLowerCase().contains("fiamma")) {
-            emoji = "🔥";
+        String nameLower = name.toLowerCase();
+        if (nameLower.contains("fuoco") || nameLower.contains("fireball")
+                || nameLower.contains("fiamma") || nameLower.contains("arcana")
+                || nameLower.contains("fulmine") || nameLower.contains("nova")) {
+            symbol = "***";
             borderColor = "#e67e22";
             glowColor   = "#e67e22";
-        } else if (name.toLowerCase().contains("difesa") || name.toLowerCase().contains("scudo")
-                || name.toLowerCase().contains("defend") || name.toLowerCase().contains("fortezza")) {
-            emoji = "🛡";
+        } else if (nameLower.contains("difesa") || nameLower.contains("scudo")
+                || nameLower.contains("defend") || nameLower.contains("fortezza")
+                || nameLower.contains("legno") || nameLower.contains("rigeneraz")
+                || nameLower.contains("scagli")) {
+            symbol = "[ ]";
             borderColor = "#3498db";
             glowColor   = "#3498db";
         } else {
-            // Attacco generico (colpo, spada, frenesia, ecc.)
-            emoji = "⚔️";
+            symbol = "/ \\";
             borderColor = "#e74c3c";
             glowColor   = "#e74c3c";
         }
 
-        // Mana cost label in alto a destra: pallini blu
-        String manaStr = "🔵".repeat(Math.min(cost, 6));
+        // Costo mana come barre testo
+        String manaStr = "[" + "*".repeat(Math.min(cost, 6)) + "." .repeat(Math.max(0, 6 - cost)) + "]";
 
-        Label emojiLabel = new Label(emoji);
-        emojiLabel.setStyle("-fx-font-size: 52px;");
+        Label symbolLabel = new Label(symbol);
+        symbolLabel.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: " + borderColor + ";");
 
         Label nameLabel = new Label(name);
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-wrap-text: true; -fx-text-alignment: center;");
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;");
         nameLabel.setMaxWidth(160);
         nameLabel.setWrapText(true);
+        nameLabel.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Label manaLabel = new Label(manaStr);
-        manaLabel.setStyle("-fx-font-size: 14px; -fx-padding: 6 0 0 0;");
+        Label costLabel = new Label("Mana: " + cost);
+        costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 12px;");
 
-        VBox card_box = new VBox(10, emojiLabel, nameLabel, manaLabel);
-        card_box.setAlignment(Pos.CENTER);
-        card_box.setStyle(
-            "-fx-background-color: #1e1e3a;"
-            + "-fx-background-radius: 10;"
-            + "-fx-border-color: " + borderColor + ";"
-            + "-fx-border-radius: 10;"
-            + "-fx-border-width: 2;"
-            + "-fx-padding: 16;"
-            + "-fx-pref-width: 170;"
-            + "-fx-pref-height: 240;"
-            + "-fx-effect: dropshadow(gaussian, " + glowColor + ", 10, 0.3, 0, 0);"
+        Label manaBarLabel = new Label(manaStr);
+        manaBarLabel.setStyle("-fx-text-fill: #7c3aed; -fx-font-size: 11px; -fx-font-family: monospace;");
+
+        VBox cardBox = new VBox(12, symbolLabel, nameLabel, costLabel, manaBarLabel);
+        cardBox.setAlignment(Pos.CENTER);
+        cardBox.setStyle(
+                "-fx-background-color: #1e1e3a;"
+                + "-fx-background-radius: 10;"
+                + "-fx-border-color: " + borderColor + ";"
+                + "-fx-border-radius: 10;"
+                + "-fx-border-width: 2;"
+                + "-fx-padding: 16;"
+                + "-fx-pref-width: 170;"
+                + "-fx-pref-height: 240;"
+                + "-fx-effect: dropshadow(gaussian, " + glowColor + ", 10, 0.3, 0, 0);"
         );
-
-        return card_box;
+        return cardBox;
     }
 
     private void updateEnemyIntent() {
         if (enemyIntentLabel != null && gameService.getEnemy() != null) {
-            enemyIntentLabel.setText("⚔️ " + gameService.getEnemy().getName() + " si prepara ad agire");
+            enemyIntentLabel.setText(">> " + gameService.getEnemy().getName() + " si prepara ad agire");
         }
     }
 

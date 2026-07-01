@@ -7,8 +7,6 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -25,10 +23,6 @@ public class CreationController {
     private final JsonSaveRepository saveRepo = new JsonSaveRepository();
     private GameState loadedState = null;
 
-    /**
-     * Chiamato automaticamente da JavaFX dopo il caricamento dell'FXML.
-     * Controlla se esiste un salvataggio e mostra la sezione "Continua partita".
-     */
     @FXML
     public void initialize() {
         if (saveRepo.saveExists()) {
@@ -53,10 +47,6 @@ public class CreationController {
         }
     }
 
-    // -------------------------------------------------------
-    // Continua partita dal salvataggio
-    // -------------------------------------------------------
-
     @FXML
     private void onContinue(ActionEvent event) {
         if (loadedState == null) return;
@@ -65,9 +55,9 @@ public class CreationController {
             gameService.restoreFromState(loadedState);
             gameService.startBattle();
 
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml"));
-            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            FXMLLoader loader = SceneNavigator.navigateTo(
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
 
             HelloController ctrl = loader.getController();
             ctrl.initData(
@@ -77,19 +67,10 @@ public class CreationController {
                     loadedState.getImagePath(),
                     gameService
             );
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root, 700, 750));
-            stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
-    // -------------------------------------------------------
-    // Nuova partita — selezione classe
-    // -------------------------------------------------------
 
     @FXML private void selectWarrior(ActionEvent event) {
         startGame(event, 8, 3, "/images/tank.jpg", "Guerriero");
@@ -109,17 +90,12 @@ public class CreationController {
             String playerName = nameField.getText().trim();
             if (playerName.isEmpty()) { playerName = "Eroe Sconosciuto"; }
 
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml"));
-            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            FXMLLoader loader = SceneNavigator.navigateTo(
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
 
             HelloController ctrl = loader.getController();
             ctrl.initData(playerName, vigore, arcano, imagePath, className);
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root, 700, 750));
-            stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
