@@ -37,8 +37,8 @@ public class HelloController {
     private GameService gameService;
     private String      imagePath;
     private String      playerName;
-    private int         forza;
-    private int         vitalita;
+    private int         vigore;
+    private int         arcano;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -47,14 +47,16 @@ public class HelloController {
     /**
      * Chiamato da CreationController: nuova partita da zero.
      * Crea il GameService, il player, poi avvia la battaglia.
+     * className è passato a GameService per la corretta serializzazione del save.
      */
-    public void initData(String name, int forza, int vitalita, String imagePath) {
+    public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
-        this.forza       = forza;
-        this.vitalita    = vitalita;
+        this.vigore      = vigore;
+        this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.gameService = new GameService();
-        gameService.createPlayer(name, forza, vitalita); // player creato PRIMA di startBattle
+        gameService.createPlayer(name, vigore, arcano);
+        gameService.setImagePath(imagePath);
 
         loadPlayerImage(imagePath);
         log("Benvenuto, " + name + "! Preparati a combattere.");
@@ -62,14 +64,32 @@ public class HelloController {
     }
 
     /**
-     * Chiamato da VictoryController / GameOverController:
-     * riusa il GameService esistente (progressione intatta).
-     * Il player è già presente nel gameService ricevuto.
+     * Overload con className esplicito: usato da CreationController
+     * quando la classe è nota, così il save avrà className popolato.
      */
-    public void initData(String name, int forza, int vitalita, String imagePath, GameService existingService) {
+    public void initData(String name, int vigore, int arcano,
+                         String imagePath, String className) {
         this.playerName  = name;
-        this.forza       = forza;
-        this.vitalita    = vitalita;
+        this.vigore      = vigore;
+        this.arcano      = arcano;
+        this.imagePath   = imagePath;
+        this.gameService = new GameService();
+        gameService.createPlayer(name, vigore, arcano, className, imagePath);
+
+        loadPlayerImage(imagePath);
+        log("Benvenuto, " + name + "! Preparati a combattere.");
+        startBattle();
+    }
+
+    /**
+     * Chiamato da VictoryController: riusa il GameService esistente
+     * (progressione intatta: livello, XP, HP correnti conservati).
+     */
+    public void initData(String name, int vigore, int arcano,
+                         String imagePath, GameService existingService) {
+        this.playerName  = name;
+        this.vigore      = vigore;
+        this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.gameService = existingService;
 
@@ -155,7 +175,7 @@ public class HelloController {
 
             VictoryController ctrl = loader.getController();
             ctrl.initData(gameService, xpGained, levelUpMsgs,
-                    playerName, forza, vitalita, imagePath);
+                    playerName, vigore, arcano, imagePath);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -169,7 +189,7 @@ public class HelloController {
             stage.setScene(new Scene(loader.load(), 800, 500));
 
             GameOverController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, forza, vitalita, imagePath);
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) {
             e.printStackTrace();
         }
