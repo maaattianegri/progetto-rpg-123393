@@ -14,14 +14,17 @@ import java.io.IOException;
 public class CreationController {
     @FXML private TextField nameField;
 
+    // Guerriero: Forza 8 · Vitalità 3  (danno elevato, pochi HP)
     @FXML private void selectWarrior(ActionEvent event) {
-        startGame(event, 3, 8, "/images/tank.jpg");
+        startGame(event, 8, 3, "/images/tank.jpg");
     }
 
+    // Mago: Forza 3 · Vitalità 8  (mana abbondante, HP elevati)
     @FXML private void selectMage(ActionEvent event) {
-        startGame(event, 8, 3, "/images/mago.jpg");
+        startGame(event, 3, 8, "/images/mago.jpg");
     }
 
+    // Dracomante: Forza 6 · Vitalità 6  (bilanciato)
     @FXML private void selectDragon(ActionEvent event) {
         startGame(event, 6, 6, "/images/dragon.jpg");
     }
