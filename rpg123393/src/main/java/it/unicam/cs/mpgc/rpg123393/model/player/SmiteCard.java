@@ -10,6 +10,6 @@ public class SmiteCard implements ICard {
     @Override public String getImagePath() { return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
         target.takeDamage(8);
-        target.setBlock(0);
+        target.resetBlock();
     }
 }
