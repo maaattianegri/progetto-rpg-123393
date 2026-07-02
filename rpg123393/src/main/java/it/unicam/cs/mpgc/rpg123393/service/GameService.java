@@ -1,11 +1,8 @@
 package it.unicam.cs.mpgc.rpg123393.service;
 
-import it.unicam.cs.mpgc.rpg123393.model.DefendCard;
-import it.unicam.cs.mpgc.rpg123393.model.FireballCard;
-import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
-import it.unicam.cs.mpgc.rpg123393.model.ICard;
-import it.unicam.cs.mpgc.rpg123393.model.StrikeCard;
+import it.unicam.cs.mpgc.rpg123393.model.*;
 import it.unicam.cs.mpgc.rpg123393.model.player.*;
+import it.unicam.cs.mpgc.rpg123393.model.relic.*;
 import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
 import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 
@@ -21,6 +18,7 @@ public class GameService {
     private final BattleService battleService = new BattleService();
     private final LevelService  levelService  = new LevelService();
     private final EnemyFactory  enemyFactory  = new EnemyFactory();
+    private final RunManager    runManager    = new RunManager();
     private final Random        random        = new Random();
 
     private GameCharacter player;
@@ -33,9 +31,12 @@ public class GameService {
     private String className;
     private String imagePath;
 
-    private List<ICard>  deck            = new ArrayList<>();
-    private ICard[]      hand            = new ICard[3];
-    private List<String> unlockedCards   = new ArrayList<>();
+    private List<ICard>   deck          = new ArrayList<>();
+    private ICard[]       hand          = new ICard[3];
+    private List<String>  unlockedCards = new ArrayList<>();
+    private List<Relic>   relics        = new ArrayList<>();
+
+    private int gold = 0;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -50,9 +51,7 @@ public class GameService {
         int maxMana = 3  + (arcano / 2);
         player = new GameCharacter(name, maxHp, maxMana);
         buildStarterDeck(className);
-        // Le carte starter si sbloccano automaticamente
         for (ICard c : deck) unlockCard(c.getName());
-        // Carica unlockedCards persistenti dal save
         loadUnlockedCardsFromSave();
     }
 
@@ -64,68 +63,44 @@ public class GameService {
         deck.clear();
         if (className == null) className = "";
         switch (className) {
-            case "Guerriero" -> {
-                deck.add(new StrikeCard());
-                deck.add(new StrikeCard());
-                deck.add(new DefendCard());
-                deck.add(new DevastatingStrikeCard());
-                deck.add(new DevastatingStrikeCard());
-            }
-            case "Mago" -> {
-                deck.add(new FireballCard());
-                deck.add(new FireballCard());
-                deck.add(new DefendCard());
-                deck.add(new ArcaneStormCard());
-                deck.add(new ArcaneStormCard());
-            }
-            case "Dracomante" -> {
-                deck.add(new StrikeCard());
-                deck.add(new FireballCard());
-                deck.add(new DefendCard());
-                deck.add(new DragonClawCard());
-                deck.add(new DragonClawCard());
-            }
-            case "Paladino" -> {
-                deck.add(new StrikeCard());
-                deck.add(new DefendCard());
-                deck.add(new DefendCard());
-                deck.add(new HolyShieldCard());
-                deck.add(new HolyShieldCard());
-            }
-            case "Assassino" -> {
-                deck.add(new StrikeCard());
-                deck.add(new PoisonBladeCard());
-                deck.add(new PoisonBladeCard());
-                deck.add(new PoisonBladeCard());
-                deck.add(new DefendCard());
-            }
-            default -> {
-                deck.add(new StrikeCard());
-                deck.add(new StrikeCard());
-                deck.add(new DefendCard());
-                deck.add(new DefendCard());
-                deck.add(new FireballCard());
-            }
+            case "Guerriero" -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
+            case "Mago"      -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
+            case "Dracomante"-> { deck.add(new StrikeCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
+            case "Paladino"  -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
+            case "Assassino" -> { deck.add(new StrikeCard()); deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); }
+            default          -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
         }
     }
 
-    /** Carica la lista unlockedCards dal save esistente (per non perderla tra run). */
     private void loadUnlockedCardsFromSave() {
         try {
             JsonSaveRepository repo = new JsonSaveRepository();
             if (repo.saveExists()) {
                 GameState saved = repo.load();
-                if (saved != null && saved.getUnlockedCards() != null) {
+                if (saved != null && saved.getUnlockedCards() != null)
                     for (String name : saved.getUnlockedCards()) unlockCard(name);
-                }
             }
         } catch (IOException ignored) {}
     }
 
     public void addCardToDeck(ICard card) { deck.add(card); }
+    public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
 
-    public void unlockCard(String cardName) {
-        if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName);
+    // -------------------------------------------------------
+    // Run
+    // -------------------------------------------------------
+
+    public EncounterType currentEncounter() { return runManager.current(); }
+    public EncounterType advanceEncounter() { return runManager.advance(); }
+    public int  getEncounterIndex()  { return runManager.getIndex(); }
+    public int  getEncounterTotal()  { return runManager.getTotal(); }
+    public boolean isLastBoss()      { return runManager.isLastBoss(); }
+
+    /** Calcola e aggiunge l'oro del drop per l'incontro appena completato. */
+    public int collectGoldDrop() {
+        int drop = RunManager.goldDrop(runManager.current());
+        gold += drop;
+        return drop;
     }
 
     // -------------------------------------------------------
@@ -133,7 +108,10 @@ public class GameService {
     // -------------------------------------------------------
 
     public void startBattle() {
-        enemy = enemyFactory.createForLevel(playerLevel);
+        EncounterType type = runManager.current();
+        enemy = enemyFactory.createForEncounter(type, playerLevel);
+        // Applica reliquie all'inizio battaglia
+        for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
     }
 
@@ -144,10 +122,7 @@ public class GameService {
     }
 
     private String pendingMessage = "";
-
-    public String getPendingMessage() {
-        String msg = pendingMessage; pendingMessage = ""; return msg;
-    }
+    public String getPendingMessage() { String m = pendingMessage; pendingMessage = ""; return m; }
 
     private void drawHand() {
         for (int i = 0; i < hand.length; i++)
@@ -155,9 +130,18 @@ public class GameService {
     }
 
     public String playCard(int handIndex) {
-        if (handIndex < 0 || handIndex >= hand.length || hand[handIndex] == null)
-            return "Carta non valida.";
-        return battleService.playCard(hand[handIndex], player, enemy);
+        if (handIndex < 0 || handIndex >= hand.length || hand[handIndex] == null) return "Carta non valida.";
+        // Anello del Veleno: se la carta aggiunge veleno, aggiungi +1 stack extra
+        boolean hasPoisonRing = relics.stream().anyMatch(r -> r instanceof PoisonRingRelic);
+        String result = battleService.playCard(hand[handIndex], player, enemy);
+        if (hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("veleno")
+                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("lama")
+                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("ombra")
+                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("soffio")
+                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("ghiaccio")) {
+            enemy.addPoison(1);
+        }
+        return result;
     }
 
     public boolean canPlayCard(int handIndex) {
@@ -175,6 +159,52 @@ public class GameService {
     public boolean isBattleOver()    { return battleService.isBattleOver(player, enemy); }
     public String getBattleResult()  { return battleService.getBattleResultMessage(player, enemy); }
     public boolean isPlayerVictory() { return battleService.isPlayerVictory(player, enemy); }
+
+    // -------------------------------------------------------
+    // Shop
+    // -------------------------------------------------------
+
+    public List<ShopItem> generateShopItems() { return ShopPool.generateShopItems(className); }
+
+    public boolean buyItem(ShopItem item) {
+        if (gold < item.getPrice()) return false;
+        gold -= item.getPrice();
+        switch (item.getType()) {
+            case CARD -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
+            case RELIC -> relics.add((Relic) item.getPayload());
+            case CONSUMABLE -> applyConsumable((String) item.getPayload());
+            case UPGRADE -> { /* gestito dal controller — apre UpgradeController */ }
+        }
+        return true;
+    }
+
+    private void applyConsumable(String code) {
+        switch (code) {
+            case "HEAL_30"     -> player.heal(30);
+            case "CURE_POISON" -> { /* azzera veleno */ for (int i = 0; i < 20; i++) if (player.getPoison() > 0) player.applyPoison(); }
+            case "SHIELD_10"   -> player.addBlock(10);
+        }
+    }
+
+    // -------------------------------------------------------
+    // Upgrade carte
+    // -------------------------------------------------------
+
+    /** Restituisce il nome potenziato di una carta, se disponibile. */
+    public static String upgradedName(String name) {
+        return name.endsWith("+") ? name : name + "+";
+    }
+
+    /** Sostituisce la prima occorrenza della carta nel deck con la versione +. */
+    public boolean upgradeCard(int deckIndex) {
+        if (deckIndex < 0 || deckIndex >= deck.size()) return false;
+        ICard original = deck.get(deckIndex);
+        ICard upgraded = CardPool.getUpgradedCard(original.getName());
+        if (upgraded == null) return false;
+        deck.set(deckIndex, upgraded);
+        unlockCard(upgraded.getName());
+        return true;
+    }
 
     // -------------------------------------------------------
     // Progressione
@@ -229,18 +259,22 @@ public class GameService {
     // Getter
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()           { return player; }
-    public GameCharacter getEnemy()            { return enemy; }
-    public ICard[]       getHand()             { return hand; }
-    public int           getPlayerLevel()      { return playerLevel; }
-    public int           getPlayerXp()         { return playerXp; }
-    public int           getXpRequired()       { return levelService.xpRequiredForNextLevel(playerLevel); }
-    public int           getVigore()           { return vigore; }
-    public int           getArcano()           { return arcano; }
-    public String        getClassName()        { return className; }
-    public String        getImagePath()        { return imagePath; }
-    public List<ICard>   getDeck()             { return deck; }
-    public List<String>  getUnlockedCards()    { return unlockedCards; }
+    public GameCharacter getPlayer()          { return player; }
+    public GameCharacter getEnemy()           { return enemy; }
+    public ICard[]       getHand()            { return hand; }
+    public int           getPlayerLevel()     { return playerLevel; }
+    public int           getPlayerXp()        { return playerXp; }
+    public int           getXpRequired()      { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int           getVigore()          { return vigore; }
+    public int           getArcano()          { return arcano; }
+    public String        getClassName()       { return className; }
+    public String        getImagePath()       { return imagePath; }
+    public List<ICard>   getDeck()            { return deck; }
+    public List<String>  getUnlockedCards()   { return unlockedCards; }
+    public List<Relic>   getRelics()          { return relics; }
+    public int           getGold()            { return gold; }
     public void setClassName(String c)  { this.className = c; }
     public void setImagePath(String p)  { this.imagePath = p; }
+    public void addGold(int amount)     { this.gold += amount; }
+    public RunManager getRunManager()   { return runManager; }
 }
