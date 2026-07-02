@@ -1,5 +1,6 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
+import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.ShopItem;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
@@ -26,7 +27,7 @@ public class ShopController {
     private int            arcano;
     private String         imagePath;
     private List<ShopItem> items;
-    private ShopItem       pendingUpgradeItem; // slot Fucina in attesa di essere consumato dopo upgrade
+    private ShopItem       pendingUpgradeItem;
 
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath) {
@@ -48,7 +49,6 @@ public class ShopController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.items       = existingItems;
-        // se l'upgrade è stato completato con successo, rimuovi lo slot Fucina
         if (pendingUpgradeItem != null) {
             items.remove(pendingUpgradeItem);
             pendingUpgradeItem = null;
@@ -62,13 +62,24 @@ public class ShopController {
         for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
     }
 
-    private VBox buildItemTile(ShopItem item) {
-        String color = switch (item.getType()) {
-            case CARD       -> "#c77dff";
+    private String itemColor(ShopItem item) {
+        return switch (item.getType()) {
+            // Per le carte usiamo il colore canonico di classe tramite CardStyleHelper
+            case CARD -> {
+                Object payload = item.getPayload();
+                if (payload instanceof ICard card)
+                    yield CardStyleHelper.borderColor(card.getName());
+                yield "#c77dff";
+            }
             case RELIC      -> "#e0c97f";
             case CONSUMABLE -> "#4ecca3";
             case UPGRADE    -> "#e67e22";
         };
+    }
+
+    private VBox buildItemTile(ShopItem item) {
+        String color = itemColor(item);
+
         String typeTag = switch (item.getType()) {
             case CARD       -> "CARTA";
             case RELIC      -> "RELIQUIA";
@@ -110,7 +121,6 @@ public class ShopController {
     }
 
     private void handleBuy(ShopItem item, Button btn) {
-        // Per tutti i tipi (UPGRADE incluso) scala subito l'oro tramite buyItem
         boolean ok = gameService.buyItem(item);
         if (!ok) {
             Alert a = new Alert(Alert.AlertType.WARNING);
@@ -119,9 +129,7 @@ public class ShopController {
             a.showAndWait();
             return;
         }
-
         if (item.getType() == ShopItem.ItemType.UPGRADE) {
-            // oro già scalato; segna lo slot come pendente e apri la Fucina
             pendingUpgradeItem = item;
             openUpgradeView(item);
         } else {
