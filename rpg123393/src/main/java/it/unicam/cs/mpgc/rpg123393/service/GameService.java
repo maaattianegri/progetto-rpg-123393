@@ -15,8 +15,9 @@ import java.util.Random;
 
 public class GameService {
 
-    /** Modalit\u00e0 debug: true \u2192 tutte le carte sbloccate in collezione dall'inizio. */
-    private static final boolean DEBUG_UNLOCK_ALL = false;
+    /** Modalit\u00e0 debug: true \u2192 tutte le carte sbloccate in collezione dall'inizio.
+     *  TODO: impostare a false prima della consegna finale. */
+    private static final boolean DEBUG_UNLOCK_ALL = true;
 
     private final BattleService battleService = new BattleService();
     private final LevelService  levelService  = new LevelService();
@@ -241,7 +242,6 @@ public class GameService {
                 className != null ? className : "",
                 imagePath != null ? imagePath : "");
         s.setUnlockedCards(new ArrayList<>(unlockedCards));
-        // Serializza il deck della run corrente come lista di nomi
         List<String> deckNames = new ArrayList<>();
         for (ICard card : deck) deckNames.add(card.getName());
         s.setDeckCardNames(deckNames);
@@ -262,7 +262,6 @@ public class GameService {
         player.setCurrentHp(state.getPlayerCurrentHp());
         player.setCurrentMana(state.getPlayerCurrentMana());
 
-        // Ripristina il deck della run dai nomi salvati; fallback su starter deck
         List<String> savedDeck = state.getDeckCardNames();
         if (savedDeck != null && !savedDeck.isEmpty()) {
             deck.clear();
@@ -270,7 +269,6 @@ public class GameService {
                 ICard card = CardPool.getCardByName(cardName);
                 if (card != null) deck.add(card);
             }
-            // Se CardPool non riconosce qualche carta, fallback parziale sullo starter
             if (deck.isEmpty()) buildStarterDeck(this.className);
         } else {
             buildStarterDeck(this.className);
