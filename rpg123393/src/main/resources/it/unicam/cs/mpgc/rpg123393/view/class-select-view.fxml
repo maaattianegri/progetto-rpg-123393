@@ -34,32 +34,35 @@
            style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
 
     <HBox alignment="CENTER" spacing="20">
+      <!-- GUERRIERO #e74c3c -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
-                   -fx-min-width: 160; -fx-border-color: #c0392b; -fx-border-radius: 12; -fx-border-width: 1;">
-        <Label text="GUERRIERO" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
+                   -fx-min-width: 160; -fx-border-color: #e74c3c; -fx-border-radius: 12; -fx-border-width: 1;">
+        <Label text="GUERRIERO" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
         <Label text="Vigore 8 - Arcano 3" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
         <Label text="Danno elevato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
         <Label text="Carte: Colpo, Colpo Devastante" style="-fx-font-size: 10px; -fx-text-fill: #e74c3c; -fx-wrap-text: true;"/>
         <Button text="Scegli" onAction="#selectWarrior"
-                style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold;
                        -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
       </VBox>
+      <!-- MAGO #9b59b6 -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
-                   -fx-min-width: 160; -fx-border-color: #8e44ad; -fx-border-radius: 12; -fx-border-width: 1;">
+                   -fx-min-width: 160; -fx-border-color: #9b59b6; -fx-border-radius: 12; -fx-border-width: 1;">
         <Label text="MAGO" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
         <Label text="Vigore 3 - Arcano 8" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
         <Label text="Mana abbondante" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
         <Label text="Carte: Fireball, Tempesta Arcana" style="-fx-font-size: 10px; -fx-text-fill: #9b59b6; -fx-wrap-text: true;"/>
         <Button text="Scegli" onAction="#selectMage"
-                style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold;
+                style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-font-weight: bold;
                        -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
       </VBox>
+      <!-- DRACOMANTE #e67e22 -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #e67e22; -fx-border-radius: 12; -fx-border-width: 1;">
-        <Label text="DRACOMANTE" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
+        <Label text="DRACOMANTE" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
         <Label text="Vigore 6 - Arcano 6" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
         <Label text="Bilanciato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
         <Label text="Carte: Artiglio del Drago" style="-fx-font-size: 10px; -fx-text-fill: #e67e22; -fx-wrap-text: true;"/>
@@ -70,6 +73,7 @@
     </HBox>
 
     <HBox alignment="CENTER" spacing="20">
+      <!-- PALADINO #f1c40f -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #f1c40f; -fx-border-radius: 12; -fx-border-width: 1;">
@@ -78,13 +82,14 @@
         <Label text="Tank difensivo" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
         <Label text="Carte: Scudo Sacro" style="-fx-font-size: 10px; -fx-text-fill: #f1c40f; -fx-wrap-text: true;"/>
         <Button text="Scegli" onAction="#selectPaladin"
-                style="-fx-background-color: #d4ac0d; -fx-text-fill: white; -fx-font-weight: bold;
+                style="-fx-background-color: #f1c40f; -fx-text-fill: #1a1a2e; -fx-font-weight: bold;
                        -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
       </VBox>
+      <!-- ASSASSINO #27ae60 -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #27ae60; -fx-border-radius: 12; -fx-border-width: 1;">
-        <Label text="ASSASSINO" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2ecc71;"/>
+        <Label text="ASSASSINO" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
         <Label text="Vigore 4 - Arcano 6" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
         <Label text="Danno nel tempo" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
         <Label text="Carte: Lama Avvelenata" style="-fx-font-size: 10px; -fx-text-fill: #27ae60; -fx-wrap-text: true;"/>

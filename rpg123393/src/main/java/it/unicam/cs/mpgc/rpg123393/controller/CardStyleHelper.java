@@ -1,15 +1,15 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 /**
- * Colori e descrizioni per tutte le carte del gioco.
+ * Colori canonici per classe — allineati a class-select-view.fxml:
  *
- * Logica colori:
- *   #e74c3c  🔴 Rosso     → Guerriero
- *   #f1c40f  🟡 Giallo    → Paladino
- *   #e67e22  🟠 Arancione → Mago / Dracomante
- *   #27ae60  🟢 Verde     → Assassino
- *   #c77dff  🟣 Viola     → Neutrale
- *   #9aaaba  ⚪ Argento   → Starter multiclasse
+ *   #e74c3c  🔴 Guerriero
+ *   #f1c40f  🟡 Paladino
+ *   #9b59b6  🟣 Mago
+ *   #e67e22  🟠 Dracomante
+ *   #27ae60  🟢 Assassino
+ *   #c77dff  ⚡ Neutrale
+ *   #9aaaba  ⚪ Starter multiclasse
  */
 public class CardStyleHelper {
 
@@ -27,17 +27,18 @@ public class CardStyleHelper {
                  "Punizione Divina", "Consacrazione",
                  "Voto di Ferro", "Castigo Sacro",
                  "Benedizione", "Martello della Giustizia" -> "#f1c40f";
-            // 🟠 Mago / Dracomante
+            // 🟣 Mago
             case "Palla di Fuoco", "Palla di Fuoco+",
                  "Tempesta Arcana", "Dardo di Ghiaccio",
-                 "Scudo di Mana", "Nova di Fuoco",
-                 "Artiglio del Drago", "Soffio del Drago",
+                 "Scudo di Mana", "Nova di Fuoco"          -> "#9b59b6";
+            // 🟠 Dracomante
+            case "Artiglio del Drago", "Soffio del Drago",
                  "Armatura di Scaglie", "Zanna di Drago"   -> "#e67e22";
             // 🟢 Assassino
             case "Lama Avvelenata", "Lama Avvelenata+",
                  "Passo nell'Ombra", "Colpo Letale",
                  "Veleno Acido", "Doppia Lama"             -> "#27ae60";
-            // 🟣 Neutrale
+            // ⚡ Neutrale
             case "Pozione Rapida"                          -> "#c77dff";
             default                                        -> "#888888";
         };
@@ -48,7 +49,8 @@ public class CardStyleHelper {
             case "#9aaaba" -> "★";
             case "#e74c3c" -> "⚔";
             case "#f1c40f" -> "🛡";
-            case "#e67e22" -> "🔥";
+            case "#9b59b6" -> "🔮";
+            case "#e67e22" -> "🐉";
             case "#27ae60" -> "☠";
             case "#c77dff" -> "+";
             default        -> "?";
@@ -78,18 +80,18 @@ public class CardStyleHelper {
             case "Castigo Sacro"            -> "⚔ 8 danni + azzera scudo nemico  |  2 mana";
             case "Benedizione"              -> "❤ cura 8 + 🛡 +6 scudo  |  2 mana";
             case "Martello della Giustizia" -> "⚔ 14 danni  |  3 mana";
-            // ── 🟠 Mago ──
-            case "Palla di Fuoco"           -> "🔥 14 danni  |  2 mana";
-            case "Palla di Fuoco+"          -> "🔥 18 danni  |  2 mana";
-            case "Tempesta Arcana"          -> "🔥 10 + 2×veleno danni  |  2 mana";
-            case "Dardo di Ghiaccio"        -> "🔥 7 danni + ☠ 2 veleno  |  2 mana";
+            // ── 🟣 Mago ──
+            case "Palla di Fuoco"           -> "🔮 14 danni  |  2 mana";
+            case "Palla di Fuoco+"          -> "🔮 18 danni  |  2 mana";
+            case "Tempesta Arcana"          -> "🔮 10 + 2×veleno danni  |  2 mana";
+            case "Dardo di Ghiaccio"        -> "🔮 7 danni + ☠ 2 veleno  |  2 mana";
             case "Scudo di Mana"            -> "🛡 +10 scudo + ✨ 1 mana  |  2 mana";
-            case "Nova di Fuoco"            -> "🔥 18 danni  |  3 mana";
+            case "Nova di Fuoco"            -> "🔮 18 danni  |  3 mana";
             // ── 🟠 Dracomante ──
-            case "Artiglio del Drago"       -> "🔥 6 danni + 🛡 4 scudo  |  2 mana";
-            case "Soffio del Drago"         -> "🔥 9 danni + ☠ 3 veleno  |  2 mana";
+            case "Artiglio del Drago"       -> "🐉 6 danni + 🛡 4 scudo  |  2 mana";
+            case "Soffio del Drago"         -> "🐉 9 danni + ☠ 3 veleno  |  2 mana";
             case "Armatura di Scaglie"      -> "🛡 +8 scudo + ❤ 4 cura  |  2 mana";
-            case "Zanna di Drago"           -> "🔥 4 danni + 🛡 2 scudo  |  1 mana";
+            case "Zanna di Drago"           -> "🐉 4 danni + 🛡 2 scudo  |  1 mana";
             // ── 🟢 Assassino ──
             case "Lama Avvelenata"          -> "⚔ 3 danni + ☠ 3 veleno  |  1 mana";
             case "Lama Avvelenata+"         -> "⚔ 3 danni + ☠ 5 veleno  |  1 mana";
@@ -97,7 +99,7 @@ public class CardStyleHelper {
             case "Colpo Letale"             -> "⚔ 6 + veleno nemico danni  |  2 mana";
             case "Veleno Acido"             -> "☠ +4 veleno (no danno diretto)  |  1 mana";
             case "Doppia Lama"              -> "⚔ 4+4 danni (2 colpi)  |  2 mana";
-            // ── 🟣 Neutrale ──
+            // ── ⚡ Neutrale ──
             case "Pozione Rapida"           -> "❤ cura 10 HP  |  1 mana";
             default                         -> "";
         };

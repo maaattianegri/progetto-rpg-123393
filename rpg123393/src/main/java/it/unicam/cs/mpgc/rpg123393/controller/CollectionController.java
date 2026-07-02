@@ -39,11 +39,11 @@ public class CollectionController {
     private static final List<String> FILTERS =
             List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
-    // Colori allineati a class-select-view.fxml e CardStyleHelper
+    /** Colori canonici — fonte unica di verità, allineata a class-select-view.fxml e CardStyleHelper. */
     private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.of(
             "Guerriero",  "#e74c3c",
-            "Paladino",   "#f1c40f",   // oro, come nella scelta classe
-            "Mago",       "#e67e22",
+            "Paladino",   "#f1c40f",
+            "Mago",       "#9b59b6",
             "Dracomante", "#e67e22",
             "Assassino",  "#27ae60",
             "Neutro",     "#c77dff",
@@ -140,8 +140,7 @@ public class CollectionController {
         tile.setAlignment(Pos.CENTER);
         tile.setStyle("-fx-background-color: #1a1a30; -fx-background-radius: 12;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
-                + "-fx-padding: 12 10;"
-                + "-fx-pref-width: 115; -fx-pref-height: 130;"
+                + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
                 + (unlocked ? "-fx-cursor: hand;" : "-fx-opacity: 0.45;")
                 + (unlocked ? " -fx-effect: dropshadow(gaussian," + color + ",6,0.1,0,0);" : ""));
 
@@ -187,7 +186,8 @@ public class CollectionController {
             case "#9aaaba" -> "★ Starter multiclasse";
             case "#e74c3c" -> "⚔ Guerriero";
             case "#f1c40f" -> "🛡 Paladino";
-            case "#e67e22" -> "🔥 Mago / Dracomante";
+            case "#9b59b6" -> "🔮 Mago";
+            case "#e67e22" -> "🐉 Dracomante";
             case "#27ae60" -> "☠ Assassino";
             case "#c77dff" -> "✦ Neutrale";
             default        -> "";
@@ -196,8 +196,7 @@ public class CollectionController {
         detailClass.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 14px; -fx-font-weight: bold;");
 
         detailStatsBox.getChildren().clear();
-        detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana",
-                card.getManaCost() + " mana", "#a78bfa"));
+        detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana", card.getManaCost() + " mana", "#a78bfa"));
 
         String raw = CardStyleHelper.description(card.getName());
         java.util.regex.Matcher mAtk = java.util.regex.Pattern
@@ -220,7 +219,6 @@ public class CollectionController {
             detailStatsBox.getChildren().add(makeStatRow("☠ Veleno", mPsn.group(1) + " stack", "#27ae60"));
 
         detailDesc.setText(raw);
-
         detailCard.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 22;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 22; -fx-border-width: 3;"
                 + "-fx-padding: 36 32;"
