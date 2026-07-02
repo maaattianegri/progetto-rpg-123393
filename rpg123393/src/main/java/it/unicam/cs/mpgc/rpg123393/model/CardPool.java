@@ -6,16 +6,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Pool statico di tutte le carte disponibili nel gioco.
- * Usato da CardRewardController (scelta post-vittoria boss),
- * ShopPool e CollectionController.
- */
 public class CardPool {
 
-    // -------------------------------------------------------
-    // Scelta post-vittoria boss: 3 opzioni casuali per classe
-    // -------------------------------------------------------
     public static List<ICard> getRewardOptions(String className) {
         List<ICard> pool = new ArrayList<>(getClassPool(className));
         pool.addAll(getNeutralPool());
@@ -23,9 +15,6 @@ public class CardPool {
         return pool.subList(0, Math.min(3, pool.size()));
     }
 
-    // -------------------------------------------------------
-    // Pool per classe
-    // -------------------------------------------------------
     public static List<ICard> getClassPool(String className) {
         if (className == null) return new ArrayList<>();
         return switch (className) {
@@ -35,7 +24,7 @@ public class CardPool {
                     new WhirlwindCard());
             case "Mago" -> List.of(
                     new ArcaneStormCard(),
-                    new IceDartCard(),
+                    new FrostboltCard(),
                     new ManaShieldCard());
             case "Dracomante" -> List.of(
                     new DragonClawCard(),
@@ -44,17 +33,17 @@ public class CardPool {
             case "Paladino" -> List.of(
                     new HolyShieldCard(),
                     new DivineLightCard(),
-                    new DivinePunishmentCard());
+                    new RetributionCard());
             case "Assassino" -> List.of(
                     new PoisonBladeCard(),
                     new ShadowStepCard(),
-                    new LethalStrikeCard());
+                    new DeadlyStrikeCard());
             default -> new ArrayList<>();
         };
     }
 
     public static List<ICard> getNeutralPool() {
-        return List.of(new QuickPotionCard());
+        return List.of(new QuickHealCard());
     }
 
     public static List<ICard> getAllCards() {
@@ -62,18 +51,13 @@ public class CardPool {
         for (String cls : List.of("Guerriero", "Mago", "Dracomante", "Paladino", "Assassino"))
             all.addAll(getClassPool(cls));
         all.addAll(getNeutralPool());
-        // aggiungi anche le carte starter
         all.add(new StrikeCard());
         all.add(new DefendCard());
         all.add(new FireballCard());
-        // versioni +
         all.addAll(getUpgradedPool());
         return all;
     }
 
-    // -------------------------------------------------------
-    // Carte potenziate (versione +)
-    // -------------------------------------------------------
     public static List<ICard> getUpgradedPool() {
         return List.of(
                 new StrikePlusCard(),
@@ -84,15 +68,14 @@ public class CardPool {
         );
     }
 
-    /** Restituisce la versione potenziata di una carta, null se non esiste. */
     public static ICard getUpgradedCard(String name) {
         return switch (name) {
-            case "Colpo"             -> new StrikePlusCard();
-            case "Difesa"            -> new DefendPlusCard();
-            case "Fireball"          -> new FireballPlusCard();
-            case "Colpo Devastante"  -> new DevastatingStrikePlusCard();
-            case "Lama Avvelenata"   -> new PoisonBladePlusCard();
-            default                  -> null;
+            case "Colpo"            -> new StrikePlusCard();
+            case "Difesa"           -> new DefendPlusCard();
+            case "Fireball"         -> new FireballPlusCard();
+            case "Colpo Devastante" -> new DevastatingStrikePlusCard();
+            case "Lama Avvelenata"  -> new PoisonBladePlusCard();
+            default                 -> null;
         };
     }
 }
