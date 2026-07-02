@@ -5,7 +5,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
  *
  * Logica colori:
  *   #e74c3c  🔴 Rosso     → Guerriero
- *   #3498db  🔵 Blu       → Paladino
+ *   #f1c40f  🟡 Giallo    → Paladino
  *   #e67e22  🟠 Arancione → Mago / Dracomante
  *   #27ae60  🟢 Verde     → Assassino
  *   #c77dff  🟣 Viola     → Neutrale
@@ -17,29 +17,29 @@ public class CardStyleHelper {
         return switch (name) {
             // ⚪ Starter multiclasse
             case "Colpo di Spada", "Colpo di Spada+",
-                 "Scudo di Legno",  "Scudo di Legno+"  -> "#9aaaba";
+                 "Scudo di Legno",  "Scudo di Legno+"      -> "#9aaaba";
             // 🔴 Guerriero
             case "Colpo Devastante", "Colpo Devastante+",
                  "Grida di Battaglia", "Mulinello",
-                 "Furia Berserker", "Sfida"             -> "#e74c3c";
-            // 🔵 Paladino
+                 "Furia Berserker", "Sfida"                -> "#e74c3c";
+            // 🟡 Paladino
             case "Scudo Sacro", "Luce Divina",
                  "Punizione Divina", "Consacrazione",
                  "Voto di Ferro", "Castigo Sacro",
-                 "Benedizione", "Martello della Giustizia" -> "#3498db";
+                 "Benedizione", "Martello della Giustizia" -> "#f1c40f";
             // 🟠 Mago / Dracomante
             case "Palla di Fuoco", "Palla di Fuoco+",
                  "Tempesta Arcana", "Dardo di Ghiaccio",
                  "Scudo di Mana", "Nova di Fuoco",
                  "Artiglio del Drago", "Soffio del Drago",
-                 "Armatura di Scaglie", "Zanna di Drago"  -> "#e67e22";
+                 "Armatura di Scaglie", "Zanna di Drago"   -> "#e67e22";
             // 🟢 Assassino
             case "Lama Avvelenata", "Lama Avvelenata+",
                  "Passo nell'Ombra", "Colpo Letale",
-                 "Veleno Acido", "Doppia Lama"           -> "#27ae60";
+                 "Veleno Acido", "Doppia Lama"             -> "#27ae60";
             // 🟣 Neutrale
-            case "Pozione Rapida"                        -> "#c77dff";
-            default                                      -> "#888888";
+            case "Pozione Rapida"                          -> "#c77dff";
+            default                                        -> "#888888";
         };
     }
 
@@ -47,7 +47,7 @@ public class CardStyleHelper {
         return switch (borderColor(name)) {
             case "#9aaaba" -> "★";
             case "#e74c3c" -> "⚔";
-            case "#3498db" -> "🛡";
+            case "#f1c40f" -> "🛡";
             case "#e67e22" -> "🔥";
             case "#27ae60" -> "☠";
             case "#c77dff" -> "+";
@@ -69,7 +69,7 @@ public class CardStyleHelper {
             case "Mulinello"                -> "⚔ 5 danni + ❤ 5 cura  |  2 mana";
             case "Furia Berserker"          -> "⚔ 7 danni (12 se HP<50%)  |  2 mana";
             case "Sfida"                    -> "🛡 +8 scudo  |  1 mana";
-            // ── 🔵 Paladino ──
+            // ── 🟡 Paladino ──
             case "Scudo Sacro"              -> "🛡 +12 scudo + ❤ 4 cura  |  2 mana";
             case "Luce Divina"              -> "❤ cura 12 + 🛡 4 scudo  |  2 mana";
             case "Punizione Divina"         -> "⚔ 10 danni (+4 se scudo>0)  |  2 mana";

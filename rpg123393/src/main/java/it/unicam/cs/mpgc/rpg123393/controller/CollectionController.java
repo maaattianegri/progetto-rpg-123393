@@ -20,12 +20,9 @@ import java.util.List;
 
 public class CollectionController {
 
-    // ── FXML refs ─────────────────────────────────────────────────
     @FXML private Label     progressLabel;
     @FXML private HBox      filterBox;
     @FXML private FlowPane  cardsFlow;
-
-    // Dettaglio destra
     @FXML private StackPane detailPane;
     @FXML private VBox      detailPlaceholder;
     @FXML private VBox      detailCard;
@@ -35,7 +32,6 @@ public class CollectionController {
     @FXML private VBox      detailStatsBox;
     @FXML private Label     detailDesc;
 
-    // ── Stato ─────────────────────────────────────────────────────
     private List<String> unlockedCards = new ArrayList<>();
     private String       activeFilter  = "Tutte";
     private VBox         selectedTile  = null;
@@ -43,9 +39,10 @@ public class CollectionController {
     private static final List<String> FILTERS =
             List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
+    // Colori allineati a class-select-view.fxml e CardStyleHelper
     private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.of(
             "Guerriero",  "#e74c3c",
-            "Paladino",   "#3498db",
+            "Paladino",   "#f1c40f",   // oro, come nella scelta classe
             "Mago",       "#e67e22",
             "Dracomante", "#e67e22",
             "Assassino",  "#27ae60",
@@ -53,16 +50,12 @@ public class CollectionController {
             "Tutte",      "#e0c97f"
     );
 
-    // ── Lifecycle ─────────────────────────────────────────────────
-
     @FXML
     public void initialize() {
         loadUnlocked();
         buildFilters();
         showCards("Tutte");
     }
-
-    // ── Unlocked ──────────────────────────────────────────────────
 
     private void loadUnlocked() {
         if (GameService.isDebugUnlockAll()) {
@@ -80,8 +73,6 @@ public class CollectionController {
             }
         } catch (IOException ignored) {}
     }
-
-    // ── Filtri ────────────────────────────────────────────────────
 
     private void buildFilters() {
         filterBox.getChildren().clear();
@@ -101,8 +92,6 @@ public class CollectionController {
         }
     }
 
-    // ── Griglia carte ─────────────────────────────────────────────
-
     private void showCards(String filter) {
         cardsFlow.getChildren().clear();
         selectedTile = null;
@@ -114,7 +103,6 @@ public class CollectionController {
             default       -> CardPool.getClassPool(filter);
         };
 
-        // Deduplicazione
         List<String> seen    = new ArrayList<>();
         List<ICard>  deduped = new ArrayList<>();
         for (ICard c : pool) {
@@ -131,7 +119,6 @@ public class CollectionController {
         }
     }
 
-    /** Tessera compatta nella griglia (non deve essere troppo grande). */
     private VBox buildTile(ICard card, boolean unlocked) {
         String color  = unlocked ? CardStyleHelper.borderColor(card.getName()) : "#2a2a4a";
         String symbol = unlocked ? CardStyleHelper.symbol(card.getName()) : "🔒";
@@ -178,10 +165,7 @@ public class CollectionController {
         return tile;
     }
 
-    // ── Dettaglio carta (destra) ──────────────────────────────────
-
     private void selectCard(ICard card, VBox tile, String color) {
-        // Ripristina tessera precedente
         if (selectedTile != null) {
             String prevColor = CardStyleHelper.borderColor(
                     ((Label) selectedTile.getChildren().get(1)).getText());
@@ -190,21 +174,19 @@ public class CollectionController {
                     + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
                     + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + prevColor + ",6,0.1,0,0);");
         }
-        // Evidenzia nuova tessera
         selectedTile = tile;
         tile.setStyle("-fx-background-color: #22224a; -fx-background-radius: 12;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 3;"
                 + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
                 + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",20,0.5,0,0);");
 
-        // ── Popola pannello dettaglio ──
         detailSymbol.setText(CardStyleHelper.symbol(card.getName()));
         detailName.setText(card.getName());
 
-        // Classe
         String cls = switch (color) {
+            case "#9aaaba" -> "★ Starter multiclasse";
             case "#e74c3c" -> "⚔ Guerriero";
-            case "#3498db" -> "🛡 Paladino";
+            case "#f1c40f" -> "🛡 Paladino";
             case "#e67e22" -> "🔥 Mago / Dracomante";
             case "#27ae60" -> "☠ Assassino";
             case "#c77dff" -> "✦ Neutrale";
@@ -213,44 +195,32 @@ public class CollectionController {
         detailClass.setText(cls);
         detailClass.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        // Stats
         detailStatsBox.getChildren().clear();
         detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana",
                 card.getManaCost() + " mana", "#a78bfa"));
 
         String raw = CardStyleHelper.description(card.getName());
-        // Attacco
         java.util.regex.Matcher mAtk = java.util.regex.Pattern
                 .compile("(\\d[\\d×+]*\\s*danni)").matcher(raw);
         if (mAtk.find())
             detailStatsBox.getChildren().add(makeStatRow("⚔ Attacco", mAtk.group(1), "#e74c3c"));
-        // Scudo
         java.util.regex.Matcher mShld = java.util.regex.Pattern
                 .compile("\\+(\\d+)\\s*scudo").matcher(raw);
         if (mShld.find())
-            detailStatsBox.getChildren().add(makeStatRow("🛡 Scudo", "+" + mShld.group(1), "#3498db"));
-        // Cura
+            detailStatsBox.getChildren().add(makeStatRow("🛡 Scudo", "+" + mShld.group(1), "#f1c40f"));
         java.util.regex.Matcher mHeal = java.util.regex.Pattern
                 .compile("(?:cura\\s*(\\d+)|(\\d+)\\s*cura)").matcher(raw);
         if (mHeal.find()) {
             String hv = mHeal.group(1) != null ? mHeal.group(1) : mHeal.group(2);
             detailStatsBox.getChildren().add(makeStatRow("❤ Cura", hv + " HP", "#2ecc71"));
         }
-        // Veleno
         java.util.regex.Matcher mPsn = java.util.regex.Pattern
                 .compile("(\\d+)\\s*veleno").matcher(raw);
         if (mPsn.find())
             detailStatsBox.getChildren().add(makeStatRow("☠ Veleno", mPsn.group(1) + " stack", "#27ae60"));
-        // Mana extra
-        java.util.regex.Matcher mMana = java.util.regex.Pattern
-                .compile("(\\d+)\\s*mana(?!\\s*$)").matcher(raw);
-        if (mMana.find())
-            detailStatsBox.getChildren().add(makeStatRow("✨ Mana bonus", "+" + mMana.group(1), "#a78bfa"));
 
-        // Descrizione
         detailDesc.setText(raw);
 
-        // Bordo e glow carta
         detailCard.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 22;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 22; -fx-border-width: 3;"
                 + "-fx-padding: 36 32;"
@@ -278,8 +248,6 @@ public class CollectionController {
         detailPlaceholder.setVisible(true);
         selectedTile = null;
     }
-
-    // ── Back ──────────────────────────────────────────────────────
 
     @FXML
     private void onBack(ActionEvent event) {
