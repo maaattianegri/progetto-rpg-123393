@@ -34,32 +34,24 @@ public class VictoryController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        if (gameService.getImagePath() == null || gameService.getImagePath().isEmpty()) {
+        if (gameService.getImagePath() == null || gameService.getImagePath().isEmpty())
             gameService.setImagePath(imagePath);
-        }
 
         var p = gameService.getPlayer();
         var e = gameService.getEnemy();
 
-        // Sottotitolo
         summaryLabel.setText("Hai sconfitto " + e.getName() + "!");
-
-        // Pill XP
         xpLabel.setText("+" + xpGained + " XP");
 
-        // Badge level up (visibile solo se si sale di livello)
         if (!levelUpMsgs.isEmpty()) {
             levelUpBadge.setText("LEVEL UP! Lv. " + gameService.getPlayerLevel());
             levelUpBadge.setVisible(true);
             levelUpBadge.setManaged(true);
         }
 
-        // Griglia statistiche
         hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         enemyStatLabel.setText(e.getName());
         levelStatLabel.setText(String.valueOf(gameService.getPlayerLevel()));
-
-        // XP verso prossimo livello
         xpProgressLabel.setText("Prossimo livello: "
                 + gameService.getPlayerXp() + " / " + gameService.getXpRequired() + " XP");
 
@@ -67,11 +59,8 @@ public class VictoryController {
     }
 
     private void saveGame() {
-        try {
-            new JsonSaveRepository().save(gameService.toGameState());
-        } catch (IOException e) {
-            System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
-        }
+        try { new JsonSaveRepository().save(gameService.toGameState()); }
+        catch (IOException e) { System.err.println("[WARN] Salvataggio fallito: " + e.getMessage()); }
     }
 
     @FXML
@@ -82,19 +71,15 @@ public class VictoryController {
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
             HelloController ctrl = loader.getController();
             ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     @FXML
     private void onMainMenu() {
         try {
             Stage stage = (Stage) summaryLabel.getScene().getWindow();
-            SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/creation-view.fxml");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+        } catch (IOException e) { e.printStackTrace(); }
     }
 }
