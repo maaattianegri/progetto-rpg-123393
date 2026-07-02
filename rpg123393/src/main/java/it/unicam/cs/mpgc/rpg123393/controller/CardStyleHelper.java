@@ -22,10 +22,10 @@ public class CardStyleHelper {
             // 🔵 Paladino
             case "Scudo di Legno", "Scudo di Legno+",
                  "Scudo Sacro", "Luce Divina",
-                 "Retribuzione", "Consacrazione", "Voto di Ferro" -> "#3498db";
+                 "Punizione Divina", "Consacrazione", "Voto di Ferro" -> "#3498db";
             // 🟠 Mago / Dracomante
             case "Palla di Fuoco", "Palla di Fuoco+",
-                 "Tempesta Arcana", "Dardo Gelato", "Scudo di Mana", "Nova di Fuoco",
+                 "Tempesta Arcana", "Dardo di Ghiaccio", "Scudo di Mana", "Nova di Fuoco",
                  "Artiglio del Drago", "Soffio del Drago",
                  "Armatura di Scaglie", "Zanna di Drago" -> "#e67e22";
             // 🟢 Assassino
@@ -59,20 +59,20 @@ public class CardStyleHelper {
             case "Grida di Battaglia"   -> "⚔ 8 danni + 🛡 6 scudo  |  3 mana";
             case "Mulinello"            -> "⚔ 5 danni + ❤ 5 cura  |  2 mana";
             case "Furia Berserker"      -> "⚔ 7 danni (12 se HP<50%)  |  2 mana";
-            case "Sfida"               -> "🛡 +8 scudo  |  1 mana";
+            case "Sfida"                -> "🛡 +8 scudo  |  1 mana";
             // ── 🔵 Paladino ──
             case "Scudo di Legno"       -> "🛡 +6 scudo  |  1 mana";
             case "Scudo di Legno+"      -> "🛡 +9 scudo  |  1 mana";
             case "Scudo Sacro"          -> "🛡 +12 scudo + ❤ 4 cura  |  2 mana";
             case "Luce Divina"          -> "❤ cura 12 + 🛡 4 scudo  |  2 mana";
-            case "Retribuzione"         -> "⚔ 10 danni (+4 se scudo>0)  |  2 mana";
+            case "Punizione Divina"     -> "⚔ 10 danni (+4 se scudo>0)  |  2 mana";
             case "Consacrazione"        -> "⚔ 6 danni + 🛡 6 scudo  |  2 mana";
             case "Voto di Ferro"        -> "🛡 +20 scudo  |  3 mana";
             // ── 🟠 Mago ──
             case "Palla di Fuoco"       -> "🔥 14 danni  |  2 mana";
             case "Palla di Fuoco+"      -> "🔥 18 danni  |  2 mana";
             case "Tempesta Arcana"      -> "🔥 10 + 2×veleno danni  |  2 mana";
-            case "Dardo Gelato"         -> "🔥 7 danni + ☠ 2 veleno  |  2 mana";
+            case "Dardo di Ghiaccio"    -> "🔥 7 danni + ☠ 2 veleno  |  2 mana";
             case "Scudo di Mana"        -> "🛡 +10 scudo + ✨ 1 mana  |  2 mana";
             case "Nova di Fuoco"        -> "🔥 18 danni  |  3 mana";
             // ── 🟠 Dracomante ──
