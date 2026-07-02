@@ -60,17 +60,18 @@ public class VictoryController {
 
     private void saveGame() {
         try { new JsonSaveRepository().save(gameService.toGameState()); }
-        catch (IOException e) { System.err.println("[WARN] Salvataggio fallito: " + e.getMessage()); }
+        catch (IOException e) { System.err.println("[WARN] " + e.getMessage()); }
     }
 
+    /** Naviga alla scelta carta prima di continuare. */
     @FXML
     private void onNextBattle() {
         try {
             Stage stage = (Stage) summaryLabel.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-            HelloController ctrl = loader.getController();
-            ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/card-reward-view.fxml");
+            CardRewardController ctrl = loader.getController();
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
