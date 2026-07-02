@@ -4,13 +4,13 @@ public class CardStyleHelper {
 
     public static String borderColor(String name) {
         String n = name.toLowerCase();
-        if (n.contains("veleno") || n.contains("ombra") || n.contains("letale") || n.contains("lama"))
+        if (n.contains("veleno") || n.contains("ombra") || n.contains("letale") || n.contains("lama") || n.contains("mortale"))
             return "#27ae60";
-        if (n.contains("scudo") || n.contains("luce") || n.contains("divina") || n.contains("mana") || n.contains("armatura") || n.contains("scaglie") || n.contains("sacro"))
+        if (n.contains("scudo") || n.contains("luce") || n.contains("divina") || n.contains("mana") || n.contains("armatura") || n.contains("scaglie") || n.contains("sacro") || n.contains("legno") || n.contains("retribuzione"))
             return "#3498db";
-        if (n.contains("fuoco") || n.contains("fireball") || n.contains("tempesta") || n.contains("artiglio") || n.contains("soffio") || n.contains("ghiaccio"))
+        if (n.contains("fuoco") || n.contains("palla") || n.contains("tempesta") || n.contains("artiglio") || n.contains("soffio") || n.contains("gelato") || n.contains("frostbolt"))
             return "#e67e22";
-        if (n.contains("pozione") || n.contains("cura") || n.contains("mulinello") || n.contains("grida") || n.contains("punizione"))
+        if (n.contains("pozione") || n.contains("cura") || n.contains("mulinello") || n.contains("grida") || n.contains("rapida"))
             return "#c77dff";
         return "#e74c3c";
     }
@@ -28,31 +28,38 @@ public class CardStyleHelper {
 
     public static String description(String name) {
         return switch (name) {
-            case "Colpo"                   -> "6 danni al nemico";
-            case "Colpo+"                  -> "9 danni al nemico";
-            case "Difesa"                  -> "+6 scudo";
-            case "Difesa+"                 -> "+9 scudo";
-            case "Fireball"                -> "8 danni al nemico";
-            case "Fireball+"               -> "12 danni al nemico";
-            case "Colpo Devastante"        -> "12 danni al nemico";
-            case "Colpo Devastante+"       -> "16 danni al nemico";
-            case "Tempesta Arcana"         -> "10 + 2\u00d7veleno danni";
-            case "Artiglio del Drago"      -> "6 danni + 4 scudo";
-            case "Scudo Sacro"             -> "12 scudo + 4 HP";
-            case "Lama Avvelenata"         -> "3 danni + 3 veleno";
-            case "Lama Avvelenata+"        -> "3 danni + 5 veleno";
-            case "Grida di Battaglia"      -> "8 danni + 6 scudo";
-            case "Mulinello"               -> "5 danni + cura 5 HP";
-            case "Dardo di Ghiaccio"       -> "7 danni + 2 veleno";
-            case "Scudo di Mana"           -> "+10 scudo, +1 mana";
-            case "Soffio del Drago"        -> "9 danni + 3 veleno";
-            case "Armatura di Scaglie"     -> "+8 scudo + cura 4 HP";
-            case "Luce Divina"             -> "Cura 12 HP + 4 scudo";
-            case "Punizione Divina"        -> "10 danni (+4 se scudo)";
-            case "Passo nell'Ombra"        -> "4 danni + 5 veleno";
-            case "Colpo Letale"            -> "6 + veleno nemico danni";
-            case "Pozione Rapida"          -> "Cura 10 HP";
-            default                        -> "";
+            // Carte base e versioni +
+            case "Colpo di Spada"        -> "6 danni al nemico";
+            case "Colpo di Spada+"       -> "9 danni al nemico";
+            case "Scudo di Legno"        -> "+6 scudo";
+            case "Scudo di Legno+"       -> "+9 scudo";
+            case "Palla di Fuoco"        -> "14 danni al nemico";
+            case "Palla di Fuoco+"       -> "18 danni al nemico";
+            case "Colpo Devastante"      -> "12 danni al nemico";
+            case "Colpo Devastante+"     -> "16 danni al nemico";
+            case "Lama Avvelenata"       -> "3 danni + 3 veleno";
+            case "Lama Avvelenata+"      -> "3 danni + 5 veleno";
+            // Guerriero
+            case "Grida di Battaglia"    -> "8 danni + 6 scudo";
+            case "Mulinello"             -> "5 danni + cura 5 HP";
+            // Mago
+            case "Tempesta Arcana"       -> "10 + 2\u00d7veleno danni";
+            case "Dardo Gelato"          -> "7 danni + 2 veleno";
+            case "Scudo di Mana"         -> "+10 scudo, +1 mana";
+            // Dracomante
+            case "Artiglio del Drago"    -> "6 danni + 4 scudo";
+            case "Soffio del Drago"      -> "9 danni + 3 veleno";
+            case "Armatura di Scaglie"   -> "+8 scudo + cura 4 HP";
+            // Paladino
+            case "Scudo Sacro"           -> "+12 scudo + cura 4 HP";
+            case "Luce Divina"           -> "Cura 12 HP + 4 scudo";
+            case "Retribuzione"          -> "10 danni (+4 se hai scudo)";
+            // Assassino
+            case "Passo nell'Ombra"      -> "4 danni + 5 veleno";
+            case "Colpo Letale"          -> "6 + veleno nemico danni";
+            // Neutrale
+            case "Pozione Rapida"        -> "Cura 10 HP";
+            default                      -> "";
         };
     }
 }
