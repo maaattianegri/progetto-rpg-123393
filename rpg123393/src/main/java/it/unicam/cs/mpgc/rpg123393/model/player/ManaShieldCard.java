@@ -10,6 +10,6 @@ public class ManaShieldCard implements ICard {
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
         user.addBlock(10);
-        user.restoreMana(1);
+        user.addMana(1);
     }
 }
