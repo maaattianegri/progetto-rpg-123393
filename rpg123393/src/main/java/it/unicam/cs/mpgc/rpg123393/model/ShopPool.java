@@ -86,23 +86,48 @@ public class ShopPool {
 
     private static String describeCard(String name) {
         return switch (name) {
-            case "Tempesta Arcana"      -> "10+2×veleno danni";
-            case "Dardo Gelato"         -> "7 danni+2 veleno";
-            case "Scudo di Mana"        -> "+10 scudo, +1 mana";
-            case "Colpo Devastante"     -> "12 danni";
+            // ── Starter / Neutrale ───────────────────────────────────────────
+            case "Colpo di Spada"        -> "6 danni";
+            case "Colpo di Spada+"       -> "8 danni";
+            case "Scudo di Legno"        -> "+5 scudo";
+            case "Scudo di Legno+"       -> "+8 scudo";
+            case "Pozione Rapida"        -> "cura 10 HP";
+            // ── Guerriero 🔴 ─────────────────────────────────────────────────
+            case "Colpo Devastante"      -> "12 danni";
+            case "Colpo Devastante+"     -> "15 danni";
             case "Grida di Battaglia"   -> "8 danni+6 scudo";
-            case "Mulinello"            -> "5 danni+cura 5";
-            case "Artiglio del Drago"   -> "6 danni+4 scudo";
-            case "Soffio del Drago"     -> "9 danni+3 veleno";
-            case "Armatura di Scaglie"  -> "+8 scudo+cura 4";
-            case "Scudo Sacro"          -> "+12 scudo+cura 4";
-            case "Luce Divina"          -> "cura 12+4 scudo";
-            case "Retribuzione"         -> "10 danni condiz.";
-            case "Lama Avvelenata"      -> "3 danni+3 veleno";
-            case "Passo nell'Ombra"     -> "4 danni+5 veleno";
-            case "Colpo Letale"         -> "6+veleno danni";
-            case "Pozione Rapida"       -> "cura 10 HP";
-            default                     -> "";
+            case "Mulinello"             -> "5 danni+cura 5";
+            case "Furia Berserker"       -> "7 danni (+5 se HP bassi)";
+            case "Sfida"                 -> "+8 scudo";
+            // ── Paladino 🟡 ──────────────────────────────────────────────────
+            case "Scudo Sacro"           -> "+12 scudo+cura 4";
+            case "Luce Divina"           -> "cura 12+4 scudo";
+            case "Punizione Divina"      -> "10 danni se nemico avvelenato";
+            case "Consacrazione"         -> "6 danni+6 scudo";
+            case "Voto di Ferro"         -> "8 scudo+cura 4";
+            case "Castigo Sacro"         -> "5 danni";
+            case "Benedizione"           -> "cura 8 HP";
+            case "Martello della Giustizia" -> "7 danni+3 scudo";
+            // ── Mago 🟣 ──────────────────────────────────────────────────────
+            case "Palla di Fuoco"        -> "8 danni";
+            case "Palla di Fuoco+"       -> "12 danni";
+            case "Tempesta Arcana"       -> "10+2×veleno danni";
+            case "Dardo di Ghiaccio"     -> "7 danni+2 veleno";
+            case "Scudo di Mana"         -> "+10 scudo, +1 mana";
+            case "Nova di Fuoco"         -> "9 danni ad area";
+            // ── Dracomante 🟠 ────────────────────────────────────────────────
+            case "Artiglio del Drago"    -> "6 danni+4 scudo";
+            case "Soffio del Drago"      -> "9 danni+3 veleno";
+            case "Armatura di Scaglie"   -> "+8 scudo+cura 4";
+            case "Zanna di Drago"        -> "8 danni+2 scudo";
+            // ── Assassino 🟢 ─────────────────────────────────────────────────
+            case "Lama Avvelenata"       -> "3 danni+3 veleno";
+            case "Lama Avvelenata+"      -> "4 danni+5 veleno";
+            case "Passo nell'Ombra"      -> "4 danni+5 veleno";
+            case "Colpo Letale"          -> "6+veleno danni";
+            case "Veleno Acido"          -> "2 danni+4 veleno";
+            case "Doppia Lama"           -> "3 danni×2 colpi";
+            default                      -> "";
         };
     }
 }
