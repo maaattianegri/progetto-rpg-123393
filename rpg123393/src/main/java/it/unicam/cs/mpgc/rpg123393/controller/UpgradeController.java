@@ -1,6 +1,8 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
+import it.unicam.cs.mpgc.rpg123393.model.CardPool;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
+import it.unicam.cs.mpgc.rpg123393.model.ShopItem;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,19 +21,22 @@ public class UpgradeController {
     @FXML private FlowPane deckFlow;
     @FXML private Label    infoLabel;
 
-    private GameService gameService;
-    private String      playerName;
-    private int         vigore;
-    private int         arcano;
-    private String      imagePath;
+    private GameService    gameService;
+    private String         playerName;
+    private int            vigore;
+    private int            arcano;
+    private String         imagePath;
+    private List<ShopItem> shopItems; // lista dello shop da preservare al ritorno
 
     public void initData(GameService gs, String playerName,
-                         int vigore, int arcano, String imagePath) {
+                         int vigore, int arcano, String imagePath,
+                         List<ShopItem> shopItems) {
         this.gameService = gs;
         this.playerName  = playerName;
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
+        this.shopItems   = shopItems;
         buildDeck();
     }
 
@@ -40,8 +45,7 @@ public class UpgradeController {
         List<ICard> deck = gameService.getDeck();
         for (int i = 0; i < deck.size(); i++) {
             ICard card = deck.get(i);
-            boolean canUpgrade = it.unicam.cs.mpgc.rpg123393.model.CardPool
-                    .getUpgradedCard(card.getName()) != null;
+            boolean canUpgrade = CardPool.getUpgradedCard(card.getName()) != null;
             deckFlow.getChildren().add(buildTile(card, i, canUpgrade));
         }
     }
@@ -57,7 +61,7 @@ public class UpgradeController {
         descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
         descLabel.setWrapText(true); descLabel.setMaxWidth(140);
 
-        Button upgradeBtn = new Button(canUpgrade ? "Potenzia \u2191" : "Max");
+        Button upgradeBtn = new Button(canUpgrade ? "Potenzia ↑" : "Max");
         upgradeBtn.setDisable(!canUpgrade);
         upgradeBtn.setStyle("-fx-background-color: " + (canUpgrade ? "#e67e22" : "#3a3a5a") + ";"
                 + "-fx-text-fill: " + (canUpgrade ? "#1a1a2e" : "#6a6a9a") + ";"
@@ -65,7 +69,6 @@ public class UpgradeController {
         upgradeBtn.setOnAction(e -> {
             if (gameService.upgradeCard(index)) {
                 infoLabel.setText(card.getName() + " → " + GameService.upgradedName(card.getName()) + " ✓");
-                buildDeck();
                 goBackToShop();
             }
         });
@@ -84,7 +87,8 @@ public class UpgradeController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
             ShopController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            // riusa la lista esistente: niente rigenera
+            ctrl.initDataKeepItems(gameService, playerName, vigore, arcano, imagePath, shopItems);
         } catch (IOException e) { e.printStackTrace(); }
     }
 

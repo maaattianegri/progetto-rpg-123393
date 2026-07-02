@@ -20,12 +20,12 @@ public class ShopController {
     @FXML private Label goldLabel;
     @FXML private HBox  itemsBox;
 
-    private GameService   gameService;
-    private String        playerName;
-    private int           vigore;
-    private int           arcano;
-    private String        imagePath;
-    private List<ShopItem> items;
+    private GameService    gameService;
+    private String         playerName;
+    private int            vigore;
+    private int            arcano;
+    private String         imagePath;
+    private List<ShopItem> items; // lista mantenuta stabile: non si rigenera al ritorno dalla Fucina
 
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath) {
@@ -34,7 +34,24 @@ public class ShopController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-        items = gs.generateShopItems();
+        // genera solo se non già presente (primo accesso)
+        if (items == null) items = gs.generateShopItems();
+        refresh();
+    }
+
+    /**
+     * Chiamato da UpgradeController al ritorno: riusa la lista esistente
+     * invece di rigenerarla, così gli slot acquistati rimangono rimossi.
+     */
+    public void initDataKeepItems(GameService gs, String playerName,
+                                   int vigore, int arcano, String imagePath,
+                                   List<ShopItem> existingItems) {
+        this.gameService = gs;
+        this.playerName  = playerName;
+        this.vigore      = vigore;
+        this.arcano      = arcano;
+        this.imagePath   = imagePath;
+        this.items       = existingItems;
         refresh();
     }
 
@@ -114,7 +131,8 @@ public class ShopController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            // passa la lista items esistente così al ritorno non si rigenera
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath, items);
         } catch (IOException e) { e.printStackTrace(); }
     }
 

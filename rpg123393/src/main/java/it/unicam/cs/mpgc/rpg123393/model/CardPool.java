@@ -68,11 +68,15 @@ public class CardPool {
         );
     }
 
+    /**
+     * Restituisce la versione potenziata di una carta dato il suo getName().
+     * I nomi usano i valori REALI restituiti da getName() di ogni classe.
+     */
     public static ICard getUpgradedCard(String name) {
         return switch (name) {
-            case "Colpo"            -> new StrikePlusCard();
-            case "Difesa"           -> new DefendPlusCard();
-            case "Fireball"         -> new FireballPlusCard();
+            case "Colpo di Spada"   -> new StrikePlusCard();
+            case "Scudo di Legno"   -> new DefendPlusCard();
+            case "Palla di Fuoco"   -> new FireballPlusCard();
             case "Colpo Devastante" -> new DevastatingStrikePlusCard();
             case "Lama Avvelenata"  -> new PoisonBladePlusCard();
             default                 -> null;

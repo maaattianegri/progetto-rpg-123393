@@ -36,7 +36,7 @@ public class GameService {
     private List<String>  unlockedCards = new ArrayList<>();
     private List<Relic>   relics        = new ArrayList<>();
 
-    private int gold = 0;
+    private int gold = RunManager.startingGold(); // 30 oro iniziali
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -95,8 +95,8 @@ public class GameService {
     public int  getEncounterIndex()  { return runManager.getIndex(); }
     public int  getEncounterTotal()  { return runManager.getTotal(); }
     public boolean isLastBoss()      { return runManager.isLastBoss(); }
+    public int  getShopRound()       { return runManager.shopRound(); }
 
-    /** Calcola e aggiunge l'oro del drop per l'incontro appena completato. */
     public int collectGoldDrop() {
         int drop = RunManager.goldDrop(runManager.current());
         gold += drop;
@@ -110,7 +110,6 @@ public class GameService {
     public void startBattle() {
         EncounterType type = runManager.current();
         enemy = enemyFactory.createForEncounter(type, playerLevel);
-        // Applica reliquie all'inizio battaglia
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
     }
@@ -131,15 +130,14 @@ public class GameService {
 
     public String playCard(int handIndex) {
         if (handIndex < 0 || handIndex >= hand.length || hand[handIndex] == null) return "Carta non valida.";
-        // Anello del Veleno: se la carta aggiunge veleno, aggiungi +1 stack extra
         boolean hasPoisonRing = relics.stream().anyMatch(r -> r instanceof PoisonRingRelic);
         String result = battleService.playCard(hand[handIndex], player, enemy);
-        if (hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("veleno")
-                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("lama")
-                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("ombra")
-                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("soffio")
-                || hasPoisonRing && hand[handIndex].getName().toLowerCase().contains("ghiaccio")) {
-            enemy.addPoison(1);
+        if (hasPoisonRing) {
+            String n = hand[handIndex].getName().toLowerCase();
+            if (n.contains("veleno") || n.contains("lama") || n.contains("ombra")
+                    || n.contains("soffio") || n.contains("ghiaccio") || n.contains("gelato")) {
+                enemy.addPoison(1);
+            }
         }
         return result;
     }
@@ -164,16 +162,18 @@ public class GameService {
     // Shop
     // -------------------------------------------------------
 
-    public List<ShopItem> generateShopItems() { return ShopPool.generateShopItems(className); }
+    public List<ShopItem> generateShopItems() {
+        return ShopPool.generateShopItems(className, runManager.shopRound());
+    }
 
     public boolean buyItem(ShopItem item) {
         if (gold < item.getPrice()) return false;
         gold -= item.getPrice();
         switch (item.getType()) {
-            case CARD -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
-            case RELIC -> relics.add((Relic) item.getPayload());
-            case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE -> { /* gestito dal controller — apre UpgradeController */ }
+            case CARD        -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
+            case RELIC       -> relics.add((Relic) item.getPayload());
+            case CONSUMABLE  -> applyConsumable((String) item.getPayload());
+            case UPGRADE     -> { /* gestito dal controller */ }
         }
         return true;
     }
@@ -181,7 +181,7 @@ public class GameService {
     private void applyConsumable(String code) {
         switch (code) {
             case "HEAL_30"     -> player.heal(30);
-            case "CURE_POISON" -> { /* azzera veleno */ for (int i = 0; i < 20; i++) if (player.getPoison() > 0) player.applyPoison(); }
+            case "CURE_POISON" -> { for (int i = 0; i < 20; i++) if (player.getPoison() > 0) player.applyPoison(); }
             case "SHIELD_10"   -> player.addBlock(10);
         }
     }
@@ -190,12 +190,10 @@ public class GameService {
     // Upgrade carte
     // -------------------------------------------------------
 
-    /** Restituisce il nome potenziato di una carta, se disponibile. */
     public static String upgradedName(String name) {
         return name.endsWith("+") ? name : name + "+";
     }
 
-    /** Sostituisce la prima occorrenza della carta nel deck con la versione +. */
     public boolean upgradeCard(int deckIndex) {
         if (deckIndex < 0 || deckIndex >= deck.size()) return false;
         ICard original = deck.get(deckIndex);
@@ -259,20 +257,20 @@ public class GameService {
     // Getter
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()          { return player; }
-    public GameCharacter getEnemy()           { return enemy; }
-    public ICard[]       getHand()            { return hand; }
-    public int           getPlayerLevel()     { return playerLevel; }
-    public int           getPlayerXp()        { return playerXp; }
-    public int           getXpRequired()      { return levelService.xpRequiredForNextLevel(playerLevel); }
-    public int           getVigore()          { return vigore; }
-    public int           getArcano()          { return arcano; }
-    public String        getClassName()       { return className; }
-    public String        getImagePath()       { return imagePath; }
-    public List<ICard>   getDeck()            { return deck; }
-    public List<String>  getUnlockedCards()   { return unlockedCards; }
-    public List<Relic>   getRelics()          { return relics; }
-    public int           getGold()            { return gold; }
+    public GameCharacter getPlayer()         { return player; }
+    public GameCharacter getEnemy()          { return enemy; }
+    public ICard[]       getHand()           { return hand; }
+    public int           getPlayerLevel()    { return playerLevel; }
+    public int           getPlayerXp()       { return playerXp; }
+    public int           getXpRequired()     { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int           getVigore()         { return vigore; }
+    public int           getArcano()         { return arcano; }
+    public String        getClassName()      { return className; }
+    public String        getImagePath()      { return imagePath; }
+    public List<ICard>   getDeck()           { return deck; }
+    public List<String>  getUnlockedCards()  { return unlockedCards; }
+    public List<Relic>   getRelics()         { return relics; }
+    public int           getGold()           { return gold; }
     public void setClassName(String c)  { this.className = c; }
     public void setImagePath(String p)  { this.imagePath = p; }
     public void addGold(int amount)     { this.gold += amount; }
