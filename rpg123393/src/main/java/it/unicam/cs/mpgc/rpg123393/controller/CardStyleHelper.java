@@ -1,9 +1,5 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
-/**
- * Utility statica condivisa tra HelloController, CardRewardController e CollectionController
- * per colori, simboli e descrizioni delle carte.
- */
 public class CardStyleHelper {
 
     public static String borderColor(String name) {
@@ -32,26 +28,31 @@ public class CardStyleHelper {
 
     public static String description(String name) {
         return switch (name) {
-            case "Colpo"                -> "6 danni al nemico";
-            case "Difesa"               -> "+6 scudo";
-            case "Fireball"             -> "8 danni al nemico";
-            case "Colpo Devastante"     -> "12 danni al nemico";
-            case "Tempesta Arcana"      -> "10 + 2\u00d7veleno nemico danni";
-            case "Artiglio del Drago"   -> "6 danni + 4 scudo";
-            case "Scudo Sacro"          -> "12 scudo + 4 HP";
-            case "Lama Avvelenata"      -> "3 danni + 3 stack veleno";
-            case "Grida di Battaglia"   -> "8 danni + 6 scudo";
-            case "Mulinello"            -> "5 danni + cura 5 HP";
-            case "Dardo di Ghiaccio"    -> "7 danni + 2 veleno";
-            case "Scudo di Mana"        -> "+10 scudo, +1 mana";
-            case "Soffio del Drago"     -> "9 danni + 3 veleno";
-            case "Armatura di Scaglie"  -> "+8 scudo + cura 4 HP";
-            case "Luce Divina"          -> "Cura 12 HP + 4 scudo";
-            case "Punizione Divina"     -> "10 danni (+4 se hai scudo)";
-            case "Passo nell'Ombra"     -> "4 danni + 5 veleno";
-            case "Colpo Letale"         -> "6 + veleno nemico danni";
-            case "Pozione Rapida"       -> "Cura 10 HP";
-            default                     -> "";
+            case "Colpo"                   -> "6 danni al nemico";
+            case "Colpo+"                  -> "9 danni al nemico";
+            case "Difesa"                  -> "+6 scudo";
+            case "Difesa+"                 -> "+9 scudo";
+            case "Fireball"                -> "8 danni al nemico";
+            case "Fireball+"               -> "12 danni al nemico";
+            case "Colpo Devastante"        -> "12 danni al nemico";
+            case "Colpo Devastante+"       -> "16 danni al nemico";
+            case "Tempesta Arcana"         -> "10 + 2\u00d7veleno danni";
+            case "Artiglio del Drago"      -> "6 danni + 4 scudo";
+            case "Scudo Sacro"             -> "12 scudo + 4 HP";
+            case "Lama Avvelenata"         -> "3 danni + 3 veleno";
+            case "Lama Avvelenata+"        -> "3 danni + 5 veleno";
+            case "Grida di Battaglia"      -> "8 danni + 6 scudo";
+            case "Mulinello"               -> "5 danni + cura 5 HP";
+            case "Dardo di Ghiaccio"       -> "7 danni + 2 veleno";
+            case "Scudo di Mana"           -> "+10 scudo, +1 mana";
+            case "Soffio del Drago"        -> "9 danni + 3 veleno";
+            case "Armatura di Scaglie"     -> "+8 scudo + cura 4 HP";
+            case "Luce Divina"             -> "Cura 12 HP + 4 scudo";
+            case "Punizione Divina"        -> "10 danni (+4 se scudo)";
+            case "Passo nell'Ombra"        -> "4 danni + 5 veleno";
+            case "Colpo Letale"            -> "6 + veleno nemico danni";
+            case "Pozione Rapida"          -> "Cura 10 HP";
+            default                        -> "";
         };
     }
 }
