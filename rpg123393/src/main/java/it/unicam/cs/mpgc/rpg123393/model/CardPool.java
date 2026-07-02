@@ -104,4 +104,20 @@ public class CardPool {
             default                 -> null;
         };
     }
+
+    /**
+     * Restituisce una nuova istanza della carta con il nome specificato,
+     * cercando in tutto il pool (starter + classi + neutral + upgraded).
+     * Usato da GameService.restoreFromState() per ripristinare il deck da save.
+     *
+     * @param name il valore restituito da ICard.getName()
+     * @return una nuova istanza della carta, o null se il nome non è riconosciuto
+     */
+    public static ICard getCardByName(String name) {
+        if (name == null) return null;
+        for (ICard card : getAllCards()) {
+            if (name.equals(card.getName())) return card;
+        }
+        return null;
+    }
 }
