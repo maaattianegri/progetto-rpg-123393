@@ -33,23 +33,19 @@ public class GameOverController {
 
         defeatLabel.setText("Sei stato sconfitto da " + e.getName() + "...");
         epilogueLabel.setText(buildEpilogue(e.getName()));
-
         hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         enemyStatLabel.setText(e.getName());
         levelStatLabel.setText(String.valueOf(gameService.getPlayerLevel()));
     }
 
-    /**
-     * Genera una riga narrativa in base al nemico che ha ucciso il giocatore.
-     */
     private String buildEpilogue(String enemyName) {
         return switch (enemyName) {
-            case "Goblin"            -> "Un semplice Goblin ha posto fine alla tua avventura. Ricomincia e vendica il tuo onore.";
-            case "Orco Berserker"   -> "La furia dell'Orco si è abbattuta su di te senza pietà.";
-            case "Scheletro Arcano" -> "La maledizione dello Scheletro ha prosciugato le tue ultime energie.";
-            case "Troll Rigenerante"-> "Il Troll si è rigenerato mentre tu cedevi. Una battaglia di resistenza perduta.";
-            case "Drago Antico"     -> "Il Fiato di Fuoco del Drago Antico ha incenerito ogni speranza.";
-            default                 -> "Le tenebre ti hanno inghiottito. Rialzati e riprova.";
+            case "Goblin"             -> "Un semplice Goblin ha posto fine alla tua avventura. Ricomincia e vendica il tuo onore.";
+            case "Orco Berserker"    -> "La furia dell'Orco si \u00e8 abbattuta su di te senza piet\u00e0.";
+            case "Scheletro Arcano"  -> "La maledizione dello Scheletro ha prosciugato le tue ultime energie.";
+            case "Troll Rigenerante" -> "Il Troll si \u00e8 rigenerato mentre tu cedevi. Una battaglia di resistenza perduta.";
+            case "Drago Antico"      -> "Il Fiato di Fuoco del Drago Antico ha incenerito ogni speranza.";
+            default                  -> "Le tenebre ti hanno inghiottito. Rialzati e riprova.";
         };
     }
 
@@ -61,19 +57,15 @@ public class GameOverController {
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
             HelloController ctrl = loader.getController();
             ctrl.initData(playerName, vigore, arcano, imagePath, new GameService());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     @FXML
     private void onMainMenu() {
         try {
             Stage stage = (Stage) defeatLabel.getScene().getWindow();
-            SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/creation-view.fxml");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+        } catch (IOException e) { e.printStackTrace(); }
     }
 }

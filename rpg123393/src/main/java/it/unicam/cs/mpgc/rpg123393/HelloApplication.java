@@ -12,15 +12,13 @@ public class HelloApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(
-                HelloApplication.class.getResource("view/creation-view.fxml"));
+                HelloApplication.class.getResource("view/main-menu-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 800, 600);
-        stage.setTitle("Arena Master - La Forgia");
+        stage.setTitle("Arena Master");
         stage.setScene(scene);
         stage.setFullScreen(true);
         stage.show();
     }
 
-    public static void main(String[] args) {
-        launch();
-    }
+    public static void main(String[] args) { launch(); }
 }
