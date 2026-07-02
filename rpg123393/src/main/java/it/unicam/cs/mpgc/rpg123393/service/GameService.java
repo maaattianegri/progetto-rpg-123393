@@ -7,7 +7,9 @@ import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.StrikeCard;
 import it.unicam.cs.mpgc.rpg123393.model.player.*;
 import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
+import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -31,8 +33,9 @@ public class GameService {
     private String className;
     private String imagePath;
 
-    private List<ICard> deck = new ArrayList<>();
-    private ICard[]     hand = new ICard[3];
+    private List<ICard>  deck            = new ArrayList<>();
+    private ICard[]      hand            = new ICard[3];
+    private List<String> unlockedCards   = new ArrayList<>();
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -47,6 +50,10 @@ public class GameService {
         int maxMana = 3  + (arcano / 2);
         player = new GameCharacter(name, maxHp, maxMana);
         buildStarterDeck(className);
+        // Le carte starter si sbloccano automaticamente
+        for (ICard c : deck) unlockCard(c.getName());
+        // Carica unlockedCards persistenti dal save
+        loadUnlockedCardsFromSave();
     }
 
     public void createPlayer(String name, int vigore, int arcano) {
@@ -102,13 +109,27 @@ public class GameService {
         }
     }
 
-    /** Aggiunge una carta al deck (chiamato da CardRewardController). */
-    public void addCardToDeck(ICard card) {
-        deck.add(card);
+    /** Carica la lista unlockedCards dal save esistente (per non perderla tra run). */
+    private void loadUnlockedCardsFromSave() {
+        try {
+            JsonSaveRepository repo = new JsonSaveRepository();
+            if (repo.saveExists()) {
+                GameState saved = repo.load();
+                if (saved != null && saved.getUnlockedCards() != null) {
+                    for (String name : saved.getUnlockedCards()) unlockCard(name);
+                }
+            }
+        } catch (IOException ignored) {}
+    }
+
+    public void addCardToDeck(ICard card) { deck.add(card); }
+
+    public void unlockCard(String cardName) {
+        if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName);
     }
 
     // -------------------------------------------------------
-    // Gestione battaglia
+    // Battaglia
     // -------------------------------------------------------
 
     public void startBattle() {
@@ -125,15 +146,12 @@ public class GameService {
     private String pendingMessage = "";
 
     public String getPendingMessage() {
-        String msg = pendingMessage;
-        pendingMessage = "";
-        return msg;
+        String msg = pendingMessage; pendingMessage = ""; return msg;
     }
 
     private void drawHand() {
-        for (int i = 0; i < hand.length; i++) {
+        for (int i = 0; i < hand.length; i++)
             hand[i] = deck.get(random.nextInt(deck.size()));
-        }
     }
 
     public String playCard(int handIndex) {
@@ -168,7 +186,7 @@ public class GameService {
         while (levelService.shouldLevelUp(playerXp, playerLevel)) {
             playerXp = levelService.consumeXpForLevelUp(playerXp, playerLevel);
             playerLevel++;
-            player.setMaxHp(player.getMaxHp()   + levelService.hpBonusOnLevelUp(playerLevel));
+            player.setMaxHp(player.getMaxHp()    + levelService.hpBonusOnLevelUp(playerLevel));
             player.setMaxMana(player.getMaxMana() + levelService.manaBonusOnLevelUp(playerLevel));
             messages.add(levelService.levelUpMessage(player.getName(), playerLevel));
         }
@@ -180,24 +198,26 @@ public class GameService {
     // -------------------------------------------------------
 
     public GameState toGameState() {
-        String now = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
-        return new GameState(
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+        GameState s = new GameState(
                 player.getName(), player.getMaxHp(), player.getCurrentHp(),
                 player.getMaxMana(), player.getCurrentMana(),
                 playerLevel, playerXp, now,
                 className != null ? className : "",
-                imagePath != null ? imagePath : ""
-        );
+                imagePath != null ? imagePath : "");
+        s.setUnlockedCards(new ArrayList<>(unlockedCards));
+        return s;
     }
 
     public void restoreFromState(GameState state) {
-        this.vigore    = (state.getPlayerMaxHp()  - 50) / 10;
-        this.arcano    = (state.getPlayerMaxMana() - 3)  * 2;
-        this.className = state.getClassName();
-        this.imagePath = state.getImagePath();
+        this.vigore      = (state.getPlayerMaxHp()  - 50) / 10;
+        this.arcano      = (state.getPlayerMaxMana() - 3)  * 2;
+        this.className   = state.getClassName();
+        this.imagePath   = state.getImagePath();
         this.playerLevel = state.getPlayerLevel();
         this.playerXp    = state.getPlayerXp();
+        if (state.getUnlockedCards() != null)
+            this.unlockedCards = new ArrayList<>(state.getUnlockedCards());
         player = new GameCharacter(
                 state.getPlayerName(), state.getPlayerMaxHp(), state.getPlayerMaxMana());
         player.setCurrentHp(state.getPlayerCurrentHp());
@@ -209,17 +229,18 @@ public class GameService {
     // Getter
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()      { return player; }
-    public GameCharacter getEnemy()       { return enemy; }
-    public ICard[]       getHand()        { return hand; }
-    public int           getPlayerLevel() { return playerLevel; }
-    public int           getPlayerXp()    { return playerXp; }
-    public int           getXpRequired()  { return levelService.xpRequiredForNextLevel(playerLevel); }
-    public int           getVigore()      { return vigore; }
-    public int           getArcano()      { return arcano; }
-    public String        getClassName()   { return className; }
-    public String        getImagePath()   { return imagePath; }
-    public List<ICard>   getDeck()        { return deck; }
-    public void setClassName(String c)   { this.className = c; }
-    public void setImagePath(String p)   { this.imagePath = p; }
+    public GameCharacter getPlayer()           { return player; }
+    public GameCharacter getEnemy()            { return enemy; }
+    public ICard[]       getHand()             { return hand; }
+    public int           getPlayerLevel()      { return playerLevel; }
+    public int           getPlayerXp()         { return playerXp; }
+    public int           getXpRequired()       { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int           getVigore()           { return vigore; }
+    public int           getArcano()           { return arcano; }
+    public String        getClassName()        { return className; }
+    public String        getImagePath()        { return imagePath; }
+    public List<ICard>   getDeck()             { return deck; }
+    public List<String>  getUnlockedCards()    { return unlockedCards; }
+    public void setClassName(String c)  { this.className = c; }
+    public void setImagePath(String p)  { this.imagePath = p; }
 }

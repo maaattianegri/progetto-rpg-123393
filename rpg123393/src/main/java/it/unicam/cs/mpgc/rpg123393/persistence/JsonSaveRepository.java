@@ -3,18 +3,9 @@ package it.unicam.cs.mpgc.rpg123393.persistence;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Implementazione di SaveRepository che salva e carica
- * lo stato della partita in un file JSON.
- *
- * La serializzazione viene fatta manualmente (senza librerie esterne)
- * per evitare dipendenze aggiuntive nel build.gradle.
- *
- * Il file viene salvato nella home dell'utente:
- *   Windows: C:\Users\<nome>\.eldoria\savegame.json
- *   Linux/Mac: ~/.eldoria/savegame.json
- */
 public class JsonSaveRepository implements SaveRepository {
 
     private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".eldoria";
@@ -23,15 +14,13 @@ public class JsonSaveRepository implements SaveRepository {
     @Override
     public void save(GameState state) throws IOException {
         Files.createDirectories(Paths.get(SAVE_DIR));
-        String json = toJson(state);
-        Files.writeString(Paths.get(SAVE_FILE), json, StandardCharsets.UTF_8);
+        Files.writeString(Paths.get(SAVE_FILE), toJson(state), StandardCharsets.UTF_8);
     }
 
     @Override
     public GameState load() throws IOException {
         if (!saveExists()) return null;
-        String json = Files.readString(Paths.get(SAVE_FILE), StandardCharsets.UTF_8);
-        return fromJson(json);
+        return fromJson(Files.readString(Paths.get(SAVE_FILE), StandardCharsets.UTF_8));
     }
 
     @Override
@@ -40,37 +29,39 @@ public class JsonSaveRepository implements SaveRepository {
     }
 
     // -------------------------------------------------------
-    // Serializzazione manuale JSON
+    // Serializzazione
     // -------------------------------------------------------
 
-    /**
-     * Converte un GameState in stringa JSON.
-     * Formato semplice senza librerie esterne.
-     */
     private String toJson(GameState s) {
-        return "{\n" +
-            "  \"playerName\": \""       + escape(s.getPlayerName())   + "\",\n" +
-            "  \"playerMaxHp\": "        + s.getPlayerMaxHp()          + ",\n" +
-            "  \"playerCurrentHp\": "    + s.getPlayerCurrentHp()      + ",\n" +
-            "  \"playerMaxMana\": "      + s.getPlayerMaxMana()        + ",\n" +
-            "  \"playerCurrentMana\": "  + s.getPlayerCurrentMana()    + ",\n" +
-            "  \"playerLevel\": "        + s.getPlayerLevel()          + ",\n" +
-            "  \"playerXp\": "           + s.getPlayerXp()             + ",\n" +
-            "  \"saveDate\": \""         + escape(s.getSaveDate())     + "\",\n" +
-            "  \"className\": \""        + escape(s.getClassName())    + "\",\n" +
-            "  \"imagePath\": \""        + escape(s.getImagePath())    + "\"\n" +
-            "}";
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
+        sb.append("  \"playerName\": \"").append(escape(s.getPlayerName())).append("\",\n");
+        sb.append("  \"playerMaxHp\": ").append(s.getPlayerMaxHp()).append(",\n");
+        sb.append("  \"playerCurrentHp\": ").append(s.getPlayerCurrentHp()).append(",\n");
+        sb.append("  \"playerMaxMana\": ").append(s.getPlayerMaxMana()).append(",\n");
+        sb.append("  \"playerCurrentMana\": ").append(s.getPlayerCurrentMana()).append(",\n");
+        sb.append("  \"playerLevel\": ").append(s.getPlayerLevel()).append(",\n");
+        sb.append("  \"playerXp\": ").append(s.getPlayerXp()).append(",\n");
+        sb.append("  \"saveDate\": \"").append(escape(s.getSaveDate())).append("\",\n");
+        sb.append("  \"className\": \"").append(escape(s.getClassName())).append("\",\n");
+        sb.append("  \"imagePath\": \"").append(escape(s.getImagePath())).append("\",\n");
+        // unlockedCards come array JSON
+        sb.append("  \"unlockedCards\": [");
+        List<String> cards = s.getUnlockedCards();
+        for (int i = 0; i < cards.size(); i++) {
+            sb.append("\"").append(escape(cards.get(i))).append("\"");
+            if (i < cards.size() - 1) sb.append(", ");
+        }
+        sb.append("]\n}");
+        return sb.toString();
     }
 
-    /**
-     * Converte una stringa JSON in GameState.
-     * Parsing riga per riga: robusto per il formato prodotto da toJson().
-     */
     private GameState fromJson(String json) {
         GameState s = new GameState();
+        // Parse riga per riga per i campi scalari
         for (String line : json.split("\n")) {
-            line = line.trim().replaceAll(",?$", ""); // rimuovi virgola finale
-            if (line.startsWith("\"playerName\""))       s.setPlayerName(stringValue(line));
+            line = line.trim().replaceAll(",?$", "");
+            if      (line.startsWith("\"playerName\""))       s.setPlayerName(stringValue(line));
             else if (line.startsWith("\"playerMaxHp\""))      s.setPlayerMaxHp(intValue(line));
             else if (line.startsWith("\"playerCurrentHp\""))  s.setPlayerCurrentHp(intValue(line));
             else if (line.startsWith("\"playerMaxMana\""))    s.setPlayerMaxMana(intValue(line));
@@ -81,18 +72,34 @@ public class JsonSaveRepository implements SaveRepository {
             else if (line.startsWith("\"className\""))        s.setClassName(stringValue(line));
             else if (line.startsWith("\"imagePath\""))        s.setImagePath(stringValue(line));
         }
+        // Parse array unlockedCards
+        s.setUnlockedCards(parseStringArray(json, "unlockedCards"));
         return s;
     }
 
-    // --- Utility parsing ---
-
-    /** Estrae il valore intero da una riga tipo: "campo": 42 */
-    private int intValue(String line) {
-        String[] parts = line.split(":", 2);
-        return Integer.parseInt(parts[1].trim());
+    /** Estrae un array JSON di stringhe dato il campo. */
+    private List<String> parseStringArray(String json, String field) {
+        List<String> result = new ArrayList<>();
+        String marker = "\"" + field + "\": [";
+        int start = json.indexOf(marker);
+        if (start < 0) return result;
+        int arrStart = json.indexOf('[', start);
+        int arrEnd   = json.indexOf(']', arrStart);
+        if (arrStart < 0 || arrEnd < 0) return result;
+        String content = json.substring(arrStart + 1, arrEnd).trim();
+        if (content.isEmpty()) return result;
+        for (String token : content.split(",")) {
+            token = token.trim();
+            if (token.startsWith("\"") && token.endsWith("\""))
+                result.add(token.substring(1, token.length() - 1));
+        }
+        return result;
     }
 
-    /** Estrae il valore stringa da una riga tipo: "campo": "valore" */
+    private int intValue(String line) {
+        return Integer.parseInt(line.split(":", 2)[1].trim());
+    }
+
     private String stringValue(String line) {
         int first = line.indexOf('"', line.indexOf(':'));
         int last  = line.lastIndexOf('"');
@@ -100,7 +107,6 @@ public class JsonSaveRepository implements SaveRepository {
         return line.substring(first + 1, last);
     }
 
-    /** Escapa i caratteri speciali JSON nelle stringhe. */
     private String escape(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");

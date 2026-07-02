@@ -33,80 +33,56 @@ public class CardRewardController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-
         options = CardPool.getRewardOptions(gameService.getClassName());
         buildCardButtons();
     }
 
     private void buildCardButtons() {
         cardsBox.getChildren().clear();
-        for (ICard card : options) {
-            VBox cardNode = buildCardNode(card);
-            cardsBox.getChildren().add(cardNode);
-        }
+        for (ICard card : options)
+            cardsBox.getChildren().add(buildCardNode(card));
     }
 
     private VBox buildCardNode(ICard card) {
-        String name      = card.getName();
-        int    cost      = card.getManaCost();
-        String nameLower = name.toLowerCase();
-
-        String borderColor;
-        String symbol;
-        if (nameLower.contains("veleno") || nameLower.contains("ombra") || nameLower.contains("letale") || nameLower.contains("lama")) {
-            borderColor = "#27ae60"; symbol = "~~~";
-        } else if (nameLower.contains("scudo") || nameLower.contains("divina") || nameLower.contains("luce") || nameLower.contains("mana") || nameLower.contains("armatura") || nameLower.contains("scaglie")) {
-            borderColor = "#3498db"; symbol = "[ ]";
-        } else if (nameLower.contains("fuoco") || nameLower.contains("fireball") || nameLower.contains("tempesta") || nameLower.contains("artiglio") || nameLower.contains("soffio") || nameLower.contains("ghiaccio")) {
-            borderColor = "#e67e22"; symbol = "***";
-        } else if (nameLower.contains("pozione") || nameLower.contains("cura") || nameLower.contains("mulinello") || nameLower.contains("grida") || nameLower.contains("punizione")) {
-            borderColor = "#c77dff"; symbol = "(+)";
-        } else {
-            borderColor = "#e74c3c"; symbol = "/ \\";
-        }
+        String color  = CardStyleHelper.borderColor(card.getName());
+        String symbol = CardStyleHelper.symbol(card.getName());
 
         Label symbolLabel = new Label(symbol);
-        symbolLabel.setStyle("-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: " + borderColor + ";");
+        symbolLabel.setStyle("-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
 
-        Label nameLabel = new Label(name);
+        Label nameLabel = new Label(card.getName());
         nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
-        nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(180);
-        nameLabel.setAlignment(Pos.CENTER);
+        nameLabel.setWrapText(true); nameLabel.setMaxWidth(180); nameLabel.setAlignment(Pos.CENTER);
 
-        Label costLabel = new Label("Mana: " + cost);
+        Label costLabel = new Label("Mana: " + card.getManaCost());
         costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 13px;");
 
-        Label descLabel = new Label(getDescription(card));
+        Label descLabel = new Label(CardStyleHelper.description(card.getName()));
         descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 12px;");
-        descLabel.setWrapText(true);
-        descLabel.setMaxWidth(180);
-        descLabel.setAlignment(Pos.CENTER);
+        descLabel.setWrapText(true); descLabel.setMaxWidth(180); descLabel.setAlignment(Pos.CENTER);
 
         Button pickBtn = new Button("Scegli");
-        pickBtn.setStyle("-fx-background-color: " + borderColor + "; -fx-text-fill: #1a1a2e;"
+        pickBtn.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
                 + "-fx-font-weight: bold; -fx-padding: 10 28; -fx-background-radius: 8; -fx-cursor: hand;"
-                + "-fx-effect: dropshadow(gaussian, " + borderColor + ", 10, 0.3, 0, 0);");
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.3, 0, 0);");
         pickBtn.setOnAction(e -> pickCard(card));
 
         VBox box = new VBox(14, symbolLabel, nameLabel, costLabel, descLabel, pickBtn);
         box.setAlignment(Pos.CENTER);
         box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
-                + "-fx-border-color: " + borderColor + "; -fx-border-radius: 14; -fx-border-width: 2;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
                 + "-fx-padding: 28; -fx-pref-width: 200; -fx-pref-height: 320;"
-                + "-fx-effect: dropshadow(gaussian, " + borderColor + ", 12, 0.2, 0, 0);");
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 12, 0.2, 0, 0);");
         return box;
     }
 
     private void pickCard(ICard card) {
         gameService.addCardToDeck(card);
+        gameService.unlockCard(card.getName());
         navigateToBattle();
     }
 
-    @FXML
-    private void onSkip() {
-        navigateToBattle();
-    }
+    @FXML private void onSkip() { navigateToBattle(); }
 
     private void navigateToBattle() {
         try {
@@ -116,31 +92,5 @@ public class CardRewardController {
             HelloController ctrl = loader.getController();
             ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
         } catch (IOException e) { e.printStackTrace(); }
-    }
-
-    /** Descrizione testuale breve per ogni carta. */
-    private String getDescription(ICard card) {
-        return switch (card.getName()) {
-            case "Colpo"                -> "6 danni al nemico";
-            case "Difesa"               -> "+6 scudo";
-            case "Fireball"             -> "8 danni al nemico";
-            case "Colpo Devastante"     -> "12 danni al nemico";
-            case "Tempesta Arcana"      -> "10 + 2\u00d7veleno nemico danni";
-            case "Artiglio del Drago"   -> "6 danni + 4 scudo";
-            case "Scudo Sacro"          -> "12 scudo + 4 HP";
-            case "Lama Avvelenata"      -> "3 danni + 3 stack veleno";
-            case "Grida di Battaglia"   -> "8 danni + 6 scudo";
-            case "Mulinello"            -> "5 danni + cura 5 HP";
-            case "Dardo di Ghiaccio"    -> "7 danni + 2 veleno";
-            case "Scudo di Mana"        -> "+10 scudo, recupera 1 mana";
-            case "Soffio del Drago"     -> "9 danni + 3 veleno";
-            case "Armatura di Scaglie"  -> "+8 scudo + cura 4 HP";
-            case "Luce Divina"          -> "Cura 12 HP + 4 scudo";
-            case "Punizione Divina"     -> "10 danni (+4 se hai scudo)";
-            case "Passo nell'Ombra"     -> "4 danni + 5 veleno";
-            case "Colpo Letale"         -> "6 + veleno nemico danni";
-            case "Pozione Rapida"       -> "Cura 10 HP";
-            default                     -> "";
-        };
     }
 }
