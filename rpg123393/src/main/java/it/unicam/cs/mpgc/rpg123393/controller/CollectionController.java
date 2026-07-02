@@ -11,37 +11,74 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class CollectionController {
 
-    @FXML private Label    progressLabel;
-    @FXML private HBox     filterBox;
-    @FXML private FlowPane cardsFlow;
+    // ── FXML refs ──────────────────────────────────────────────────────────
+    @FXML private Label      progressLabel;
+    @FXML private HBox       filterBox;
+    @FXML private ScrollPane listScroll;
+    @FXML private VBox       cardListBox;
 
+    // Dettaglio destra
+    @FXML private StackPane  detailPane;
+    @FXML private VBox       detailPlaceholder;
+    @FXML private VBox       detailCard;
+    @FXML private Label      detailSymbol;
+    @FXML private Label      detailName;
+    @FXML private Label      detailClass;
+    @FXML private VBox       detailStatsBox;
+    @FXML private Label      detailDesc;
+
+    // ── Stato ──────────────────────────────────────────────────────────────
     private List<String> unlockedCards = new ArrayList<>();
     private String       activeFilter  = "Tutte";
+    private Node         selectedRow   = null;
 
     private static final List<String> FILTERS =
             List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
-    private static final java.util.Map<String, String> CLASS_COLORS = java.util.Map.of(
+    private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.of(
             "Guerriero",  "#e74c3c",
+            "Paladino",   "#3498db",
             "Mago",       "#e67e22",
             "Dracomante", "#e67e22",
-            "Paladino",   "#3498db",
             "Assassino",  "#27ae60",
             "Neutro",     "#c77dff",
             "Tutte",      "#e0c97f"
     );
+
+    /** Mappa carta → classe leggibile (per il pannello dettaglio). */
+    private static String classOfCard(String name) {
+        return switch (CardStyleHelper.borderColor(name)) {
+            case "#e74c3c" -> "⚔ Guerriero";
+            case "#3498db" -> "🛡 Paladino";
+            case "#e67e22" -> "🔥 Mago / Dracomante";
+            case "#27ae60" -> "☠ Assassino";
+            case "#c77dff" -> "✦ Neutrale";
+            default        -> "";
+        };
+    }
+
+    /** Scompone la descrizione in righe per le stat nel pannello dettaglio. */
+    private static List<String> statsFromDesc(String desc) {
+        List<String> lines = new ArrayList<>();
+        for (String part : desc.split("\\+")) {
+            String s = part.strip();
+            if (!s.isEmpty()) lines.add(s);
+        }
+        return lines;
+    }
+
+    // ── Lifecycle ──────────────────────────────────────────────────────────
 
     @FXML
     public void initialize() {
@@ -50,16 +87,15 @@ public class CollectionController {
         showCards("Tutte");
     }
 
+    // ── Unlocked ───────────────────────────────────────────────────────────
+
     private void loadUnlocked() {
-        // Modalità debug: mostra subito tutte le carte senza save
         if (GameService.isDebugUnlockAll()) {
-            for (ICard c : CardPool.getAllCards()) {
+            for (ICard c : CardPool.getAllCards())
                 if (!unlockedCards.contains(c.getName()))
                     unlockedCards.add(c.getName());
-            }
             return;
         }
-        // Modalità normale: legge dal file di salvataggio
         try {
             JsonSaveRepository repo = new JsonSaveRepository();
             if (repo.saveExists()) {
@@ -70,53 +106,44 @@ public class CollectionController {
         } catch (IOException ignored) {}
     }
 
+    // ── Filtri ─────────────────────────────────────────────────────────────
+
     private void buildFilters() {
         filterBox.getChildren().clear();
-        for (String filter : FILTERS) {
-            Button btn = new Button(filter);
-            String color = CLASS_COLORS.getOrDefault(filter, "#aaa");
-            styleFilterBtn(btn, color, filter.equals(activeFilter));
-            btn.setOnAction(e -> {
-                activeFilter = filter;
-                buildFilters();
-                showCards(filter);
-            });
+        for (String f : FILTERS) {
+            Button btn = new Button(f);
+            String color = FILTER_COLORS.getOrDefault(f, "#aaa");
+            boolean active = f.equals(activeFilter);
+            if (active) {
+                btn.setStyle("-fx-background-color:" + color + "; -fx-text-fill:#1a1a2e;"
+                        + "-fx-font-weight:bold; -fx-padding:5 13; -fx-background-radius:20; -fx-cursor:hand;");
+            } else {
+                btn.setStyle("-fx-background-color:transparent; -fx-text-fill:" + color + ";"
+                        + "-fx-border-color:" + color + "; -fx-border-radius:20; -fx-border-width:1;"
+                        + "-fx-padding:5 13; -fx-cursor:hand;");
+            }
+            btn.setOnAction(e -> { activeFilter = f; buildFilters(); showCards(f); clearDetail(); });
             filterBox.getChildren().add(btn);
         }
     }
 
-    private void styleFilterBtn(Button btn, String color, boolean active) {
-        if (active) {
-            btn.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
-                    + "-fx-font-weight: bold; -fx-padding: 6 16; -fx-background-radius: 20; -fx-cursor: hand;");
-        } else {
-            btn.setStyle("-fx-background-color: transparent; -fx-text-fill: " + color + ";"
-                    + "-fx-border-color: " + color + "; -fx-border-radius: 20; -fx-border-width: 1;"
-                    + "-fx-padding: 6 16; -fx-cursor: hand;");
-        }
-    }
+    // ── Lista carte (sinistra) ─────────────────────────────────────────────
 
     private void showCards(String filter) {
-        cardsFlow.getChildren().clear();
+        cardListBox.getChildren().clear();
+        selectedRow = null;
 
-        List<ICard> pool;
-        if (filter.equals("Tutte")) {
-            pool = CardPool.getAllCards();
-        } else if (filter.equals("Neutro")) {
-            pool = new ArrayList<>(CardPool.getNeutralPool());
-            pool.addAll(CardPool.getUpgradedPool());
-        } else {
-            pool = CardPool.getClassPool(filter);
-        }
+        List<ICard> pool = switch (filter) {
+            case "Tutte"  -> CardPool.getAllCards();
+            case "Neutro" -> { List<ICard> n = new ArrayList<>(CardPool.getNeutralPool());
+                              n.addAll(CardPool.getUpgradedPool()); yield n; }
+            default       -> CardPool.getClassPool(filter);
+        };
 
-        // Deduplicazione per nome
         List<String> seen = new ArrayList<>();
-        List<ICard> deduped = new ArrayList<>();
+        List<ICard>  deduped = new ArrayList<>();
         for (ICard c : pool) {
-            if (!seen.contains(c.getName())) {
-                seen.add(c.getName());
-                deduped.add(c);
-            }
+            if (!seen.contains(c.getName())) { seen.add(c.getName()); deduped.add(c); }
         }
 
         int total    = deduped.size();
@@ -125,52 +152,124 @@ public class CollectionController {
 
         for (ICard card : deduped) {
             boolean isUnlocked = unlockedCards.contains(card.getName());
-            cardsFlow.getChildren().add(buildCardTile(card, isUnlocked));
+            HBox row = buildRow(card, isUnlocked);
+            cardListBox.getChildren().add(row);
         }
     }
 
-    private VBox buildCardTile(ICard card, boolean unlocked) {
+    private HBox buildRow(ICard card, boolean unlocked) {
+        String color  = unlocked ? CardStyleHelper.borderColor(card.getName()) : "#2a2a4a";
+        String symbol = unlocked ? CardStyleHelper.symbol(card.getName()) : "🔒";
+
+        Label symLbl = new Label(symbol);
+        symLbl.setStyle("-fx-font-size:20px; -fx-min-width:36px;");
+
+        Label nameLbl = new Label(unlocked ? card.getName() : "???");
+        nameLbl.setStyle("-fx-text-fill:" + (unlocked ? "white" : "#3a3a5a") + ";"
+                + "-fx-font-size:13px; -fx-font-weight:bold;");
+        HBox.setHgrow(nameLbl, Priority.ALWAYS);
+
+        Label manaLbl = new Label("✨ " + card.getManaCost());
+        manaLbl.setStyle("-fx-text-fill:#a78bfa; -fx-font-size:12px; -fx-min-width:36px;"
+                + "-fx-alignment:center-right;");
+
+        HBox row = new HBox(12, symLbl, nameLbl, manaLbl);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-padding:10 16; -fx-background-color:transparent;"
+                + "-fx-border-color: transparent transparent #1e1e3a transparent; -fx-border-width:1;"
+                + (unlocked ? "-fx-cursor:hand;" : "-fx-opacity:0.45;"));
+
         if (unlocked) {
-            String color  = CardStyleHelper.borderColor(card.getName());
-            String symbol = CardStyleHelper.symbol(card.getName());
-            String desc   = CardStyleHelper.description(card.getName());
-
-            Label symbolLabel = new Label(symbol);
-            symbolLabel.setStyle("-fx-font-size: 32px;");
-
-            Label nameLabel = new Label(card.getName());
-            nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;");
-            nameLabel.setWrapText(true); nameLabel.setMaxWidth(145); nameLabel.setAlignment(Pos.CENTER);
-
-            Label manaLabel = new Label("✨ Mana: " + card.getManaCost());
-            manaLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 11px; -fx-font-weight: bold;");
-
-            Label descLabel = new Label(desc);
-            descLabel.setStyle("-fx-text-fill: #c0c0d8; -fx-font-size: 11px;");
-            descLabel.setWrapText(true); descLabel.setMaxWidth(145); descLabel.setAlignment(Pos.CENTER);
-
-            VBox box = new VBox(8, symbolLabel, nameLabel, manaLabel, descLabel);
-            box.setAlignment(Pos.CENTER);
-            box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 12;"
-                    + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
-                    + "-fx-padding: 16; -fx-pref-width: 160; -fx-pref-height: 215;"
-                    + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.2, 0, 0);");
-            return box;
-        } else {
-            Label lockLabel = new Label("🔒");
-            lockLabel.setStyle("-fx-font-size: 32px;");
-            Label unknownLabel = new Label("???");
-            unknownLabel.setStyle("-fx-text-fill: #3a3a5a; -fx-font-size: 14px; -fx-font-weight: bold;");
-
-            VBox box = new VBox(10, lockLabel, unknownLabel);
-            box.setAlignment(Pos.CENTER);
-            box.setStyle("-fx-background-color: #12122a; -fx-background-radius: 12;"
-                    + "-fx-border-color: #2a2a4a; -fx-border-radius: 12; -fx-border-width: 2;"
-                    + "-fx-padding: 16; -fx-pref-width: 160; -fx-pref-height: 215;"
-                    + "-fx-opacity: 0.5;");
-            return box;
+            row.setOnMouseEntered(e -> {
+                if (row != selectedRow)
+                    row.setStyle("-fx-padding:10 16; -fx-background-color:#1e1e3a;"
+                            + "-fx-border-color:transparent transparent #1e1e3a transparent;"
+                            + "-fx-border-width:1; -fx-cursor:hand;");
+            });
+            row.setOnMouseExited(e -> {
+                if (row != selectedRow)
+                    row.setStyle("-fx-padding:10 16; -fx-background-color:transparent;"
+                            + "-fx-border-color:transparent transparent #1e1e3a transparent;"
+                            + "-fx-border-width:1; -fx-cursor:hand;");
+            });
+            row.setOnMouseClicked(e -> selectCard(card, row, color));
         }
+
+        return row;
     }
+
+    // ── Dettaglio carta (destra) ───────────────────────────────────────────
+
+    private void selectCard(ICard card, HBox row, String color) {
+        // Deseleziona riga precedente
+        if (selectedRow != null)
+            selectedRow.setStyle("-fx-padding:10 16; -fx-background-color:transparent;"
+                    + "-fx-border-color:transparent transparent #1e1e3a transparent;"
+                    + "-fx-border-width:1; -fx-cursor:hand;");
+        // Evidenzia nuova riga
+        selectedRow = row;
+        row.setStyle("-fx-padding:10 16; -fx-background-color:#1e1e3a;"
+                + "-fx-border-color:" + color + " transparent " + color + " transparent;"
+                + "-fx-border-width:2; -fx-cursor:hand;");
+
+        // Popola il pannello dettaglio
+        detailSymbol.setText(CardStyleHelper.symbol(card.getName()));
+        detailName.setText(card.getName());
+        detailClass.setText(classOfCard(card.getName()));
+        detailClass.setStyle("-fx-text-fill:" + color + "; -fx-font-size:13px; -fx-font-weight:bold;");
+        detailDesc.setText(CardStyleHelper.description(card.getName()));
+
+        // Stats singole
+        detailStatsBox.getChildren().clear();
+        detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana", String.valueOf(card.getManaCost()), "#a78bfa"));
+        String raw = CardStyleHelper.description(card.getName());
+        if (raw.contains("danni")) {
+            String atk = raw.replaceAll(".*?(\\d[^\\s]*\\s*danni).*", "$1");
+            detailStatsBox.getChildren().add(makeStatRow("⚔ Attacco", atk, "#e74c3c"));
+        }
+        if (raw.contains("scudo")) {
+            String shld = raw.replaceAll(".*?([+\\d]+\\s*scudo).*", "$1");
+            detailStatsBox.getChildren().add(makeStatRow("🛡 Scudo", shld, "#3498db"));
+        }
+        if (raw.contains("cura")) {
+            String heal = raw.replaceAll(".*?(cura\\s+\\d+|\\d+\\s*cura).*", "$1");
+            detailStatsBox.getChildren().add(makeStatRow("❤ Cura", heal, "#2ecc71"));
+        }
+        if (raw.contains("veleno")) {
+            String psn = raw.replaceAll(".*?([+\\d]+\\s*veleno).*", "$1");
+            detailStatsBox.getChildren().add(makeStatRow("☠ Veleno", psn, "#27ae60"));
+        }
+
+        // Bordo carta
+        detailCard.setStyle("-fx-background-color:#1e1e3a; -fx-background-radius:20;"
+                + "-fx-border-color:" + color + "; -fx-border-radius:20; -fx-border-width:3;"
+                + "-fx-padding:40 36;"
+                + "-fx-effect:dropshadow(gaussian," + color + ",28,0.35,0,0);");
+
+        detailPlaceholder.setVisible(false);
+        detailCard.setVisible(true);
+    }
+
+    private HBox makeStatRow(String label, String value, String color) {
+        Label lbl = new Label(label);
+        lbl.setStyle("-fx-text-fill:#7a7a9a; -fx-font-size:12px;");
+        HBox.setHgrow(lbl, Priority.ALWAYS);
+        Label val = new Label(value);
+        val.setStyle("-fx-text-fill:" + color + "; -fx-font-size:13px; -fx-font-weight:bold;");
+        HBox row = new HBox(lbl, val);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setSpacing(8);
+        row.setMaxWidth(280);
+        return row;
+    }
+
+    private void clearDetail() {
+        detailCard.setVisible(false);
+        detailPlaceholder.setVisible(true);
+        selectedRow = null;
+    }
+
+    // ── Back ───────────────────────────────────────────────────────────────
 
     @FXML
     private void onBack(ActionEvent event) {

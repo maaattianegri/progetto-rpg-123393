@@ -1,44 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.FlowPane?>
-
-<VBox spacing="0"
-      xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
+<HBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.CollectionController"
-      style="-fx-background-color: #1a1a2e; -fx-padding: 0;">
+      prefWidth="1100" prefHeight="680"
+      style="-fx-background-color: #0f0f23;">
 
-    <!-- Header -->
-    <VBox alignment="CENTER" spacing="6" style="-fx-padding: 36 0 20 0;">
-        <Label text="&#x1F4D6; Collezione"
-               style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
-        <Label fx:id="progressLabel" text="0 / 0 carte sbloccate"
-               style="-fx-font-size: 14px; -fx-text-fill: #6a6a9a;"/>
+    <!-- ═══════════════════════════════════════════
+         COLONNA SINISTRA — lista carte (50%)
+    ═══════════════════════════════════════════ -->
+    <VBox prefWidth="550" spacing="0"
+          style="-fx-background-color: #13132b; -fx-border-color: #2a2a4a; -fx-border-width: 0 2 0 0;">
+
+        <!-- Header -->
+        <VBox alignment="CENTER" spacing="4"
+              style="-fx-padding: 18 16 12 16;">
+            <Label text="📚 Collezione"
+                   style="-fx-text-fill: #e0c97f; -fx-font-size: 22px; -fx-font-weight: bold;"/>
+            <Label fx:id="progressLabel"
+                   style="-fx-text-fill: #7a7a9a; -fx-font-size: 12px;"/>
+        </VBox>
+
+        <!-- Filtri classe -->
+        <HBox fx:id="filterBox" alignment="CENTER" spacing="6"
+              style="-fx-padding: 0 12 12 12; -fx-wrap-text: true;"/>
+
+        <!-- Lista carte scrollabile -->
+        <ScrollPane fx:id="listScroll" fitToWidth="true" hbarPolicy="NEVER"
+                    style="-fx-background: transparent; -fx-background-color: transparent;"
+                    VBox.vgrow="ALWAYS">
+            <VBox fx:id="cardListBox" spacing="0"
+                  style="-fx-background-color: transparent;"/>
+        </ScrollPane>
+
+        <!-- Back -->
+        <HBox alignment="CENTER" style="-fx-padding: 10;">
+            <Button text="← Menu Principale" onAction="#onBack"
+                    style="-fx-background-color: #1e1e3a; -fx-text-fill: #e0c97f;
+                           -fx-border-color: #e0c97f; -fx-border-radius: 20; -fx-border-width: 1;
+                           -fx-padding: 6 20; -fx-cursor: hand; -fx-background-radius: 20;"/>
+        </HBox>
     </VBox>
 
-    <!-- Filtri classe -->
-    <HBox fx:id="filterBox" alignment="CENTER" spacing="10" style="-fx-padding: 0 0 20 0;"/>
+    <!-- ═══════════════════════════════════════════
+         COLONNA DESTRA — dettaglio carta (50%)
+    ═══════════════════════════════════════════ -->
+    <StackPane fx:id="detailPane" HBox.hgrow="ALWAYS"
+               style="-fx-background-color: #0f0f23;">
 
-    <!-- Griglia carte -->
-    <ScrollPane fitToWidth="true" fitToHeight="false" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
-                style="-fx-background: #1a1a2e; -fx-background-color: #1a1a2e;
-                       -fx-border-color: transparent; -fx-pref-height: 520;">
-        <FlowPane fx:id="cardsFlow" hgap="20" vgap="20"
-                  alignment="CENTER"
-                  style="-fx-background-color: #1a1a2e; -fx-padding: 10 30;"/>
-    </ScrollPane>
+        <!-- Placeholder iniziale -->
+        <VBox fx:id="detailPlaceholder" alignment="CENTER" spacing="12">
+            <Label text="👈" style="-fx-font-size: 48px;"/>
+            <Label text="Seleziona una carta"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+            <Label text="per vedere i dettagli"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 13px;"/>
+        </VBox>
 
-    <!-- Bottone torna al menu -->
-    <HBox alignment="CENTER" style="-fx-padding: 20 0;">
-        <Button text="&#x2190; Menu Principale" onAction="#onBack"
-                style="-fx-background-color: transparent; -fx-text-fill: #6a6a9a;
-                       -fx-font-size: 13px; -fx-border-color: #3a3a6a;
-                       -fx-border-radius: 8; -fx-padding: 8 24; -fx-cursor: hand;"/>
-    </HBox>
+        <!-- Pannello dettaglio (visibile dopo click) -->
+        <VBox fx:id="detailCard" alignment="CENTER" spacing="20" visible="false"
+              maxWidth="380" maxHeight="520"
+              style="-fx-background-color: #1e1e3a; -fx-background-radius: 20;
+                     -fx-border-radius: 20; -fx-border-width: 3;
+                     -fx-padding: 40 36;">
 
-</VBox>
+            <Label fx:id="detailSymbol" style="-fx-font-size: 64px;"/>
+            <Label fx:id="detailName"
+                   style="-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;"
+                   wrapText="true" maxWidth="300" alignment="CENTER"/>
+            <Label fx:id="detailClass"
+                   style="-fx-font-size: 13px; -fx-font-weight: bold;"
+                   wrapText="true" maxWidth="300" alignment="CENTER"/>
+            <Separator style="-fx-background-color: #3a3a5a;"/>
+            <VBox spacing="10" alignment="CENTER" fx:id="detailStatsBox"/>
+            <Separator style="-fx-background-color: #3a3a5a;"/>
+            <Label fx:id="detailDesc"
+                   style="-fx-text-fill: #c0c0d8; -fx-font-size: 13px;"
+                   wrapText="true" maxWidth="300" alignment="CENTER"/>
+        </VBox>
+    </StackPane>
+
+</HBox>
