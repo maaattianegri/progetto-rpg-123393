@@ -11,8 +11,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
@@ -22,26 +20,25 @@ import java.util.List;
 
 public class CollectionController {
 
-    // ── FXML refs ──────────────────────────────────────────────────────────
-    @FXML private Label      progressLabel;
-    @FXML private HBox       filterBox;
-    @FXML private ScrollPane listScroll;
-    @FXML private VBox       cardListBox;
+    // ── FXML refs ─────────────────────────────────────────────────
+    @FXML private Label     progressLabel;
+    @FXML private HBox      filterBox;
+    @FXML private FlowPane  cardsFlow;
 
     // Dettaglio destra
-    @FXML private StackPane  detailPane;
-    @FXML private VBox       detailPlaceholder;
-    @FXML private VBox       detailCard;
-    @FXML private Label      detailSymbol;
-    @FXML private Label      detailName;
-    @FXML private Label      detailClass;
-    @FXML private VBox       detailStatsBox;
-    @FXML private Label      detailDesc;
+    @FXML private StackPane detailPane;
+    @FXML private VBox      detailPlaceholder;
+    @FXML private VBox      detailCard;
+    @FXML private Label     detailSymbol;
+    @FXML private Label     detailName;
+    @FXML private Label     detailClass;
+    @FXML private VBox      detailStatsBox;
+    @FXML private Label     detailDesc;
 
-    // ── Stato ──────────────────────────────────────────────────────────────
+    // ── Stato ─────────────────────────────────────────────────────
     private List<String> unlockedCards = new ArrayList<>();
     private String       activeFilter  = "Tutte";
-    private Node         selectedRow   = null;
+    private VBox         selectedTile  = null;
 
     private static final List<String> FILTERS =
             List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
@@ -56,29 +53,7 @@ public class CollectionController {
             "Tutte",      "#e0c97f"
     );
 
-    /** Mappa carta → classe leggibile (per il pannello dettaglio). */
-    private static String classOfCard(String name) {
-        return switch (CardStyleHelper.borderColor(name)) {
-            case "#e74c3c" -> "⚔ Guerriero";
-            case "#3498db" -> "🛡 Paladino";
-            case "#e67e22" -> "🔥 Mago / Dracomante";
-            case "#27ae60" -> "☠ Assassino";
-            case "#c77dff" -> "✦ Neutrale";
-            default        -> "";
-        };
-    }
-
-    /** Scompone la descrizione in righe per le stat nel pannello dettaglio. */
-    private static List<String> statsFromDesc(String desc) {
-        List<String> lines = new ArrayList<>();
-        for (String part : desc.split("\\+")) {
-            String s = part.strip();
-            if (!s.isEmpty()) lines.add(s);
-        }
-        return lines;
-    }
-
-    // ── Lifecycle ──────────────────────────────────────────────────────────
+    // ── Lifecycle ─────────────────────────────────────────────────
 
     @FXML
     public void initialize() {
@@ -87,7 +62,7 @@ public class CollectionController {
         showCards("Tutte");
     }
 
-    // ── Unlocked ───────────────────────────────────────────────────────────
+    // ── Unlocked ──────────────────────────────────────────────────
 
     private void loadUnlocked() {
         if (GameService.isDebugUnlockAll()) {
@@ -106,32 +81,31 @@ public class CollectionController {
         } catch (IOException ignored) {}
     }
 
-    // ── Filtri ─────────────────────────────────────────────────────────────
+    // ── Filtri ────────────────────────────────────────────────────
 
     private void buildFilters() {
         filterBox.getChildren().clear();
         for (String f : FILTERS) {
             Button btn = new Button(f);
-            String color = FILTER_COLORS.getOrDefault(f, "#aaa");
+            String color  = FILTER_COLORS.getOrDefault(f, "#aaa");
             boolean active = f.equals(activeFilter);
-            if (active) {
-                btn.setStyle("-fx-background-color:" + color + "; -fx-text-fill:#1a1a2e;"
-                        + "-fx-font-weight:bold; -fx-padding:5 13; -fx-background-radius:20; -fx-cursor:hand;");
-            } else {
-                btn.setStyle("-fx-background-color:transparent; -fx-text-fill:" + color + ";"
-                        + "-fx-border-color:" + color + "; -fx-border-radius:20; -fx-border-width:1;"
-                        + "-fx-padding:5 13; -fx-cursor:hand;");
-            }
+            btn.setStyle(active
+                ? "-fx-background-color:" + color + "; -fx-text-fill:#1a1a2e;"
+                  + "-fx-font-weight:bold; -fx-padding:5 14; -fx-background-radius:20; -fx-cursor:hand;"
+                : "-fx-background-color:transparent; -fx-text-fill:" + color + ";"
+                  + "-fx-border-color:" + color + "; -fx-border-radius:20; -fx-border-width:1;"
+                  + "-fx-padding:5 14; -fx-cursor:hand;"
+            );
             btn.setOnAction(e -> { activeFilter = f; buildFilters(); showCards(f); clearDetail(); });
             filterBox.getChildren().add(btn);
         }
     }
 
-    // ── Lista carte (sinistra) ─────────────────────────────────────────────
+    // ── Griglia carte ─────────────────────────────────────────────
 
     private void showCards(String filter) {
-        cardListBox.getChildren().clear();
-        selectedRow = null;
+        cardsFlow.getChildren().clear();
+        selectedTile = null;
 
         List<ICard> pool = switch (filter) {
             case "Tutte"  -> CardPool.getAllCards();
@@ -140,7 +114,8 @@ public class CollectionController {
             default       -> CardPool.getClassPool(filter);
         };
 
-        List<String> seen = new ArrayList<>();
+        // Deduplicazione
+        List<String> seen    = new ArrayList<>();
         List<ICard>  deduped = new ArrayList<>();
         for (ICard c : pool) {
             if (!seen.contains(c.getName())) { seen.add(c.getName()); deduped.add(c); }
@@ -152,99 +127,134 @@ public class CollectionController {
 
         for (ICard card : deduped) {
             boolean isUnlocked = unlockedCards.contains(card.getName());
-            HBox row = buildRow(card, isUnlocked);
-            cardListBox.getChildren().add(row);
+            cardsFlow.getChildren().add(buildTile(card, isUnlocked));
         }
     }
 
-    private HBox buildRow(ICard card, boolean unlocked) {
+    /** Tessera compatta nella griglia (non deve essere troppo grande). */
+    private VBox buildTile(ICard card, boolean unlocked) {
         String color  = unlocked ? CardStyleHelper.borderColor(card.getName()) : "#2a2a4a";
         String symbol = unlocked ? CardStyleHelper.symbol(card.getName()) : "🔒";
 
         Label symLbl = new Label(symbol);
-        symLbl.setStyle("-fx-font-size:20px; -fx-min-width:36px;");
+        symLbl.setStyle("-fx-font-size: 26px;");
 
         Label nameLbl = new Label(unlocked ? card.getName() : "???");
-        nameLbl.setStyle("-fx-text-fill:" + (unlocked ? "white" : "#3a3a5a") + ";"
-                + "-fx-font-size:13px; -fx-font-weight:bold;");
-        HBox.setHgrow(nameLbl, Priority.ALWAYS);
+        nameLbl.setStyle("-fx-text-fill: " + (unlocked ? "white" : "#3a3a5a") + ";"
+                + "-fx-font-size: 11px; -fx-font-weight: bold;");
+        nameLbl.setWrapText(true);
+        nameLbl.setMaxWidth(100);
+        nameLbl.setAlignment(Pos.CENTER);
 
         Label manaLbl = new Label("✨ " + card.getManaCost());
-        manaLbl.setStyle("-fx-text-fill:#a78bfa; -fx-font-size:12px; -fx-min-width:36px;"
-                + "-fx-alignment:center-right;");
+        manaLbl.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 10px;");
 
-        HBox row = new HBox(12, symLbl, nameLbl, manaLbl);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-padding:10 16; -fx-background-color:transparent;"
-                + "-fx-border-color: transparent transparent #1e1e3a transparent; -fx-border-width:1;"
-                + (unlocked ? "-fx-cursor:hand;" : "-fx-opacity:0.45;"));
+        VBox tile = new VBox(6, symLbl, nameLbl, manaLbl);
+        tile.setAlignment(Pos.CENTER);
+        tile.setStyle("-fx-background-color: #1a1a30; -fx-background-radius: 12;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                + "-fx-padding: 12 10;"
+                + "-fx-pref-width: 115; -fx-pref-height: 130;"
+                + (unlocked ? "-fx-cursor: hand;" : "-fx-opacity: 0.45;")
+                + (unlocked ? " -fx-effect: dropshadow(gaussian," + color + ",6,0.1,0,0);" : ""));
 
         if (unlocked) {
-            row.setOnMouseEntered(e -> {
-                if (row != selectedRow)
-                    row.setStyle("-fx-padding:10 16; -fx-background-color:#1e1e3a;"
-                            + "-fx-border-color:transparent transparent #1e1e3a transparent;"
-                            + "-fx-border-width:1; -fx-cursor:hand;");
+            tile.setOnMouseEntered(e -> {
+                if (tile != selectedTile)
+                    tile.setStyle("-fx-background-color: #22224a; -fx-background-radius: 12;"
+                            + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                            + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                            + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",14,0.3,0,0);");
             });
-            row.setOnMouseExited(e -> {
-                if (row != selectedRow)
-                    row.setStyle("-fx-padding:10 16; -fx-background-color:transparent;"
-                            + "-fx-border-color:transparent transparent #1e1e3a transparent;"
-                            + "-fx-border-width:1; -fx-cursor:hand;");
+            tile.setOnMouseExited(e -> {
+                if (tile != selectedTile)
+                    tile.setStyle("-fx-background-color: #1a1a30; -fx-background-radius: 12;"
+                            + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                            + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                            + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",6,0.1,0,0);");
             });
-            row.setOnMouseClicked(e -> selectCard(card, row, color));
+            tile.setOnMouseClicked(e -> selectCard(card, tile, color));
         }
-
-        return row;
+        return tile;
     }
 
-    // ── Dettaglio carta (destra) ───────────────────────────────────────────
+    // ── Dettaglio carta (destra) ──────────────────────────────────
 
-    private void selectCard(ICard card, HBox row, String color) {
-        // Deseleziona riga precedente
-        if (selectedRow != null)
-            selectedRow.setStyle("-fx-padding:10 16; -fx-background-color:transparent;"
-                    + "-fx-border-color:transparent transparent #1e1e3a transparent;"
-                    + "-fx-border-width:1; -fx-cursor:hand;");
-        // Evidenzia nuova riga
-        selectedRow = row;
-        row.setStyle("-fx-padding:10 16; -fx-background-color:#1e1e3a;"
-                + "-fx-border-color:" + color + " transparent " + color + " transparent;"
-                + "-fx-border-width:2; -fx-cursor:hand;");
+    private void selectCard(ICard card, VBox tile, String color) {
+        // Ripristina tessera precedente
+        if (selectedTile != null) {
+            String prevColor = CardStyleHelper.borderColor(
+                    ((Label) selectedTile.getChildren().get(1)).getText());
+            selectedTile.setStyle("-fx-background-color: #1a1a30; -fx-background-radius: 12;"
+                    + "-fx-border-color: " + prevColor + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                    + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                    + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + prevColor + ",6,0.1,0,0);");
+        }
+        // Evidenzia nuova tessera
+        selectedTile = tile;
+        tile.setStyle("-fx-background-color: #22224a; -fx-background-radius: 12;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 3;"
+                + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",20,0.5,0,0);");
 
-        // Popola il pannello dettaglio
+        // ── Popola pannello dettaglio ──
         detailSymbol.setText(CardStyleHelper.symbol(card.getName()));
         detailName.setText(card.getName());
-        detailClass.setText(classOfCard(card.getName()));
-        detailClass.setStyle("-fx-text-fill:" + color + "; -fx-font-size:13px; -fx-font-weight:bold;");
-        detailDesc.setText(CardStyleHelper.description(card.getName()));
 
-        // Stats singole
+        // Classe
+        String cls = switch (color) {
+            case "#e74c3c" -> "⚔ Guerriero";
+            case "#3498db" -> "🛡 Paladino";
+            case "#e67e22" -> "🔥 Mago / Dracomante";
+            case "#27ae60" -> "☠ Assassino";
+            case "#c77dff" -> "✦ Neutrale";
+            default        -> "";
+        };
+        detailClass.setText(cls);
+        detailClass.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        // Stats
         detailStatsBox.getChildren().clear();
-        detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana", String.valueOf(card.getManaCost()), "#a78bfa"));
-        String raw = CardStyleHelper.description(card.getName());
-        if (raw.contains("danni")) {
-            String atk = raw.replaceAll(".*?(\\d[^\\s]*\\s*danni).*", "$1");
-            detailStatsBox.getChildren().add(makeStatRow("⚔ Attacco", atk, "#e74c3c"));
-        }
-        if (raw.contains("scudo")) {
-            String shld = raw.replaceAll(".*?([+\\d]+\\s*scudo).*", "$1");
-            detailStatsBox.getChildren().add(makeStatRow("🛡 Scudo", shld, "#3498db"));
-        }
-        if (raw.contains("cura")) {
-            String heal = raw.replaceAll(".*?(cura\\s+\\d+|\\d+\\s*cura).*", "$1");
-            detailStatsBox.getChildren().add(makeStatRow("❤ Cura", heal, "#2ecc71"));
-        }
-        if (raw.contains("veleno")) {
-            String psn = raw.replaceAll(".*?([+\\d]+\\s*veleno).*", "$1");
-            detailStatsBox.getChildren().add(makeStatRow("☠ Veleno", psn, "#27ae60"));
-        }
+        detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana",
+                card.getManaCost() + " mana", "#a78bfa"));
 
-        // Bordo carta
-        detailCard.setStyle("-fx-background-color:#1e1e3a; -fx-background-radius:20;"
-                + "-fx-border-color:" + color + "; -fx-border-radius:20; -fx-border-width:3;"
-                + "-fx-padding:40 36;"
-                + "-fx-effect:dropshadow(gaussian," + color + ",28,0.35,0,0);");
+        String raw = CardStyleHelper.description(card.getName());
+        // Attacco
+        java.util.regex.Matcher mAtk = java.util.regex.Pattern
+                .compile("(\\d[\\d×+]*\\s*danni)").matcher(raw);
+        if (mAtk.find())
+            detailStatsBox.getChildren().add(makeStatRow("⚔ Attacco", mAtk.group(1), "#e74c3c"));
+        // Scudo
+        java.util.regex.Matcher mShld = java.util.regex.Pattern
+                .compile("\\+(\\d+)\\s*scudo").matcher(raw);
+        if (mShld.find())
+            detailStatsBox.getChildren().add(makeStatRow("🛡 Scudo", "+" + mShld.group(1), "#3498db"));
+        // Cura
+        java.util.regex.Matcher mHeal = java.util.regex.Pattern
+                .compile("(?:cura\\s*(\\d+)|(\\d+)\\s*cura)").matcher(raw);
+        if (mHeal.find()) {
+            String hv = mHeal.group(1) != null ? mHeal.group(1) : mHeal.group(2);
+            detailStatsBox.getChildren().add(makeStatRow("❤ Cura", hv + " HP", "#2ecc71"));
+        }
+        // Veleno
+        java.util.regex.Matcher mPsn = java.util.regex.Pattern
+                .compile("(\\d+)\\s*veleno").matcher(raw);
+        if (mPsn.find())
+            detailStatsBox.getChildren().add(makeStatRow("☠ Veleno", mPsn.group(1) + " stack", "#27ae60"));
+        // Mana extra
+        java.util.regex.Matcher mMana = java.util.regex.Pattern
+                .compile("(\\d+)\\s*mana(?!\\s*$)").matcher(raw);
+        if (mMana.find())
+            detailStatsBox.getChildren().add(makeStatRow("✨ Mana bonus", "+" + mMana.group(1), "#a78bfa"));
+
+        // Descrizione
+        detailDesc.setText(raw);
+
+        // Bordo e glow carta
+        detailCard.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 22;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 22; -fx-border-width: 3;"
+                + "-fx-padding: 36 32;"
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 32, 0.4, 0, 0);");
 
         detailPlaceholder.setVisible(false);
         detailCard.setVisible(true);
@@ -252,10 +262,10 @@ public class CollectionController {
 
     private HBox makeStatRow(String label, String value, String color) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-text-fill:#7a7a9a; -fx-font-size:12px;");
+        lbl.setStyle("-fx-text-fill: #7a7a9a; -fx-font-size: 12px;");
         HBox.setHgrow(lbl, Priority.ALWAYS);
         Label val = new Label(value);
-        val.setStyle("-fx-text-fill:" + color + "; -fx-font-size:13px; -fx-font-weight:bold;");
+        val.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 13px; -fx-font-weight: bold;");
         HBox row = new HBox(lbl, val);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setSpacing(8);
@@ -266,10 +276,10 @@ public class CollectionController {
     private void clearDetail() {
         detailCard.setVisible(false);
         detailPlaceholder.setVisible(true);
-        selectedRow = null;
+        selectedTile = null;
     }
 
-    // ── Back ───────────────────────────────────────────────────────────────
+    // ── Back ──────────────────────────────────────────────────────
 
     @FXML
     private void onBack(ActionEvent event) {

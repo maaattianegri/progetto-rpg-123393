@@ -5,34 +5,32 @@
 
 <HBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.CollectionController"
-      prefWidth="1100" prefHeight="680"
+      prefWidth="1200" prefHeight="720"
       style="-fx-background-color: #0f0f23;">
 
     <!-- ═══════════════════════════════════════════
-         COLONNA SINISTRA — lista carte (50%)
+         SINISTRA — griglia carte (~65%)
     ═══════════════════════════════════════════ -->
-    <VBox prefWidth="550" spacing="0"
-          style="-fx-background-color: #13132b; -fx-border-color: #2a2a4a; -fx-border-width: 0 2 0 0;">
+    <VBox prefWidth="780" spacing="0"
+          style="-fx-background-color: #0f0f23; -fx-border-color: #1e1e3a; -fx-border-width: 0 2 0 0;">
 
         <!-- Header -->
-        <VBox alignment="CENTER" spacing="4"
-              style="-fx-padding: 18 16 12 16;">
+        <VBox alignment="CENTER" spacing="4" style="-fx-padding: 18 20 10 20;">
             <Label text="📚 Collezione"
-                   style="-fx-text-fill: #e0c97f; -fx-font-size: 22px; -fx-font-weight: bold;"/>
+                   style="-fx-text-fill: #e0c97f; -fx-font-size: 24px; -fx-font-weight: bold;"/>
             <Label fx:id="progressLabel"
                    style="-fx-text-fill: #7a7a9a; -fx-font-size: 12px;"/>
         </VBox>
 
         <!-- Filtri classe -->
         <HBox fx:id="filterBox" alignment="CENTER" spacing="6"
-              style="-fx-padding: 0 12 12 12; -fx-wrap-text: true;"/>
+              style="-fx-padding: 0 16 12 16;"/>
 
-        <!-- Lista carte scrollabile -->
-        <ScrollPane fx:id="listScroll" fitToWidth="true" hbarPolicy="NEVER"
-                    style="-fx-background: transparent; -fx-background-color: transparent;"
-                    VBox.vgrow="ALWAYS">
-            <VBox fx:id="cardListBox" spacing="0"
-                  style="-fx-background-color: transparent;"/>
+        <!-- Griglia carte scrollabile -->
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS"
+                    style="-fx-background: transparent; -fx-background-color: transparent; -fx-padding: 0 0 0 0;">
+            <FlowPane fx:id="cardsFlow" hgap="10" vgap="10"
+                      style="-fx-background-color: transparent; -fx-padding: 10 16;"/>
         </ScrollPane>
 
         <!-- Back -->
@@ -45,40 +43,51 @@
     </VBox>
 
     <!-- ═══════════════════════════════════════════
-         COLONNA DESTRA — dettaglio carta (50%)
+         DESTRA — pannello dettaglio (~35%)
     ═══════════════════════════════════════════ -->
     <StackPane fx:id="detailPane" HBox.hgrow="ALWAYS"
-               style="-fx-background-color: #0f0f23;">
+               style="-fx-background-color: #13132b;">
 
         <!-- Placeholder iniziale -->
-        <VBox fx:id="detailPlaceholder" alignment="CENTER" spacing="12">
-            <Label text="👈" style="-fx-font-size: 48px;"/>
-            <Label text="Seleziona una carta"
+        <VBox fx:id="detailPlaceholder" alignment="CENTER" spacing="14">
+            <Label text="👆" style="-fx-font-size: 48px;"/>
+            <Label text="Clicca una carta"
                    style="-fx-text-fill: #3a3a5a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
             <Label text="per vedere i dettagli"
                    style="-fx-text-fill: #3a3a5a; -fx-font-size: 13px;"/>
         </VBox>
 
-        <!-- Pannello dettaglio (visibile dopo click) -->
-        <VBox fx:id="detailCard" alignment="CENTER" spacing="20" visible="false"
-              maxWidth="380" maxHeight="520"
-              style="-fx-background-color: #1e1e3a; -fx-background-radius: 20;
-                     -fx-border-radius: 20; -fx-border-width: 3;
-                     -fx-padding: 40 36;">
+        <!-- Carta dettaglio grande -->
+        <VBox fx:id="detailCard" alignment="CENTER" spacing="18" visible="false"
+              maxWidth="340" maxHeight="560"
+              style="-fx-background-color: #1e1e3a; -fx-background-radius: 22;
+                     -fx-border-radius: 22; -fx-border-width: 3;
+                     -fx-padding: 36 32;">
 
-            <Label fx:id="detailSymbol" style="-fx-font-size: 64px;"/>
+            <Label fx:id="detailSymbol" style="-fx-font-size: 70px;"/>
+
             <Label fx:id="detailName"
-                   style="-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;"
-                   wrapText="true" maxWidth="300" alignment="CENTER"/>
+                   style="-fx-text-fill: white; -fx-font-size: 21px; -fx-font-weight: bold;"
+                   wrapText="true" maxWidth="280" alignment="CENTER"/>
+
             <Label fx:id="detailClass"
                    style="-fx-font-size: 13px; -fx-font-weight: bold;"
-                   wrapText="true" maxWidth="300" alignment="CENTER"/>
-            <Separator style="-fx-background-color: #3a3a5a;"/>
-            <VBox spacing="10" alignment="CENTER" fx:id="detailStatsBox"/>
-            <Separator style="-fx-background-color: #3a3a5a;"/>
+                   wrapText="true" maxWidth="280" alignment="CENTER"/>
+
+            <Separator prefWidth="260"
+                       style="-fx-background-color: #3a3a5a;"/>
+
+            <!-- Stats singole -->
+            <VBox fx:id="detailStatsBox" spacing="8" alignment="CENTER_LEFT"
+                  maxWidth="280"/>
+
+            <Separator prefWidth="260"
+                       style="-fx-background-color: #3a3a5a;"/>
+
+            <!-- Descrizione completa -->
             <Label fx:id="detailDesc"
-                   style="-fx-text-fill: #c0c0d8; -fx-font-size: 13px;"
-                   wrapText="true" maxWidth="300" alignment="CENTER"/>
+                   style="-fx-text-fill: #b0b0d0; -fx-font-size: 12px; -fx-font-style: italic;"
+                   wrapText="true" maxWidth="280" alignment="CENTER"/>
         </VBox>
     </StackPane>
 
