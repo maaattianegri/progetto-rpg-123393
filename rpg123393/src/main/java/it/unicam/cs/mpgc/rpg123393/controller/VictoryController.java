@@ -1,6 +1,7 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.EncounterType;
+import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -57,6 +58,13 @@ public class VictoryController {
         }
         int xpReq = gs.getXpRequired();
         xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + xpReq);
+
+        // Salvataggio automatico dopo ogni vittoria
+        try {
+            new JsonSaveRepository().save(gs.toGameState());
+        } catch (IOException e) {
+            System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
+        }
     }
 
     @FXML

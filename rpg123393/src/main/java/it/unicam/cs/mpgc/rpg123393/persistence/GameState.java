@@ -19,6 +19,13 @@ public class GameState {
     /** Carte sbloccate nella collezione (meta-progressione, non si resettano). */
     private List<String> unlockedCards = new ArrayList<>();
 
+    /**
+     * Deck della run corrente (carte nel mazzo durante la partita).
+     * Distinto da unlockedCards: queste sono le carte effettivamente usate in battaglia,
+     * incluse quelle acquistate allo shop o scelte come ricompensa.
+     */
+    private List<String> deckCardNames = new ArrayList<>();
+
     public GameState() {}
 
     public GameState(String playerName, int playerMaxHp, int playerCurrentHp,
@@ -58,8 +65,11 @@ public class GameState {
     public String getImagePath()           { return imagePath; }
     public void   setImagePath(String v)   { this.imagePath = v; }
 
-    public List<String> getUnlockedCards()             { return unlockedCards; }
-    public void         setUnlockedCards(List<String> v){ this.unlockedCards = v != null ? v : new ArrayList<>(); }
+    public List<String> getUnlockedCards()              { return unlockedCards; }
+    public void         setUnlockedCards(List<String> v) { this.unlockedCards = v != null ? v : new ArrayList<>(); }
+
+    public List<String> getDeckCardNames()              { return deckCardNames; }
+    public void         setDeckCardNames(List<String> v) { this.deckCardNames = v != null ? v : new ArrayList<>(); }
 
     /** Aggiunge una carta alla collezione se non gi\u00e0 presente. */
     public void unlockCard(String cardName) {

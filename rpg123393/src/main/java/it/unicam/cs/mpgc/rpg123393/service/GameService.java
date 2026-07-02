@@ -15,8 +15,8 @@ import java.util.Random;
 
 public class GameService {
 
-    /** Modalità debug: true → tutte le carte sbloccate in collezione dall'inizio. */
-    private static final boolean DEBUG_UNLOCK_ALL = true;
+    /** Modalit\u00e0 debug: true \u2192 tutte le carte sbloccate in collezione dall'inizio. */
+    private static final boolean DEBUG_UNLOCK_ALL = false;
 
     private final BattleService battleService = new BattleService();
     private final LevelService  levelService  = new LevelService();
@@ -180,7 +180,7 @@ public class GameService {
             case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* costo già scalato; potenziamento in upgradeCard */ }
+            case UPGRADE    -> { /* costo gi\u00e0 scalato; potenziamento in upgradeCard */ }
         }
         return true;
     }
@@ -241,6 +241,10 @@ public class GameService {
                 className != null ? className : "",
                 imagePath != null ? imagePath : "");
         s.setUnlockedCards(new ArrayList<>(unlockedCards));
+        // Serializza il deck della run corrente come lista di nomi
+        List<String> deckNames = new ArrayList<>();
+        for (ICard card : deck) deckNames.add(card.getName());
+        s.setDeckCardNames(deckNames);
         return s;
     }
 
@@ -257,7 +261,20 @@ public class GameService {
                 state.getPlayerName(), state.getPlayerMaxHp(), state.getPlayerMaxMana());
         player.setCurrentHp(state.getPlayerCurrentHp());
         player.setCurrentMana(state.getPlayerCurrentMana());
-        buildStarterDeck(this.className);
+
+        // Ripristina il deck della run dai nomi salvati; fallback su starter deck
+        List<String> savedDeck = state.getDeckCardNames();
+        if (savedDeck != null && !savedDeck.isEmpty()) {
+            deck.clear();
+            for (String cardName : savedDeck) {
+                ICard card = CardPool.getCardByName(cardName);
+                if (card != null) deck.add(card);
+            }
+            // Se CardPool non riconosce qualche carta, fallback parziale sullo starter
+            if (deck.isEmpty()) buildStarterDeck(this.className);
+        } else {
+            buildStarterDeck(this.className);
+        }
     }
 
     // -------------------------------------------------------
