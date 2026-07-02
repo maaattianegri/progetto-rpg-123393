@@ -5,11 +5,7 @@ import it.unicam.cs.mpgc.rpg123393.model.FireballCard;
 import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.StrikeCard;
-import it.unicam.cs.mpgc.rpg123393.model.player.ArcaneStormCard;
-import it.unicam.cs.mpgc.rpg123393.model.player.DevastatingStrikeCard;
-import it.unicam.cs.mpgc.rpg123393.model.player.DragonClawCard;
-import it.unicam.cs.mpgc.rpg123393.model.player.HolyShieldCard;
-import it.unicam.cs.mpgc.rpg123393.model.player.PoisonBladeCard;
+import it.unicam.cs.mpgc.rpg123393.model.player.*;
 import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
 
 import java.time.LocalDateTime;
@@ -18,9 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Coordina il flusso principale del gioco.
- */
 public class GameService {
 
     private final BattleService battleService = new BattleService();
@@ -50,7 +43,6 @@ public class GameService {
         this.arcano    = arcano;
         this.className = className;
         this.imagePath = imagePath;
-
         int maxHp   = 50 + (vigore * 10);
         int maxMana = 3  + (arcano / 2);
         player = new GameCharacter(name, maxHp, maxMana);
@@ -61,51 +53,46 @@ public class GameService {
         createPlayer(name, vigore, arcano, null, null);
     }
 
-    /**
-     * Costruisce il mazzo iniziale in base alla classe scelta.
-     * Ogni classe ha 2 carte base comuni + 2 carte esclusive che definiscono lo stile.
-     */
     private void buildStarterDeck(String className) {
         deck.clear();
         if (className == null) className = "";
         switch (className) {
             case "Guerriero" -> {
-                deck.add(new StrikeCard());           // 6 danni, 1 mana
                 deck.add(new StrikeCard());
-                deck.add(new DefendCard());           // 6 scudo, 1 mana
-                deck.add(new DevastatingStrikeCard()); // 12 danni, 2 mana
+                deck.add(new StrikeCard());
+                deck.add(new DefendCard());
+                deck.add(new DevastatingStrikeCard());
                 deck.add(new DevastatingStrikeCard());
             }
             case "Mago" -> {
-                deck.add(new FireballCard());         // 8 danni, 2 mana
+                deck.add(new FireballCard());
                 deck.add(new FireballCard());
                 deck.add(new DefendCard());
-                deck.add(new ArcaneStormCard());      // 10+2*veleno danni, 3 mana
+                deck.add(new ArcaneStormCard());
                 deck.add(new ArcaneStormCard());
             }
             case "Dracomante" -> {
                 deck.add(new StrikeCard());
                 deck.add(new FireballCard());
                 deck.add(new DefendCard());
-                deck.add(new DragonClawCard());       // 6 danni + 4 scudo, 2 mana
+                deck.add(new DragonClawCard());
                 deck.add(new DragonClawCard());
             }
             case "Paladino" -> {
                 deck.add(new StrikeCard());
-                deck.add(new DefendCard());           // 6 scudo, 1 mana
                 deck.add(new DefendCard());
-                deck.add(new HolyShieldCard());       // 12 scudo + 4 HP, 2 mana
+                deck.add(new DefendCard());
+                deck.add(new HolyShieldCard());
                 deck.add(new HolyShieldCard());
             }
             case "Assassino" -> {
                 deck.add(new StrikeCard());
-                deck.add(new PoisonBladeCard());      // 3 danni + 3 stack veleno, 1 mana
+                deck.add(new PoisonBladeCard());
                 deck.add(new PoisonBladeCard());
                 deck.add(new PoisonBladeCard());
                 deck.add(new DefendCard());
             }
             default -> {
-                // Fallback generico (save vecchi senza className)
                 deck.add(new StrikeCard());
                 deck.add(new StrikeCard());
                 deck.add(new DefendCard());
@@ -113,6 +100,11 @@ public class GameService {
                 deck.add(new FireballCard());
             }
         }
+    }
+
+    /** Aggiunge una carta al deck (chiamato da CardRewardController). */
+    public void addCardToDeck(ICard card) {
+        deck.add(card);
     }
 
     // -------------------------------------------------------
@@ -127,13 +119,11 @@ public class GameService {
     public void startPlayerTurn() {
         String poisonMsg = battleService.startTurn(player);
         drawHand();
-        // Il messaggio veleno viene gestito da HelloController tramite getPendingMessage()
         this.pendingMessage = poisonMsg;
     }
 
     private String pendingMessage = "";
 
-    /** Messaggio generato durante startPlayerTurn (es. danno veleno). */
     public String getPendingMessage() {
         String msg = pendingMessage;
         pendingMessage = "";
@@ -147,9 +137,8 @@ public class GameService {
     }
 
     public String playCard(int handIndex) {
-        if (handIndex < 0 || handIndex >= hand.length || hand[handIndex] == null) {
+        if (handIndex < 0 || handIndex >= hand.length || hand[handIndex] == null)
             return "Carta non valida.";
-        }
         return battleService.playCard(hand[handIndex], player, enemy);
     }
 
@@ -179,10 +168,8 @@ public class GameService {
         while (levelService.shouldLevelUp(playerXp, playerLevel)) {
             playerXp = levelService.consumeXpForLevelUp(playerXp, playerLevel);
             playerLevel++;
-            int newMaxHp   = player.getMaxHp()  + levelService.hpBonusOnLevelUp(playerLevel);
-            int newMaxMana = player.getMaxMana() + levelService.manaBonusOnLevelUp(playerLevel);
-            player.setMaxHp(newMaxHp);
-            player.setMaxMana(newMaxMana);
+            player.setMaxHp(player.getMaxHp()   + levelService.hpBonusOnLevelUp(playerLevel));
+            player.setMaxMana(player.getMaxMana() + levelService.manaBonusOnLevelUp(playerLevel));
             messages.add(levelService.levelUpMessage(player.getName(), playerLevel));
         }
         return messages;
@@ -199,8 +186,8 @@ public class GameService {
                 player.getName(), player.getMaxHp(), player.getCurrentHp(),
                 player.getMaxMana(), player.getCurrentMana(),
                 playerLevel, playerXp, now,
-                className  != null ? className  : "",
-                imagePath  != null ? imagePath  : ""
+                className != null ? className : "",
+                imagePath != null ? imagePath : ""
         );
     }
 
@@ -232,6 +219,7 @@ public class GameService {
     public int           getArcano()      { return arcano; }
     public String        getClassName()   { return className; }
     public String        getImagePath()   { return imagePath; }
-    public void setClassName(String className)  { this.className = className; }
-    public void setImagePath(String imagePath)  { this.imagePath = imagePath; }
+    public List<ICard>   getDeck()        { return deck; }
+    public void setClassName(String c)   { this.className = c; }
+    public void setImagePath(String p)   { this.imagePath = p; }
 }
