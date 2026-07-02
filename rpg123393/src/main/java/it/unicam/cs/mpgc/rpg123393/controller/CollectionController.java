@@ -4,6 +4,7 @@ import it.unicam.cs.mpgc.rpg123393.model.CardPool;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
 import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
+import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -30,15 +31,15 @@ public class CollectionController {
     private String       activeFilter  = "Tutte";
 
     private static final List<String> FILTERS =
-            List.of("Tutte", "Guerriero", "Mago", "Dracomante", "Paladino", "Assassino", "Neutro");
+            List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
     private static final java.util.Map<String, String> CLASS_COLORS = java.util.Map.of(
             "Guerriero",  "#e74c3c",
-            "Mago",       "#2980b9",
+            "Mago",       "#e67e22",
             "Dracomante", "#e67e22",
-            "Paladino",   "#f1c40f",
+            "Paladino",   "#3498db",
             "Assassino",  "#27ae60",
-            "Neutro",     "#7f8c8d",
+            "Neutro",     "#c77dff",
             "Tutte",      "#e0c97f"
     );
 
@@ -50,6 +51,15 @@ public class CollectionController {
     }
 
     private void loadUnlocked() {
+        // Modalità debug: mostra subito tutte le carte senza save
+        if (GameService.isDebugUnlockAll()) {
+            for (ICard c : CardPool.getAllCards()) {
+                if (!unlockedCards.contains(c.getName()))
+                    unlockedCards.add(c.getName());
+            }
+            return;
+        }
+        // Modalità normale: legge dal file di salvataggio
         try {
             JsonSaveRepository repo = new JsonSaveRepository();
             if (repo.saveExists()) {
@@ -65,7 +75,7 @@ public class CollectionController {
         for (String filter : FILTERS) {
             Button btn = new Button(filter);
             String color = CLASS_COLORS.getOrDefault(filter, "#aaa");
-            styleFilterBtn(btn, filter, color, filter.equals(activeFilter));
+            styleFilterBtn(btn, color, filter.equals(activeFilter));
             btn.setOnAction(e -> {
                 activeFilter = filter;
                 buildFilters();
@@ -75,7 +85,7 @@ public class CollectionController {
         }
     }
 
-    private void styleFilterBtn(Button btn, String filter, String color, boolean active) {
+    private void styleFilterBtn(Button btn, String color, boolean active) {
         if (active) {
             btn.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
                     + "-fx-font-weight: bold; -fx-padding: 6 16; -fx-background-radius: 20; -fx-cursor: hand;");
@@ -93,15 +103,21 @@ public class CollectionController {
         if (filter.equals("Tutte")) {
             pool = CardPool.getAllCards();
         } else if (filter.equals("Neutro")) {
-            pool = CardPool.getNeutralPool();
+            pool = new ArrayList<>(CardPool.getNeutralPool());
+            pool.addAll(CardPool.getUpgradedPool());
         } else {
             pool = CardPool.getClassPool(filter);
         }
 
         // Deduplicazione per nome
-        List<ICard> deduped = pool.stream()
-                .filter(c -> pool.stream().filter(x -> x.getName().equals(c.getName())).findFirst().get() == c)
-                .collect(Collectors.toList());
+        List<String> seen = new ArrayList<>();
+        List<ICard> deduped = new ArrayList<>();
+        for (ICard c : pool) {
+            if (!seen.contains(c.getName())) {
+                seen.add(c.getName());
+                deduped.add(c);
+            }
+        }
 
         int total    = deduped.size();
         int unlocked = (int) deduped.stream().filter(c -> unlockedCards.contains(c.getName())).count();
@@ -120,29 +136,28 @@ public class CollectionController {
             String desc   = CardStyleHelper.description(card.getName());
 
             Label symbolLabel = new Label(symbol);
-            symbolLabel.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+            symbolLabel.setStyle("-fx-font-size: 32px;");
 
             Label nameLabel = new Label(card.getName());
             nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;");
-            nameLabel.setWrapText(true); nameLabel.setMaxWidth(140); nameLabel.setAlignment(Pos.CENTER);
+            nameLabel.setWrapText(true); nameLabel.setMaxWidth(145); nameLabel.setAlignment(Pos.CENTER);
 
-            Label costLabel = new Label("Mana: " + card.getManaCost());
-            costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 11px;");
+            Label manaLabel = new Label("✨ Mana: " + card.getManaCost());
+            manaLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 11px; -fx-font-weight: bold;");
 
             Label descLabel = new Label(desc);
-            descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
-            descLabel.setWrapText(true); descLabel.setMaxWidth(140); descLabel.setAlignment(Pos.CENTER);
+            descLabel.setStyle("-fx-text-fill: #c0c0d8; -fx-font-size: 11px;");
+            descLabel.setWrapText(true); descLabel.setMaxWidth(145); descLabel.setAlignment(Pos.CENTER);
 
-            VBox box = new VBox(10, symbolLabel, nameLabel, costLabel, descLabel);
+            VBox box = new VBox(8, symbolLabel, nameLabel, manaLabel, descLabel);
             box.setAlignment(Pos.CENTER);
             box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 12;"
                     + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
-                    + "-fx-padding: 18; -fx-pref-width: 155; -fx-pref-height: 210;"
+                    + "-fx-padding: 16; -fx-pref-width: 160; -fx-pref-height: 215;"
                     + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.2, 0, 0);");
             return box;
         } else {
-            // Carta bloccata
-            Label lockLabel = new Label("\uD83D\uDD12");
+            Label lockLabel = new Label("🔒");
             lockLabel.setStyle("-fx-font-size: 32px;");
             Label unknownLabel = new Label("???");
             unknownLabel.setStyle("-fx-text-fill: #3a3a5a; -fx-font-size: 14px; -fx-font-weight: bold;");
@@ -151,7 +166,7 @@ public class CollectionController {
             box.setAlignment(Pos.CENTER);
             box.setStyle("-fx-background-color: #12122a; -fx-background-radius: 12;"
                     + "-fx-border-color: #2a2a4a; -fx-border-radius: 12; -fx-border-width: 2;"
-                    + "-fx-padding: 18; -fx-pref-width: 155; -fx-pref-height: 210;"
+                    + "-fx-padding: 16; -fx-pref-width: 160; -fx-pref-height: 215;"
                     + "-fx-opacity: 0.5;");
             return box;
         }
