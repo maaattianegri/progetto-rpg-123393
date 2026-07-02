@@ -15,6 +15,9 @@ import java.util.Random;
 
 public class GameService {
 
+    /** Modalità debug: true → tutte le carte sbloccate in collezione dall'inizio. */
+    private static final boolean DEBUG_UNLOCK_ALL = true;
+
     private final BattleService battleService = new BattleService();
     private final LevelService  levelService  = new LevelService();
     private final EnemyFactory  enemyFactory  = new EnemyFactory();
@@ -52,7 +55,11 @@ public class GameService {
         player = new GameCharacter(name, maxHp, maxMana);
         buildStarterDeck(className);
         for (ICard c : deck) unlockCard(c.getName());
-        loadUnlockedCardsFromSave();
+        if (DEBUG_UNLOCK_ALL) {
+            for (ICard c : CardPool.getAllCards()) unlockCard(c.getName());
+        } else {
+            loadUnlockedCardsFromSave();
+        }
     }
 
     public void createPlayer(String name, int vigore, int arcano) {
@@ -63,12 +70,12 @@ public class GameService {
         deck.clear();
         if (className == null) className = "";
         switch (className) {
-            case "Guerriero" -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
-            case "Mago"      -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
-            case "Dracomante"-> { deck.add(new StrikeCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
-            case "Paladino"  -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
-            case "Assassino" -> { deck.add(new StrikeCard()); deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); }
-            default          -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
+            case "Guerriero"  -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
+            case "Mago"       -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
+            case "Dracomante" -> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
+            case "Paladino"   -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
+            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); }
+            default           -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
         }
     }
 
@@ -135,7 +142,7 @@ public class GameService {
         if (hasPoisonRing) {
             String n = hand[handIndex].getName().toLowerCase();
             if (n.contains("veleno") || n.contains("lama") || n.contains("ombra")
-                    || n.contains("soffio") || n.contains("ghiaccio") || n.contains("gelato")) {
+                    || n.contains("soffio") || n.contains("acido") || n.contains("gelato")) {
                 enemy.addPoison(1);
             }
         }
@@ -173,7 +180,7 @@ public class GameService {
             case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* costo già scalato qui; il potenziamento vero avviene in upgradeCard */ }
+            case UPGRADE    -> { /* costo già scalato; potenziamento in upgradeCard */ }
         }
         return true;
     }
@@ -194,11 +201,6 @@ public class GameService {
         return name.endsWith("+") ? name : name + "+";
     }
 
-    /**
-     * Potenzia la carta all'indice dato nel deck, scalando il costo dalla UI.
-     * Il costo oro è già stato detratto da buyItem() prima di aprire la Fucina;
-     * questo metodo si occupa solo di sostituire la carta.
-     */
     public boolean upgradeCard(int deckIndex) {
         if (deckIndex < 0 || deckIndex >= deck.size()) return false;
         ICard original = deck.get(deckIndex);
@@ -280,4 +282,5 @@ public class GameService {
     public void setImagePath(String p)  { this.imagePath = p; }
     public void addGold(int amount)     { this.gold += amount; }
     public RunManager getRunManager()   { return runManager; }
+    public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
 }
