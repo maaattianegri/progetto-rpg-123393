@@ -36,7 +36,7 @@ public class GameService {
     private List<String>  unlockedCards = new ArrayList<>();
     private List<Relic>   relics        = new ArrayList<>();
 
-    private int gold = RunManager.startingGold(); // 30 oro iniziali
+    private int gold = RunManager.startingGold();
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -170,10 +170,10 @@ public class GameService {
         if (gold < item.getPrice()) return false;
         gold -= item.getPrice();
         switch (item.getType()) {
-            case CARD        -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
-            case RELIC       -> relics.add((Relic) item.getPayload());
-            case CONSUMABLE  -> applyConsumable((String) item.getPayload());
-            case UPGRADE     -> { /* gestito dal controller */ }
+            case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
+            case RELIC      -> relics.add((Relic) item.getPayload());
+            case CONSUMABLE -> applyConsumable((String) item.getPayload());
+            case UPGRADE    -> { /* costo già scalato qui; il potenziamento vero avviene in upgradeCard */ }
         }
         return true;
     }
@@ -194,6 +194,11 @@ public class GameService {
         return name.endsWith("+") ? name : name + "+";
     }
 
+    /**
+     * Potenzia la carta all'indice dato nel deck, scalando il costo dalla UI.
+     * Il costo oro è già stato detratto da buyItem() prima di aprire la Fucina;
+     * questo metodo si occupa solo di sostituire la carta.
+     */
     public boolean upgradeCard(int deckIndex) {
         if (deckIndex < 0 || deckIndex >= deck.size()) return false;
         ICard original = deck.get(deckIndex);
