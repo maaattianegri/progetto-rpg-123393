@@ -1,10 +1,5 @@
 package it.unicam.cs.mpgc.rpg123393.model;
 
-/**
- * Rappresenta un personaggio (giocatore o nemico) con HP, mana, scudo e veleno.
- * Il veleno viene applicato all'inizio del turno del personaggio avvelenato
- * tramite applyPoison(), chiamato da BattleService.startTurn().
- */
 public class GameCharacter {
     private String name;
     private int maxHp;
@@ -12,7 +7,7 @@ public class GameCharacter {
     private int currentMana;
     private int maxMana;
     private int block;
-    private int poison; // danni veleno da applicare al prossimo startTurn
+    private int poison;
 
     public GameCharacter(String name, int maxHp, int maxMana) {
         this.name        = name;
@@ -49,21 +44,18 @@ public class GameCharacter {
     public void useMana(int amount)   { this.currentMana = Math.max(0, this.currentMana - amount); }
     public void restoreMana()         { this.currentMana = this.maxMana; }
 
+    /** Ripristina una quantità precisa di mana (senza superare il massimo). */
+    public void addMana(int amount)   { this.currentMana = Math.min(this.currentMana + amount, this.maxMana); }
+
     // --- Veleno ---
 
-    /** Aggiunge stack di veleno (si sommano). */
     public void addPoison(int amount) { this.poison += amount; }
 
-    /**
-     * Applica il veleno: infligge danno diretto (bypass scudo) e riduce gli stack di 1.
-     * Chiamato da BattleService.startTurn() PRIMA di resettare il block.
-     * Restituisce il danno inflitto (0 se non avvelenato).
-     */
     public int applyPoison() {
         if (poison <= 0) return 0;
         int dmg = poison;
         currentHp = Math.max(0, currentHp - dmg);
-        poison = Math.max(0, poison - 1); // gli stack calano di 1 ogni turno
+        poison = Math.max(0, poison - 1);
         return dmg;
     }
 
