@@ -11,26 +11,46 @@ import java.io.IOException;
 public class GameOverController {
 
     @FXML private Label defeatLabel;
-    @FXML private Label levelReachedLabel;
-    @FXML private Label enemyLabel;
+    @FXML private Label epilogueLabel;
+    @FXML private Label hpStatLabel;
+    @FXML private Label enemyStatLabel;
+    @FXML private Label levelStatLabel;
 
     private String playerName;
     private int    vigore;
-    private int    vitalita;
+    private int    arcano;
     private String imagePath;
 
     public void initData(GameService gameService, String playerName,
-                         int vigore, int vitalita, String imagePath) {
+                         int vigore, int arcano, String imagePath) {
         this.playerName = playerName;
         this.vigore     = vigore;
-        this.vitalita   = vitalita;
+        this.arcano     = arcano;
         this.imagePath  = imagePath;
 
-        defeatLabel.setText("Sei stato sconfitto da "
-                + gameService.getEnemy().getName() + "...");
-        levelReachedLabel.setText("Livello raggiunto: " + gameService.getPlayerLevel());
-        enemyLabel.setText("Nemico: " + gameService.getEnemy().getName()
-                + " | HP residui: " + gameService.getEnemy().getCurrentHp());
+        var p = gameService.getPlayer();
+        var e = gameService.getEnemy();
+
+        defeatLabel.setText("Sei stato sconfitto da " + e.getName() + "...");
+        epilogueLabel.setText(buildEpilogue(e.getName()));
+
+        hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
+        enemyStatLabel.setText(e.getName());
+        levelStatLabel.setText(String.valueOf(gameService.getPlayerLevel()));
+    }
+
+    /**
+     * Genera una riga narrativa in base al nemico che ha ucciso il giocatore.
+     */
+    private String buildEpilogue(String enemyName) {
+        return switch (enemyName) {
+            case "Goblin"            -> "Un semplice Goblin ha posto fine alla tua avventura. Ricomincia e vendica il tuo onore.";
+            case "Orco Berserker"   -> "La furia dell'Orco si è abbattuta su di te senza pietà.";
+            case "Scheletro Arcano" -> "La maledizione dello Scheletro ha prosciugato le tue ultime energie.";
+            case "Troll Rigenerante"-> "Il Troll si è rigenerato mentre tu cedevi. Una battaglia di resistenza perduta.";
+            case "Drago Antico"     -> "Il Fiato di Fuoco del Drago Antico ha incenerito ogni speranza.";
+            default                 -> "Le tenebre ti hanno inghiottito. Rialzati e riprova.";
+        };
     }
 
     @FXML
@@ -40,7 +60,7 @@ public class GameOverController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
             HelloController ctrl = loader.getController();
-            ctrl.initData(playerName, vigore, vitalita, imagePath, new GameService());
+            ctrl.initData(playerName, vigore, arcano, imagePath, new GameService());
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -14,8 +14,11 @@ public class VictoryController {
 
     @FXML private Label summaryLabel;
     @FXML private Label xpLabel;
-    @FXML private Label levelLabel;
-    @FXML private Label statsLabel;
+    @FXML private Label levelUpBadge;
+    @FXML private Label hpStatLabel;
+    @FXML private Label enemyStatLabel;
+    @FXML private Label levelStatLabel;
+    @FXML private Label xpProgressLabel;
 
     private GameService gameService;
     private String      playerName;
@@ -35,19 +38,30 @@ public class VictoryController {
             gameService.setImagePath(imagePath);
         }
 
-        summaryLabel.setText("Hai sconfitto " + gameService.getEnemy().getName() + "!");
-        xpLabel.setText("+ " + xpGained + " XP");
+        var p = gameService.getPlayer();
+        var e = gameService.getEnemy();
 
+        // Sottotitolo
+        summaryLabel.setText("Hai sconfitto " + e.getName() + "!");
+
+        // Pill XP
+        xpLabel.setText("+" + xpGained + " XP");
+
+        // Badge level up (visibile solo se si sale di livello)
         if (!levelUpMsgs.isEmpty()) {
-            levelLabel.setText(String.join(" | ", levelUpMsgs));
-        } else {
-            levelLabel.setText("Livello: " + gameService.getPlayerLevel()
-                    + "  (" + gameService.getPlayerXp() + "/" + gameService.getXpRequired() + " XP)");
+            levelUpBadge.setText("LEVEL UP! Lv. " + gameService.getPlayerLevel());
+            levelUpBadge.setVisible(true);
+            levelUpBadge.setManaged(true);
         }
 
-        var p = gameService.getPlayer();
-        statsLabel.setText("HP: " + p.getCurrentHp() + "/" + p.getMaxHp()
-                + "  |  MANA: " + p.getCurrentMana() + "/" + p.getMaxMana());
+        // Griglia statistiche
+        hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
+        enemyStatLabel.setText(e.getName());
+        levelStatLabel.setText(String.valueOf(gameService.getPlayerLevel()));
+
+        // XP verso prossimo livello
+        xpProgressLabel.setText("Prossimo livello: "
+                + gameService.getPlayerXp() + " / " + gameService.getXpRequired() + " XP");
 
         saveGame();
     }
