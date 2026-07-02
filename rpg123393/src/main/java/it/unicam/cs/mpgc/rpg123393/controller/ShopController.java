@@ -25,7 +25,8 @@ public class ShopController {
     private int            vigore;
     private int            arcano;
     private String         imagePath;
-    private List<ShopItem> items; // lista mantenuta stabile: non si rigenera al ritorno dalla Fucina
+    private List<ShopItem> items;
+    private ShopItem       pendingUpgradeItem; // slot Fucina in attesa di essere consumato dopo upgrade
 
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath) {
@@ -34,15 +35,10 @@ public class ShopController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-        // genera solo se non già presente (primo accesso)
         if (items == null) items = gs.generateShopItems();
         refresh();
     }
 
-    /**
-     * Chiamato da UpgradeController al ritorno: riusa la lista esistente
-     * invece di rigenerarla, così gli slot acquistati rimangono rimossi.
-     */
     public void initDataKeepItems(GameService gs, String playerName,
                                    int vigore, int arcano, String imagePath,
                                    List<ShopItem> existingItems) {
@@ -52,6 +48,11 @@ public class ShopController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.items       = existingItems;
+        // se l'upgrade è stato completato con successo, rimuovi lo slot Fucina
+        if (pendingUpgradeItem != null) {
+            items.remove(pendingUpgradeItem);
+            pendingUpgradeItem = null;
+        }
         refresh();
     }
 
@@ -109,29 +110,32 @@ public class ShopController {
     }
 
     private void handleBuy(ShopItem item, Button btn) {
-        if (item.getType() == ShopItem.ItemType.UPGRADE) {
-            openUpgradeView();
-            return;
-        }
+        // Per tutti i tipi (UPGRADE incluso) scala subito l'oro tramite buyItem
         boolean ok = gameService.buyItem(item);
-        if (ok) {
-            items.remove(item);
-            refresh();
-        } else {
+        if (!ok) {
             Alert a = new Alert(Alert.AlertType.WARNING);
             a.setHeaderText(null);
             a.setContentText("Oro insufficiente!");
             a.showAndWait();
+            return;
+        }
+
+        if (item.getType() == ShopItem.ItemType.UPGRADE) {
+            // oro già scalato; segna lo slot come pendente e apri la Fucina
+            pendingUpgradeItem = item;
+            openUpgradeView(item);
+        } else {
+            items.remove(item);
+            refresh();
         }
     }
 
-    private void openUpgradeView() {
+    private void openUpgradeView(ShopItem upgradeItem) {
         try {
             Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
-            // passa la lista items esistente così al ritorno non si rigenera
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath, items);
         } catch (IOException e) { e.printStackTrace(); }
     }
