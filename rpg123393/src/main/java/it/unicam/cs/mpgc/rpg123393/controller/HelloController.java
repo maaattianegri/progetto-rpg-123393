@@ -47,10 +47,6 @@ public class HelloController {
     private int         vigore;
     private int         arcano;
 
-    // -------------------------------------------------------
-    // Inizializzazione
-    // -------------------------------------------------------
-
     public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
         this.vigore      = vigore;
@@ -90,7 +86,7 @@ public class HelloController {
     }
 
     // -------------------------------------------------------
-    // Flusso di battaglia
+    // Flusso battaglia
     // -------------------------------------------------------
 
     private void startBattle() {
@@ -109,10 +105,6 @@ public class HelloController {
         refreshCardButtons();
         updateUI();
     }
-
-    // -------------------------------------------------------
-    // Azioni giocatore
-    // -------------------------------------------------------
 
     @FXML private void onCard0Click() { playCard(0, cardBtn0); }
     @FXML private void onCard1Click() { playCard(1, cardBtn1); }
@@ -138,10 +130,6 @@ public class HelloController {
         if (gameService.isBattleOver()) handleBattleEnd();
         else startPlayerTurn();
     }
-
-    // -------------------------------------------------------
-    // Esito battaglia
-    // -------------------------------------------------------
 
     private void handleBattleEnd() {
         log("\n" + gameService.getBattleResult());
@@ -185,26 +173,21 @@ public class HelloController {
     private void updateUI() {
         var p = gameService.getPlayer();
         var e = gameService.getEnemy();
-
         if (playerNameLabel != null) playerNameLabel.setText(p.getName());
         playerHpLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         playerManaLabel.setText(p.getCurrentMana() + "/" + p.getMaxMana());
-
         String blockText = "[Scudo: " + p.getBlock() + "]";
         if (p.getPoison() > 0) blockText += "  [Veleno: " + p.getPoison() + "]";
         playerBlockLabel.setText(blockText);
-
         playerHpBar.setProgress((double) p.getCurrentHp()    / p.getMaxHp());
         playerManaBar.setProgress((double) p.getCurrentMana() / p.getMaxMana());
-
         int xpReq = gameService.getXpRequired();
         int xpCur = gameService.getPlayerXp();
         playerXpLabel.setText(xpCur + "/" + xpReq);
         playerXpBar.setProgress(xpReq > 0 ? (double) xpCur / xpReq : 0);
         levelLabel.setText("Lv. " + gameService.getPlayerLevel());
-
         String enemyName = e.getName();
-        if (e.getPoison() > 0) enemyName += "  [Veleno: " + e.getPoison() + "]"; 
+        if (e.getPoison() > 0) enemyName += "  [Veleno: " + e.getPoison() + "]";
         enemyNameLabel.setText(enemyName);
         enemyStatsLabel.setText("HP: " + e.getCurrentHp() + "/" + e.getMaxHp());
         enemyHpBar.setProgress((double) e.getCurrentHp() / e.getMaxHp());
@@ -221,46 +204,31 @@ public class HelloController {
     }
 
     private VBox buildCardGraphic(ICard card) {
-        String name = card.getName();
-        int    cost = card.getManaCost();
-        String nameLower = name.toLowerCase();
-
-        String symbol;
-        String borderColor;
-        String glowColor;
-
-        if (nameLower.contains("veleno") || nameLower.contains("avvelena") || nameLower.contains("lama")) {
-            symbol = "~~~"; borderColor = "#27ae60"; glowColor = "#27ae60";
-        } else if (nameLower.contains("scudo") || nameLower.contains("sacro")
-                || nameLower.contains("defend") || nameLower.contains("fortezza")) {
-            symbol = "[ ]"; borderColor = "#3498db"; glowColor = "#3498db";
-        } else if (nameLower.contains("fuoco") || nameLower.contains("fireball")
-                || nameLower.contains("fiamma") || nameLower.contains("arcana")
-                || nameLower.contains("tempesta") || nameLower.contains("artiglio")) {
-            symbol = "***"; borderColor = "#e67e22"; glowColor = "#e67e22";
-        } else {
-            symbol = "/ \\"; borderColor = "#e74c3c"; glowColor = "#e74c3c";
-        }
-
-        String manaStr = "[" + "*".repeat(Math.min(cost, 6))
-                + ".".repeat(Math.max(0, 6 - cost)) + "]";
+        String name        = card.getName();
+        String borderColor = CardStyleHelper.borderColor(name);
+        String symbol      = CardStyleHelper.symbol(name);
+        String desc        = CardStyleHelper.description(name);
+        String manaStr     = "[" + "*".repeat(Math.min(card.getManaCost(), 6))
+                           + ".".repeat(Math.max(0, 6 - card.getManaCost())) + "]";
 
         Label symbolLabel = new Label(symbol);
-        symbolLabel.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: " + borderColor + ";");
+        symbolLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: " + borderColor + ";");
 
         Label nameLabel = new Label(name);
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;");
-        nameLabel.setMaxWidth(160);
-        nameLabel.setWrapText(true);
-        nameLabel.setAlignment(javafx.geometry.Pos.CENTER);
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;");
+        nameLabel.setMaxWidth(160); nameLabel.setWrapText(true); nameLabel.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Label costLabel = new Label("Mana: " + cost);
-        costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 12px;");
+        Label descLabel = new Label(desc);
+        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
+        descLabel.setMaxWidth(160); descLabel.setWrapText(true); descLabel.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Label costLabel = new Label("Mana: " + card.getManaCost());
+        costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 11px;");
 
         Label manaBarLabel = new Label(manaStr);
-        manaBarLabel.setStyle("-fx-text-fill: #7c3aed; -fx-font-size: 11px; -fx-font-family: monospace;");
+        manaBarLabel.setStyle("-fx-text-fill: #7c3aed; -fx-font-size: 10px; -fx-font-family: monospace;");
 
-        VBox cardBox = new VBox(12, symbolLabel, nameLabel, costLabel, manaBarLabel);
+        VBox cardBox = new VBox(8, symbolLabel, nameLabel, descLabel, costLabel, manaBarLabel);
         cardBox.setAlignment(Pos.CENTER);
         cardBox.setStyle(
                 "-fx-background-color: #1e1e3a;"
@@ -268,10 +236,10 @@ public class HelloController {
                 + "-fx-border-color: " + borderColor + ";"
                 + "-fx-border-radius: 10;"
                 + "-fx-border-width: 2;"
-                + "-fx-padding: 16;"
+                + "-fx-padding: 12;"
                 + "-fx-pref-width: 170;"
                 + "-fx-pref-height: 240;"
-                + "-fx-effect: dropshadow(gaussian, " + glowColor + ", 10, 0.3, 0, 0);"
+                + "-fx-effect: dropshadow(gaussian, " + borderColor + ", 10, 0.3, 0, 0);"
         );
         return cardBox;
     }

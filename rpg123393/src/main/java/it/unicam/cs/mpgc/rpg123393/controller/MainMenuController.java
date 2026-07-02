@@ -31,7 +31,6 @@ public class MainMenuController {
             try { loadedState = saveRepo.load(); }
             catch (IOException e) { System.err.println("[WARN] " + e.getMessage()); }
         }
-
         if (loadedState != null) {
             String date = loadedState.getSaveDate() != null
                     ? loadedState.getSaveDate().substring(0, 10) : "";
@@ -52,8 +51,8 @@ public class MainMenuController {
     private void onNewGame(ActionEvent event) {
         try {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/class-select-view.fxml");
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/class-select-view.fxml");
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -74,14 +73,20 @@ public class MainMenuController {
     }
 
     @FXML
+    private void onCollection(ActionEvent event) {
+        try {
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/collection-view.fxml");
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    @FXML
     private void onExit(ActionEvent event) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Esci dal gioco");
         alert.setHeaderText(null);
         alert.setContentText("Sei sicuro di voler uscire?");
-        alert.getDialogPane().setStyle("-fx-background-color: #1a1a2e; -fx-border-color: #3a3a6a;");
-        alert.getDialogPane().lookup(".content.label")
-             .setStyle("-fx-text-fill: #cccccc; -fx-font-size: 15px;");
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) Platform.exit();
     }
