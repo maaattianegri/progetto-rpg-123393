@@ -30,7 +30,7 @@ public class UpgradeController {
     private boolean        fromRest;
     private int            upgradePrice;
 
-    /** true dopo che un upgrade è stato eseguito in questa sessione della fucina. */
+    /** true dopo che un upgrade e' stato eseguito in questa sessione della fucina. */
     private boolean        upgradeDone = false;
 
     public void initData(GameService gs, String playerName,
@@ -77,7 +77,6 @@ public class UpgradeController {
     private void buildDeckList() {
         deckFlow.getChildren().clear();
 
-        // Aggiorna il contatore oro nell'header se esiste
         if (infoLabel != null) {
             String priceInfo = upgradePrice > 0
                     ? "Costo potenziamento: " + upgradePrice + " \uD83E\uDE99   |   Oro disponibile: " + gameService.getGold() + " \uD83E\uDE99"
@@ -98,7 +97,6 @@ public class UpgradeController {
         boolean canUpgrade      = !alreadyUpgraded
                 && GameService.getUpgradedCardName(card.getName()) != null;
 
-        // Se l'upgrade è già stato fatto in questa sessione, blocca tutto
         boolean blocked = upgradeDone || (!canUpgrade && !alreadyUpgraded);
 
         String color = alreadyUpgraded ? "#4ade80"
@@ -157,7 +155,6 @@ public class UpgradeController {
     }
 
     private void upgradeCard(int index) {
-        // Controllo oro
         if (upgradePrice > 0 && gameService.getGold() < upgradePrice) {
             showAlert(Alert.AlertType.WARNING,
                     "Oro insufficiente!",
@@ -166,7 +163,6 @@ public class UpgradeController {
             return;
         }
 
-        // Esegui upgrade
         boolean ok = gameService.upgradeCard(index);
         if (!ok) {
             showAlert(Alert.AlertType.WARNING,
@@ -175,12 +171,10 @@ public class UpgradeController {
             return;
         }
 
-        // Scala l'oro SUBITO, prima di qualsiasi navigazione
         if (upgradePrice > 0) {
             gameService.spendGold(upgradePrice);
         }
 
-        // Segna la sessione come "upgrade già eseguito" e ridisegna il deck in-place
         upgradeDone = true;
         buildDeckList();
     }
@@ -193,6 +187,11 @@ public class UpgradeController {
         alert.showAndWait();
     }
 
+    /**
+     * Torna allo shop o alla mappa, passando il flag upgradeDone:
+     * - upgradeDone=true  -> ShopController rimuove la tile UPGRADE dalla lista
+     * - upgradeDone=false -> la tile rimane (utente ha premuto Annulla senza fare nulla)
+     */
     private void navigateBack() {
         try {
             Stage stage = (Stage) deckFlow.getScene().getWindow();
@@ -205,7 +204,8 @@ public class UpgradeController {
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
                 ShopController ctrl = loader.getController();
-                ctrl.initDataKeepItems(gameService, playerName, vigore, arcano, imagePath, shopItems);
+                ctrl.initDataKeepItems(gameService, playerName, vigore, arcano,
+                        imagePath, shopItems, upgradeDone);
             }
         } catch (IOException e) {
             throw new RuntimeException("Errore navigazione dopo upgrade", e);

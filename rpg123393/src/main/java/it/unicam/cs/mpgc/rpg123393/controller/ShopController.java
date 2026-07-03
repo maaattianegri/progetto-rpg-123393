@@ -40,19 +40,26 @@ public class ShopController {
         refresh();
     }
 
+    /**
+     * Ritorna allo shop dalla fucina.
+     * @param upgradeWasExecuted true se l'utente ha effettivamente potenziato una carta;
+     *                           false se ha premuto Annulla senza fare nulla.
+     *                           La tile UPGRADE viene rimossa dallo shop solo nel primo caso.
+     */
     public void initDataKeepItems(GameService gs, String playerName,
                                    int vigore, int arcano, String imagePath,
-                                   List<ShopItem> existingItems) {
+                                   List<ShopItem> existingItems,
+                                   boolean upgradeWasExecuted) {
         this.gameService = gs;
         this.playerName  = playerName;
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.items       = existingItems;
-        if (pendingUpgradeItem != null) {
+        if (upgradeWasExecuted && pendingUpgradeItem != null) {
             items.remove(pendingUpgradeItem);
-            pendingUpgradeItem = null;
         }
+        pendingUpgradeItem = null;
         refresh();
     }
 
@@ -144,8 +151,6 @@ public class ShopController {
             UpgradeController ctrl = loader.getController();
             if (ctrl == null) throw new IllegalStateException(
                     "UpgradeController non inizializzato: controllare fx:controller in upgrade-view.fxml");
-            // Passa il prezzo reale: buyItem() per UPGRADE non scala il gold (vedi GameService),
-            // quindi è UpgradeController a scalarlo al momento del click su 'Potenzia'.
             ctrl.initDataWithPrice(gameService, playerName, vigore, arcano, imagePath,
                     items, gameService.getUpgradePrice());
         } catch (IOException e) {
