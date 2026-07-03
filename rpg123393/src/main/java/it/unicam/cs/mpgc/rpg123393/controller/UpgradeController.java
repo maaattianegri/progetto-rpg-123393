@@ -86,19 +86,13 @@ public class UpgradeController {
         arrowLabel.setMaxWidth(180);
         arrowLabel.setAlignment(Pos.CENTER);
 
-        Label descLabel = new Label(card.getDescription());
-        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 12px;");
-        descLabel.setWrapText(true);
-        descLabel.setMaxWidth(180);
-        descLabel.setAlignment(Pos.CENTER);
-
         Button upgradeBtn = new Button("Potenzia");
         upgradeBtn.setStyle("-fx-background-color: " + color + ";"
                 + "-fx-text-fill: #1a1a2e; -fx-font-weight: bold;"
                 + "-fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: hand;");
         upgradeBtn.setOnAction(e -> upgradeCard(idx));
 
-        VBox box = new VBox(10, tagLabel, nameLabel, arrowLabel, descLabel, upgradeBtn);
+        VBox box = new VBox(10, tagLabel, nameLabel, arrowLabel, upgradeBtn);
         box.setAlignment(Pos.CENTER);
         box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
