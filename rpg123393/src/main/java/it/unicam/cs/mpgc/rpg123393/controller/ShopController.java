@@ -144,7 +144,8 @@ public class ShopController {
             UpgradeController ctrl = loader.getController();
             if (ctrl == null) throw new IllegalStateException(
                     "UpgradeController non inizializzato: controllare fx:controller in upgrade-view.fxml");
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath, items);
+            // upgradePrice=0: il costo dell'item UPGRADE è già stato addebitato da buyItem()
+            ctrl.initDataWithPrice(gameService, playerName, vigore, arcano, imagePath, items, 0);
         } catch (IOException e) {
             throw new RuntimeException("Impossibile aprire upgrade-view.fxml", e);
         }

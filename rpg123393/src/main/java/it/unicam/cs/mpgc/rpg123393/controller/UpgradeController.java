@@ -1,3 +1,5 @@
+package it.unicam.cs.mpgc.rpgr123393.controller;
+
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
@@ -6,6 +8,7 @@ import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
@@ -43,6 +46,20 @@ public class UpgradeController {
         buildDeckList();
     }
 
+    public void initDataWithPrice(GameService gs, String playerName,
+                                   int vigore, int arcano, String imagePath,
+                                   List<ShopItem> shopItems, int forcedPrice) {
+        this.gameService  = gs;
+        this.playerName   = playerName;
+        this.vigore       = vigore;
+        this.arcano       = arcano;
+        this.imagePath    = imagePath;
+        this.shopItems    = shopItems;
+        this.fromRest     = false;
+        this.upgradePrice = forcedPrice;
+        buildDeckList();
+    }
+
     public void initDataFromRest(GameService gs, String playerName,
                                   int vigore, int arcano, String imagePath) {
         this.gameService  = gs;
@@ -52,7 +69,7 @@ public class UpgradeController {
         this.imagePath    = imagePath;
         this.shopItems    = null;
         this.fromRest     = true;
-        this.upgradePrice = 0;
+        this.upgradePrice = gs.getUpgradePrice();
         buildDeckList();
     }
 
@@ -102,11 +119,38 @@ public class UpgradeController {
     }
 
     private void upgradeCard(int index) {
+        if (upgradePrice > 0 && gameService.getGold() < upgradePrice) {
+            showAlert(Alert.AlertType.WARNING,
+                    "Oro insufficiente!",
+                    "Ti mancano " + (upgradePrice - gameService.getGold())
+                            + " 🪙 per potenziare questa carta. (Costo: " + upgradePrice + " 🪙)");
+            return;
+        }
+
         boolean ok = gameService.upgradeCard(index);
-        if (!ok) return;
+        if (!ok) {
+            showAlert(Alert.AlertType.WARNING,
+                    "Potenziamento non riuscito",
+                    "Questa carta non può essere potenziata ulteriormente.");
+            return;
+        }
+
         if (upgradePrice > 0) {
             gameService.spendGold(upgradePrice);
         }
+
+        navigateBack();
+    }
+
+    private void showAlert(Alert.AlertType type, String header, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle("Fucina");
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    private void navigateBack() {
         try {
             Stage stage = (Stage) deckFlow.getScene().getWindow();
             if (fromRest) {
@@ -127,21 +171,6 @@ public class UpgradeController {
 
     @FXML
     private void onCancel() {
-        try {
-            Stage stage = (Stage) deckFlow.getScene().getWindow();
-            if (fromRest) {
-                FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
-                MapController ctrl = loader.getController();
-                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
-            } else {
-                FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
-                ShopController ctrl = loader.getController();
-                ctrl.initDataKeepItems(gameService, playerName, vigore, arcano, imagePath, shopItems);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Errore navigazione onCancel", e);
-        }
+        navigateBack();
     }
 }
