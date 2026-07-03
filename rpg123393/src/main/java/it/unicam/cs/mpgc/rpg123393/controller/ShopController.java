@@ -129,21 +129,25 @@ public class ShopController {
         }
         if (item.getType() == ShopItem.ItemType.UPGRADE) {
             pendingUpgradeItem = item;
-            openUpgradeView(item);
+            openUpgradeView();
         } else {
             items.remove(item);
             refresh();
         }
     }
 
-    private void openUpgradeView(ShopItem upgradeItem) {
+    private void openUpgradeView() {
         try {
             Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
+            if (ctrl == null) throw new IllegalStateException(
+                    "UpgradeController non inizializzato: controllare fx:controller in upgrade-view.fxml");
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath, items);
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            throw new RuntimeException("Impossibile aprire upgrade-view.fxml", e);
+        }
     }
 
     @FXML
@@ -153,7 +157,11 @@ public class ShopController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
             MapController ctrl = loader.getController();
+            if (ctrl == null) throw new IllegalStateException(
+                    "MapController non inizializzato: controllare fx:controller in map-view.fxml");
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            throw new RuntimeException("Impossibile aprire map-view.fxml", e);
+        }
     }
 }
