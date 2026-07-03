@@ -37,8 +37,6 @@ public class ShopController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         if (items == null) items = gs.generateShopItems();
-        System.err.println("[SHOP] initData — gold corrente: " + gs.getGold()
-                + " | gameService@" + System.identityHashCode(gs));
         refresh();
     }
 
@@ -55,21 +53,13 @@ public class ShopController {
             items.remove(pendingUpgradeItem);
             pendingUpgradeItem = null;
         }
-        System.err.println("[SHOP] initDataKeepItems — gold corrente: " + gs.getGold()
-                + " | gameService@" + System.identityHashCode(gs));
         refresh();
     }
 
     private void refresh() {
         goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
         itemsBox.getChildren().clear();
-        for (ShopItem item : items) {
-            System.err.println("[SHOP] item: " + item.getName()
-                    + " | prezzo: " + item.getPrice()
-                    + " | gold: " + gameService.getGold()
-                    + " | canAfford: " + (gameService.getGold() >= item.getPrice()));
-            itemsBox.getChildren().add(buildItemTile(item));
-        }
+        for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
     }
 
     private String itemColor(ShopItem item) {
@@ -129,12 +119,7 @@ public class ShopController {
     }
 
     private void handleBuy(ShopItem item, Button btn) {
-        System.err.println("[SHOP] handleBuy — item: " + item.getName()
-                + " | prezzo: " + item.getPrice()
-                + " | gold: " + gameService.getGold()
-                + " | gameService@" + System.identityHashCode(gameService));
         boolean ok = gameService.buyItem(item);
-        System.err.println("[SHOP] buyItem result: " + ok);
         if (!ok) {
             Alert a = new Alert(Alert.AlertType.WARNING);
             a.setHeaderText(null);
