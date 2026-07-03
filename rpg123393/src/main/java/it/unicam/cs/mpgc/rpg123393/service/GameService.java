@@ -11,19 +11,30 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 public class GameService {
 
-    /** Modalit\u00e0 debug: true \u2192 tutte le carte sbloccate in collezione dall'inizio.
+    /** Modalità debug: true → tutte le carte sbloccate in collezione dall'inizio.
      *  TODO: impostare a false prima della consegna finale. */
     private static final boolean DEBUG_UNLOCK_ALL = true;
 
     private final BattleService battleService = new BattleService();
     private final LevelService  levelService  = new LevelService();
     private final EnemyFactory  enemyFactory  = new EnemyFactory();
-    private final RunManager    runManager    = new RunManager();
-    private final Random        random        = new Random();
+
+    /**
+     * RunManager mantenuto come layer di compatibilità/fallback.
+     * La progressione principale è ora delegata a MapService.
+     * Non viene più usato per currentEncounter() / advanceEncounter().
+     */
+    private final RunManager runManager = new RunManager();
+
+    /** Responsabile della generazione, navigazione e stato della mappa a nodi. */
+    private final MapService mapService = new MapService();
+
+    private final Random random = new Random();
 
     private GameCharacter player;
     private GameCharacter enemy;
@@ -95,18 +106,83 @@ public class GameService {
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
 
     // -------------------------------------------------------
-    // Run
+    // Navigazione mappa (nuovo punto di controllo)
     // -------------------------------------------------------
 
-    public EncounterType currentEncounter() { return runManager.current(); }
-    public EncounterType advanceEncounter() { return runManager.advance(); }
-    public int  getEncounterIndex()  { return runManager.getIndex(); }
-    public int  getEncounterTotal()  { return runManager.getTotal(); }
-    public boolean isLastBoss()      { return runManager.isLastBoss(); }
-    public int  getShopRound()       { return runManager.shopRound(); }
+    /**
+     * Tipo di incontro del nodo corrente sulla mappa.
+     * Sostituisce l'uso diretto di RunManager.current().
+     */
+    public EncounterType currentEncounter() {
+        return mapService.currentEncounterType();
+    }
+
+    /**
+     * Completa il nodo corrente e avanza al successivo.
+     * In Fase 1 (mappa lineare) equivale al vecchio runManager.advance();
+     * in Fase 2 il controller dovrà chiamare moveToNode(id) dopo aver mostrato le scelte.
+     *
+     * @return il tipo di incontro del nuovo nodo, oppure NORMAL se non ci sono successori.
+     */
+    public EncounterType advanceEncounter() {
+        Optional<MapNode> next = mapService.advance();
+        return next.map(MapNode::toEncounterType).orElse(EncounterType.NORMAL);
+    }
+
+    /**
+     * Sposta il giocatore verso un nodo specifico scelto dal player (Fase 2 — bivi).
+     * Deve essere chiamato solo con un id restituito da getReachableNodes().
+     *
+     * @return true se lo spostamento è stato accettato dalla mappa.
+     */
+    public boolean moveToNode(String nodeId) {
+        return mapService.moveToNode(nodeId);
+    }
+
+    /**
+     * Nodi raggiungibili dal nodo corrente. In Fase 1 la lista ha sempre un solo elemento;
+     * in Fase 2 potrà averne 2–3.
+     */
+    public List<MapNode> getReachableNodes() {
+        return mapService.getMap().getReachableNodes();
+    }
+
+    /**
+     * Nodo corrente sulla mappa (può essere usato dal controller per mostrare nome/tipo).
+     */
+    public Optional<MapNode> getCurrentNode() {
+        return mapService.getMap().getCurrentNode();
+    }
+
+    // -------------------------------------------------------
+    // Compatibilità con controller esistenti (delegano a MapService)
+    // -------------------------------------------------------
+
+    /** Indice posizione nella sequenza lineare (usato da UI per barra progresso). */
+    public int getEncounterIndex() {
+        return mapService.getMap().getAllNodes().stream()
+                .filter(n -> n.isCleared() || n.isVisited())
+                .mapToInt(n -> 1)
+                .sum();
+    }
+
+    /** Totale nodi nella mappa. */
+    public int getEncounterTotal() {
+        return mapService.getMap().getAllNodes().size();
+    }
+
+    /** True se il nodo corrente è l'ultimo boss (nodo senza successori di tipo BOSS). */
+    public boolean isLastBoss() {
+        return mapService.isCurrentNodeLastBoss();
+    }
+
+    /** Round dello shop corrente (usato da ShopPool per scalare i prezzi). */
+    public int getShopRound() {
+        return mapService.shopRound();
+    }
 
     public int collectGoldDrop() {
-        int drop = RunManager.goldDrop(runManager.current());
+        int drop = RunManager.goldDrop(mapService.currentEncounterType());
         gold += drop;
         return drop;
     }
@@ -116,7 +192,7 @@ public class GameService {
     // -------------------------------------------------------
 
     public void startBattle() {
-        EncounterType type = runManager.current();
+        EncounterType type = mapService.currentEncounterType();
         enemy = enemyFactory.createForEncounter(type, playerLevel);
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
@@ -171,7 +247,7 @@ public class GameService {
     // -------------------------------------------------------
 
     public List<ShopItem> generateShopItems() {
-        return ShopPool.generateShopItems(className, runManager.shopRound());
+        return ShopPool.generateShopItems(className, mapService.shopRound());
     }
 
     public boolean buyItem(ShopItem item) {
@@ -181,7 +257,7 @@ public class GameService {
             case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* costo gi\u00e0 scalato; potenziamento in upgradeCard */ }
+            case UPGRADE    -> { /* costo già scalato; potenziamento in upgradeCard */ }
         }
         return true;
     }
@@ -245,6 +321,16 @@ public class GameService {
         List<String> deckNames = new ArrayList<>();
         for (ICard card : deck) deckNames.add(card.getName());
         s.setDeckCardNames(deckNames);
+
+        // Salva stato mappa
+        mapService.getMap().getCurrentNode()
+                .ifPresent(n -> s.setCurrentNodeId(n.getId()));
+        List<String> cleared = mapService.getMap().getAllNodes().stream()
+                .filter(MapNode::isCleared)
+                .map(MapNode::getId)
+                .collect(java.util.stream.Collectors.toList());
+        s.setClearedNodeIds(cleared);
+
         return s;
     }
 
@@ -273,6 +359,9 @@ public class GameService {
         } else {
             buildStarterDeck(this.className);
         }
+
+        // Ripristina stato mappa (retrocompatibile: se null usa posizione iniziale)
+        mapService.restoreMap(state.getCurrentNodeId(), state.getClearedNodeIds());
     }
 
     // -------------------------------------------------------
@@ -296,6 +385,16 @@ public class GameService {
     public void setClassName(String c)  { this.className = c; }
     public void setImagePath(String p)  { this.imagePath = p; }
     public void addGold(int amount)     { this.gold += amount; }
+
+    /** Espone MapService per accesso diretto dalla UI (e dai test). */
+    public MapService getMapService()   { return mapService; }
+
+    /**
+     * Mantenuto per retrocompatibilità con i controller che lo usano ancora direttamente.
+     * @deprecated Usare i metodi di navigazione mappa: currentEncounter(), advanceEncounter(), moveToNode().
+     */
+    @Deprecated
     public RunManager getRunManager()   { return runManager; }
+
     public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
 }
