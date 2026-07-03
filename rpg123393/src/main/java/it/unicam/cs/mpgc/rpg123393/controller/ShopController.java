@@ -37,6 +37,8 @@ public class ShopController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         if (items == null) items = gs.generateShopItems();
+        System.err.println("[SHOP] initData — gold corrente: " + gs.getGold()
+                + " | gameService@" + System.identityHashCode(gs));
         refresh();
     }
 
@@ -53,45 +55,21 @@ public class ShopController {
             items.remove(pendingUpgradeItem);
             pendingUpgradeItem = null;
         }
+        System.err.println("[SHOP] initDataKeepItems — gold corrente: " + gs.getGold()
+                + " | gameService@" + System.identityHashCode(gs));
         refresh();
     }
 
     private void refresh() {
         goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
         itemsBox.getChildren().clear();
-        for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
-    }
-
-    /**
-     * Aggiorna solo la label dell'oro e lo stato disabilitato dei bottoni,
-     * senza ricostruire l'intera lista di tile.
-     */
-    private void refreshGoldAndButtons() {
-        goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
-        itemsBox.getChildren().forEach(node -> {
-            if (node instanceof VBox tile) {
-                // L'ultimo figlio di ogni tile è il bottone "Acquista"
-                tile.getChildren().stream()
-                    .filter(n -> n instanceof Button)
-                    .map(n -> (Button) n)
-                    .findFirst()
-                    .ifPresent(btn -> {
-                        // Il prezzo è nel tag userData impostato in buildItemTile
-                        if (btn.getUserData() instanceof Integer price) {
-                            boolean canAfford = gameService.getGold() >= price;
-                            btn.setDisable(!canAfford);
-                            // Aggiorna anche il colore del bottone
-                            String color = (String) tile.getUserData();
-                            if (color != null) {
-                                btn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
-                                        + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
-                                        + "-fx-font-weight: bold; -fx-padding: 10 24;"
-                                        + "-fx-background-radius: 8; -fx-cursor: hand;");
-                            }
-                        }
-                    });
-            }
-        });
+        for (ShopItem item : items) {
+            System.err.println("[SHOP] item: " + item.getName()
+                    + " | prezzo: " + item.getPrice()
+                    + " | gold: " + gameService.getGold()
+                    + " | canAfford: " + (gameService.getGold() >= item.getPrice()));
+            itemsBox.getChildren().add(buildItemTile(item));
+        }
     }
 
     private String itemColor(ShopItem item) {
@@ -133,12 +111,9 @@ public class ShopController {
         Label priceLabel = new Label("\uD83E\uDE99 " + item.getPrice() + " oro");
         priceLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        // canAfford calcolato live al momento della costruzione iniziale
         boolean canAfford = gameService.getGold() >= item.getPrice();
         Button buyBtn = new Button("Acquista");
         buyBtn.setDisable(!canAfford);
-        // Salva prezzo e colore nel bottone/tile per refreshGoldAndButtons()
-        buyBtn.setUserData(item.getPrice());
         buyBtn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
                 + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
                 + "-fx-font-weight: bold; -fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: hand;");
@@ -146,8 +121,6 @@ public class ShopController {
 
         VBox box = new VBox(10, tagLabel, nameLabel, descLabel, priceLabel, buyBtn);
         box.setAlignment(Pos.CENTER);
-        // Salva il colore nella tile per refreshGoldAndButtons()
-        box.setUserData(color);
         box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
                 + "-fx-padding: 24; -fx-pref-width: 210; -fx-pref-height: 300;"
@@ -156,16 +129,19 @@ public class ShopController {
     }
 
     private void handleBuy(ShopItem item, Button btn) {
-        // Check live al momento del click — non si fida del canAfford statico del bottone
-        if (gameService.getGold() < item.getPrice()) {
+        System.err.println("[SHOP] handleBuy — item: " + item.getName()
+                + " | prezzo: " + item.getPrice()
+                + " | gold: " + gameService.getGold()
+                + " | gameService@" + System.identityHashCode(gameService));
+        boolean ok = gameService.buyItem(item);
+        System.err.println("[SHOP] buyItem result: " + ok);
+        if (!ok) {
             Alert a = new Alert(Alert.AlertType.WARNING);
             a.setHeaderText(null);
             a.setContentText("Oro insufficiente!");
             a.showAndWait();
             return;
         }
-        boolean ok = gameService.buyItem(item);
-        if (!ok) return;
         if (item.getType() == ShopItem.ItemType.UPGRADE) {
             pendingUpgradeItem = item;
             openUpgradeView(item);
