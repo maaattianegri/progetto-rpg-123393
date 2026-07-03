@@ -1,5 +1,3 @@
-package it.unicam.cs.mpgc.rpgr123393.controller;
-
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
@@ -123,7 +121,7 @@ public class UpgradeController {
             showAlert(Alert.AlertType.WARNING,
                     "Oro insufficiente!",
                     "Ti mancano " + (upgradePrice - gameService.getGold())
-                            + " 🪙 per potenziare questa carta. (Costo: " + upgradePrice + " 🪙)");
+                            + " \uD83E\uDE99 per potenziare questa carta. (Costo: " + upgradePrice + " \uD83E\uDE99)");
             return;
         }
 
@@ -131,7 +129,7 @@ public class UpgradeController {
         if (!ok) {
             showAlert(Alert.AlertType.WARNING,
                     "Potenziamento non riuscito",
-                    "Questa carta non può essere potenziata ulteriormente.");
+                    "Questa carta non pu\u00F2 essere potenziata ulteriormente.");
             return;
         }
 
