@@ -4,6 +4,7 @@ import it.unicam.cs.mpgc.rpg123393.model.EncounterType;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
+import javafx.animation.ScaleTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
@@ -15,20 +16,25 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.paint.CycleMethod;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.StrokeLineCap;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.util.*;
 
 public class MapController {
 
-    private static final double COL_WIDTH  = 140.0;
-    private static final double ROW_HEIGHT = 120.0;
-    private static final double NODE_R     = 36.0;
-    private static final double ORIGIN_X   = 70.0;
-    private static final double ORIGIN_Y   = 60.0;
+    private static final double COL_WIDTH  = 150.0;
+    private static final double ROW_HEIGHT = 130.0;
+    private static final double NODE_R     = 44.0;
+    private static final double ORIGIN_X   = 80.0;
+    private static final double ORIGIN_Y   = 70.0;
 
     @FXML private Pane   mapPane;
     @FXML private Label  progressLabel;
@@ -37,6 +43,9 @@ public class MapController {
     @FXML private Label  playerLevelLabel;
     @FXML private Label  selectedNodeLabel;
     @FXML private HBox   legendBox;
+
+    // Panel hover (aggiunto programmaticamente)
+    private VBox hoverPanel;
 
     private GameService gameService;
     private String      playerName;
@@ -126,23 +135,24 @@ public class MapController {
         Set<String> reachableIds = new HashSet<>();
         reachable.forEach(n -> reachableIds.add(n.getId()));
 
-        // 1. Linee
+        // 1. Linee gradient
         for (MapNode n : all) {
             double[] from = positions.get(n.getId());
             if (from == null) continue;
             for (String sid : n.getNextNodeIds()) {
+                MapNode dest = byId.get(sid);
+                if (dest == null) continue;
                 double[] to = positions.get(sid);
                 if (to == null) continue;
-                Line line = new Line(from[0], from[1], to[0], to[1]);
-                boolean active = n.isCleared() || n.getId().equals(currentId);
-                line.setStroke(active ? Color.web("#4c1d95") : Color.web("#2a2a4a"));
-                line.setStrokeWidth(active ? 2.5 : 1.5);
-                if (!active) line.getStrokeDashArray().addAll(6.0, 4.0);
-                mapPane.getChildren().add(line);
+                drawConnection(from, to, n, dest, currentId);
             }
         }
 
-        // 2. Nodi
+        // 2. Hover panel (creato una volta, nascosto)
+        hoverPanel = buildHoverPanel();
+        mapPane.getChildren().add(hoverPanel);
+
+        // 3. Nodi
         for (MapNode n : all) {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
@@ -154,7 +164,7 @@ public class MapController {
             ));
         }
 
-        // 3. Header stats
+        // 4. Header stats
         var p = gameService.getPlayer();
         playerHpLabel.setText("\u2764 " + p.getCurrentHp() + "/" + p.getMaxHp());
         playerGoldLabel.setText("\uD83E\uDE99 " + gameService.getGold());
@@ -162,6 +172,96 @@ public class MapController {
         progressLabel.setText(gameService.getEncounterIndex() + " / " + gameService.getEncounterTotal() + " nodi");
 
         buildLegend();
+    }
+
+    // -------------------------------------------------------
+    // Connessioni con gradient
+    // -------------------------------------------------------
+
+    private void drawConnection(double[] from, double[] to,
+                                 MapNode src, MapNode dest, String currentId) {
+        boolean active = src.isCleared() || src.getId().equals(currentId);
+        Line line = new Line(from[0], from[1], to[0], to[1]);
+        line.setStrokeLineCap(StrokeLineCap.ROUND);
+        if (active) {
+            // Gradient: colore src -> colore dest
+            Color cSrc  = Color.web(nodeColor(src.getType()));
+            Color cDest = Color.web(nodeColor(dest.getType()));
+            // JavaFX Line non supporta LinearGradient su stroke direttamente,
+            // usiamo il colore medio come compromesso visivo
+            double r = (cSrc.getRed()   + cDest.getRed())   / 2;
+            double g = (cSrc.getGreen() + cDest.getGreen()) / 2;
+            double b = (cSrc.getBlue()  + cDest.getBlue())  / 2;
+            line.setStroke(Color.color(r, g, b));
+            line.setStrokeWidth(3.0);
+            line.setOpacity(0.85);
+        } else {
+            line.setStroke(Color.web("#2a2a4a"));
+            line.setStrokeWidth(1.5);
+            line.getStrokeDashArray().addAll(6.0, 4.0);
+            line.setOpacity(0.5);
+        }
+        mapPane.getChildren().add(line);
+    }
+
+    // -------------------------------------------------------
+    // Hover panel
+    // -------------------------------------------------------
+
+    private VBox buildHoverPanel() {
+        VBox panel = new VBox(6);
+        panel.setAlignment(Pos.CENTER_LEFT);
+        panel.setStyle(
+            "-fx-background-color: #12122a;"
+            + "-fx-background-radius: 12;"
+            + "-fx-border-color: #4c1d95;"
+            + "-fx-border-radius: 12;"
+            + "-fx-border-width: 1.5;"
+            + "-fx-padding: 14 18;"
+            + "-fx-effect: dropshadow(gaussian, #000, 16, 0.4, 0, 4);"
+        );
+        panel.setPrefWidth(200);
+        panel.setVisible(false);
+        panel.setManaged(false);
+        return panel;
+    }
+
+    private void showHoverPanel(MapNode node, double cx, double cy) {
+        hoverPanel.getChildren().clear();
+        String color = nodeColor(node.getType());
+
+        Label iconLbl = new Label(nodeIcon(node.getType()));
+        iconLbl.setStyle("-fx-font-size: 28px;");
+
+        Label nameLbl = new Label(node.getName());
+        nameLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+
+        Label typeLbl = new Label(node.getType().name());
+        typeLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #9ca3af; -fx-font-weight: bold;"
+                + "-fx-background-color: #1e1e3a; -fx-background-radius: 6; -fx-padding: 2 8;");
+
+        Label descLbl = new Label(node.getDescription());
+        descLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #d1d5db;");
+        descLbl.setWrapText(true);
+        descLbl.setMaxWidth(176);
+
+        hoverPanel.getChildren().addAll(iconLbl, nameLbl, typeLbl, descLbl);
+
+        // Posiziona il panel a destra del nodo, evitando di uscire dal Pane
+        double px = cx + NODE_R + 10;
+        double py = cy - NODE_R;
+        if (px + 210 > mapPane.getWidth() && mapPane.getWidth() > 0)
+            px = cx - NODE_R - 220;
+        hoverPanel.setLayoutX(px);
+        hoverPanel.setLayoutY(py);
+        hoverPanel.setVisible(true);
+        hoverPanel.setManaged(true);
+        hoverPanel.toFront();
+    }
+
+    private void hideHoverPanel() {
+        hoverPanel.setVisible(false);
+        hoverPanel.setManaged(false);
     }
 
     // -------------------------------------------------------
@@ -173,21 +273,36 @@ public class MapController {
         String color = nodeColor(node.getType());
         String icon  = nodeIcon(node.getType());
 
+        // Anello pulsante solo per il nodo corrente
+        Circle pulseRing = null;
+        if (isCurrent) {
+            pulseRing = new Circle(NODE_R + 8);
+            pulseRing.setFill(Color.TRANSPARENT);
+            pulseRing.setStroke(Color.web(color, 0.5));
+            pulseRing.setStrokeWidth(2);
+            ScaleTransition pulse = new ScaleTransition(Duration.millis(900), pulseRing);
+            pulse.setFromX(0.85); pulse.setFromY(0.85);
+            pulse.setToX(1.15);   pulse.setToY(1.15);
+            pulse.setAutoReverse(true);
+            pulse.setCycleCount(ScaleTransition.INDEFINITE);
+            pulse.play();
+        }
+
         Circle bg = new Circle(NODE_R);
         if (isCurrent) {
             bg.setFill(Color.web(color, 0.35));
             bg.setStroke(Color.web(color));
             bg.setStrokeWidth(3.5);
-            bg.setEffect(new DropShadow(18, Color.web(color)));
+            bg.setEffect(new DropShadow(22, Color.web(color)));
         } else if (isCleared) {
             bg.setFill(Color.web("#1a2e1a"));
-            bg.setStroke(Color.web("#4ade80", 0.6));
+            bg.setStroke(Color.web("#4ade80", 0.7));
             bg.setStrokeWidth(2);
         } else if (isReachable) {
             bg.setFill(Color.web(color, 0.2));
             bg.setStroke(Color.web(color));
             bg.setStrokeWidth(2.5);
-            bg.setEffect(new DropShadow(12, Color.web(color, 0.6)));
+            bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
         } else {
             bg.setFill(Color.web("#1a1a2e"));
             bg.setStroke(Color.web("#2a2a4a"));
@@ -195,7 +310,7 @@ public class MapController {
         }
 
         Label iconLabel = new Label(isCleared ? "\u2714" : icon);
-        iconLabel.setStyle("-fx-font-size: " + (isCleared ? "16px" : "20px") + ";"
+        iconLabel.setStyle("-fx-font-size: " + (isCleared ? "18px" : "24px") + ";"
                 + "-fx-text-fill: " + (isCleared ? "#4ade80" : "white") + ";");
 
         Label nameLabel = new Label(node.getName());
@@ -210,25 +325,24 @@ public class MapController {
         nodeBox.setAlignment(Pos.CENTER);
         nodeBox.setMaxWidth(NODE_R * 2);
 
-        StackPane sp = new StackPane(bg, nodeBox);
-        sp.setLayoutX(cx - NODE_R);
-        sp.setLayoutY(cy - NODE_R);
-        sp.setPrefSize(NODE_R * 2, NODE_R * 2);
+        StackPane sp;
+        if (pulseRing != null) {
+            sp = new StackPane(pulseRing, bg, nodeBox);
+        } else {
+            sp = new StackPane(bg, nodeBox);
+        }
+        // Centra rispetto al cerchio più grande (anello) se presente
+        double spSize = (pulseRing != null) ? (NODE_R + 8) * 2 : NODE_R * 2;
+        sp.setLayoutX(cx - spSize / 2);
+        sp.setLayoutY(cy - spSize / 2);
+        sp.setPrefSize(spSize, spSize);
 
-        Tooltip tip = new Tooltip(
-            node.getName() + "\n" + node.getDescription()
-            + (isCurrent   ? "\n\u25CF Posizione attuale"     : "")
-            + (isCleared   ? "\n\u2714 Completato"            : "")
-            + (isReachable ? "\n\u2192 Clicca per andare qui" : "")
-        );
-        tip.setStyle("-fx-font-size: 12px;");
-        Tooltip.install(sp, tip);
-
+        if (isReachable || isCurrent) {
+            sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy));
+            sp.setOnMouseExited(e  -> hideHoverPanel());
+        }
         if (isReachable) {
             sp.setStyle("-fx-cursor: hand;");
-            sp.setOnMouseEntered(e -> selectedNodeLabel.setText(
-                nodeIcon(node.getType()) + "  " + node.getName() + " \u2014 " + node.getDescription()));
-            sp.setOnMouseExited(e  -> selectedNodeLabel.setText("Clicca un nodo raggiungibile per avanzare"));
             sp.setOnMouseClicked(e -> onNodeSelected(node));
         }
 
