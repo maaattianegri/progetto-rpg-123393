@@ -5,9 +5,11 @@ import it.unicam.cs.mpgc.rpg123393.model.ShopItem;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -59,29 +61,50 @@ public class UpgradeController {
         List<ICard> deck = gameService.getDeck();
         for (int i = 0; i < deck.size(); i++) {
             final int idx = i;
-            ICard card = deck.get(i);
-            String color = CardStyleHelper.borderColor(card.getName());
-
-            Button btn = new Button(card.getName() + "  (\u2192 " + GameService.upgradedName(card.getName()) + ")");
-            btn.setPrefWidth(210);
-            btn.setMinWidth(210);
-            btn.setPrefHeight(80);
-            btn.setWrapText(true);
-            btn.setStyle(
-                "-fx-background-color: #1e1e3a;"
-                + "-fx-text-fill: white;"
-                + "-fx-font-size: 13px;"
-                + "-fx-border-color: " + color + ";"
-                + "-fx-border-radius: 8;"
-                + "-fx-background-radius: 8;"
-                + "-fx-border-width: 2;"
-                + "-fx-padding: 10 18;"
-                + "-fx-cursor: hand;"
-                + "-fx-alignment: center;"
-            );
-            btn.setOnAction(e -> upgradeCard(idx));
-            deckFlow.getChildren().add(btn);
+            deckFlow.getChildren().add(buildCardTile(deck.get(i), idx));
         }
+    }
+
+    private VBox buildCardTile(ICard card, int idx) {
+        String color = CardStyleHelper.borderColor(card.getName());
+        String upgradedName = GameService.upgradedName(card.getName());
+
+        Label tagLabel = new Label("POTENZIAMENTO");
+        tagLabel.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
+                + "-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 3 10;"
+                + "-fx-background-radius: 10;");
+
+        Label nameLabel = new Label(card.getName());
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold;");
+        nameLabel.setWrapText(true);
+        nameLabel.setMaxWidth(180);
+        nameLabel.setAlignment(Pos.CENTER);
+
+        Label arrowLabel = new Label("\u2192  " + upgradedName);
+        arrowLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 13px;");
+        arrowLabel.setWrapText(true);
+        arrowLabel.setMaxWidth(180);
+        arrowLabel.setAlignment(Pos.CENTER);
+
+        Label descLabel = new Label(card.getDescription());
+        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 12px;");
+        descLabel.setWrapText(true);
+        descLabel.setMaxWidth(180);
+        descLabel.setAlignment(Pos.CENTER);
+
+        Button upgradeBtn = new Button("Potenzia");
+        upgradeBtn.setStyle("-fx-background-color: " + color + ";"
+                + "-fx-text-fill: #1a1a2e; -fx-font-weight: bold;"
+                + "-fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: hand;");
+        upgradeBtn.setOnAction(e -> upgradeCard(idx));
+
+        VBox box = new VBox(10, tagLabel, nameLabel, arrowLabel, descLabel, upgradeBtn);
+        box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
+                + "-fx-padding: 24; -fx-pref-width: 210; -fx-pref-height: 300;"
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.15, 0, 0);");
+        return box;
     }
 
     private void upgradeCard(int index) {
