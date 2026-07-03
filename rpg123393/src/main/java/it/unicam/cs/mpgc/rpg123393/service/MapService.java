@@ -53,7 +53,7 @@ public class MapService {
 
         // --- Primo bivio (3 scelte dopo n02) ---
         MapNode n03a = new MapNode("n03a", "Orco Berserker", "L'Orco Berserker ruggisce.",          NodeType.ELITE);
-        MapNode n03b = new MapNode("n03b", "Falò",           "Un fuoco crepitante ti aspetta.",     NodeType.REST);
+        MapNode n03b = new MapNode("n03b", "Fal\u00f2",           "Un fuoco crepitante ti aspetta.",     NodeType.REST);
         MapNode n03c = new MapNode("n03c", "Presenza Oscura","Qualcosa nell'ombra ti osserva.",    NodeType.EVENT);
 
         // --- Convergenza al primo shop ---
@@ -139,22 +139,13 @@ public class MapService {
     }
 
     /**
-     * Avanza automaticamente al nodo successivo.
-     * Usato solo quando il nodo corrente ha un unico successore (tratti lineari).
-     * Se ci sono bivi, non sposta il cursore e restituisce empty:
-     * il player deve scegliere esplicitamente tramite moveToNode().
+     * Marca il nodo corrente come cleared (incontro completato).
+     * NON sposta il cursore: la navigazione al nodo successivo è sempre
+     * delegata all'utente tramite click sulla mappa (moveToNode).
+     * Questo vale sia per tratti lineari che per bivi.
      */
     public Optional<MapNode> advance() {
         map.clearCurrentNode();
-        List<MapNode> reachable = map.getReachableNodes();
-        if (reachable.isEmpty()) return Optional.empty();
-        if (reachable.size() == 1) {
-            // Tratto lineare: avanza automaticamente
-            MapNode next = reachable.get(0);
-            map.moveTo(next.getId());
-            return Optional.of(next);
-        }
-        // Bivio: il cursore rimane sul nodo cleared, la mappa mostrerà le scelte
         return Optional.empty();
     }
 
