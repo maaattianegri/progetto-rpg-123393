@@ -24,33 +24,37 @@ public class UpgradeController {
     private int            vigore;
     private int            arcano;
     private String         imagePath;
-    private List<ShopItem> shopItems;   // presente solo se arriva da ShopController
-    private boolean        fromRest;    // true se arriva da RestController
+    private List<ShopItem> shopItems;
+    private boolean        fromRest;
+    // Prezzo della fucina da scalare dopo la scelta (0 se fromRest)
+    private int            upgradePrice;
 
     /** Chiamato da ShopController quando si acquista un upgrade. */
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath,
                          List<ShopItem> shopItems) {
-        this.gameService = gs;
-        this.playerName  = playerName;
-        this.vigore      = vigore;
-        this.arcano      = arcano;
-        this.imagePath   = imagePath;
-        this.shopItems   = shopItems;
-        this.fromRest    = false;
+        this.gameService   = gs;
+        this.playerName    = playerName;
+        this.vigore        = vigore;
+        this.arcano        = arcano;
+        this.imagePath     = imagePath;
+        this.shopItems     = shopItems;
+        this.fromRest      = false;
+        this.upgradePrice  = gs.getUpgradePrice();
         buildDeckList();
     }
 
-    /** Chiamato da RestController per la scelta "potenzia carta". */
+    /** Chiamato da RestController per la scelta "potenzia carta" (gratis). */
     public void initDataFromRest(GameService gs, String playerName,
                                   int vigore, int arcano, String imagePath) {
-        this.gameService = gs;
-        this.playerName  = playerName;
-        this.vigore      = vigore;
-        this.arcano      = arcano;
-        this.imagePath   = imagePath;
-        this.shopItems   = null;
-        this.fromRest    = true;
+        this.gameService   = gs;
+        this.playerName    = playerName;
+        this.vigore        = vigore;
+        this.arcano        = arcano;
+        this.imagePath     = imagePath;
+        this.shopItems     = null;
+        this.fromRest      = true;
+        this.upgradePrice  = 0;
         buildDeckList();
     }
 
@@ -83,16 +87,18 @@ public class UpgradeController {
     private void upgradeCard(int index) {
         boolean ok = gameService.upgradeCard(index);
         if (!ok) return;
+        // Scala l'oro solo ora che la carta è stata effettivamente potenziata
+        if (upgradePrice > 0) {
+            gameService.spendGold(upgradePrice);
+        }
         try {
             Stage stage = (Stage) deckList.getScene().getWindow();
             if (fromRest) {
-                // Torna alla mappa direttamente
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
                 MapController ctrl = loader.getController();
                 ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
             } else {
-                // Torna allo shop con la lista aggiornata
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
                 ShopController ctrl = loader.getController();

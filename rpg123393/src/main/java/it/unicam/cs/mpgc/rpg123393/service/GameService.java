@@ -24,16 +24,8 @@ public class GameService {
     private final LevelService  levelService  = new LevelService();
     private final EnemyFactory  enemyFactory  = new EnemyFactory();
 
-    /**
-     * RunManager mantenuto come layer di compatibilità/fallback.
-     * La progressione principale è ora delegata a MapService.
-     * Non viene più usato per currentEncounter() / advanceEncounter().
-     */
     private final RunManager runManager = new RunManager();
-
-    /** Responsabile della generazione, navigazione e stato della mappa a nodi. */
     private final MapService mapService = new MapService();
-
     private final Random random = new Random();
 
     private GameCharacter player;
@@ -106,59 +98,30 @@ public class GameService {
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
 
     // -------------------------------------------------------
-    // Navigazione mappa (nuovo punto di controllo)
+    // Navigazione mappa
     // -------------------------------------------------------
 
-    /**
-     * Tipo di incontro del nodo corrente sulla mappa.
-     * Sostituisce l'uso diretto di RunManager.current().
-     */
     public EncounterType currentEncounter() {
         return mapService.currentEncounterType();
     }
 
-    /**
-     * Completa il nodo corrente e avanza al successivo.
-     * In Fase 1 (mappa lineare) equivale al vecchio runManager.advance();
-     * in Fase 2 il controller dovrà chiamare moveToNode(id) dopo aver mostrato le scelte.
-     *
-     * @return il tipo di incontro del nuovo nodo, oppure NORMAL se non ci sono successori.
-     */
     public EncounterType advanceEncounter() {
         Optional<MapNode> next = mapService.advance();
         return next.map(MapNode::toEncounterType).orElse(EncounterType.NORMAL);
     }
 
-    /**
-     * Sposta il giocatore verso un nodo specifico scelto dal player (Fase 2 — bivi).
-     * Deve essere chiamato solo con un id restituito da getReachableNodes().
-     *
-     * @return true se lo spostamento è stato accettato dalla mappa.
-     */
     public boolean moveToNode(String nodeId) {
         return mapService.moveToNode(nodeId);
     }
 
-    /**
-     * Nodi raggiungibili dal nodo corrente. In Fase 1 la lista ha sempre un solo elemento;
-     * in Fase 2 potrà averne 2–3.
-     */
     public List<MapNode> getReachableNodes() {
         return mapService.getMap().getReachableNodes();
     }
 
-    /**
-     * Nodo corrente sulla mappa (può essere usato dal controller per mostrare nome/tipo).
-     */
     public Optional<MapNode> getCurrentNode() {
         return mapService.getMap().getCurrentNode();
     }
 
-    // -------------------------------------------------------
-    // Compatibilità con controller esistenti (delegano a MapService)
-    // -------------------------------------------------------
-
-    /** Indice posizione nella sequenza lineare (usato da UI per barra progresso). */
     public int getEncounterIndex() {
         return mapService.getMap().getAllNodes().stream()
                 .filter(n -> n.isCleared() || n.isVisited())
@@ -166,17 +129,14 @@ public class GameService {
                 .sum();
     }
 
-    /** Totale nodi nella mappa. */
     public int getEncounterTotal() {
         return mapService.getMap().getAllNodes().size();
     }
 
-    /** True se il nodo corrente è l'ultimo boss (nodo senza successori di tipo BOSS). */
     public boolean isLastBoss() {
         return mapService.isCurrentNodeLastBoss();
     }
 
-    /** Round dello shop corrente (usato da ShopPool per scalare i prezzi). */
     public int getShopRound() {
         return mapService.shopRound();
     }
@@ -252,14 +212,40 @@ public class GameService {
 
     public boolean buyItem(ShopItem item) {
         if (gold < item.getPrice()) return false;
-        gold -= item.getPrice();
+        // Per UPGRADE l'oro NON viene scalato qui: viene scalato in UpgradeController
+        // solo dopo che l'utente ha effettivamente scelto la carta da potenziare.
+        if (item.getType() != ShopItem.ItemType.UPGRADE) {
+            gold -= item.getPrice();
+        }
         switch (item.getType()) {
             case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* costo già scalato; potenziamento in upgradeCard */ }
+            case UPGRADE    -> { /* oro scalato in UpgradeController dopo la scelta */ }
         }
         return true;
+    }
+
+    /**
+     * Scala l'oro direttamente (usato da UpgradeController per il costo della fucina).
+     * @return false se il gold è insufficiente, true altrimenti.
+     */
+    public boolean spendGold(int amount) {
+        if (gold < amount) return false;
+        gold -= amount;
+        return true;
+    }
+
+    /**
+     * Ritorna il prezzo corrente della Fucina dell'Eroe per il round di shop attuale.
+     * Usato da UpgradeController per scalare l'oro al momento giusto.
+     */
+    public int getUpgradePrice() {
+        return switch (mapService.shopRound()) {
+            case 1  -> 40;
+            case 2  -> 55;
+            default -> 70;
+        };
     }
 
     private void applyConsumable(String code) {
@@ -321,8 +307,6 @@ public class GameService {
         List<String> deckNames = new ArrayList<>();
         for (ICard card : deck) deckNames.add(card.getName());
         s.setDeckCardNames(deckNames);
-
-        // Salva stato mappa
         mapService.getMap().getCurrentNode()
                 .ifPresent(n -> s.setCurrentNodeId(n.getId()));
         List<String> cleared = mapService.getMap().getAllNodes().stream()
@@ -330,7 +314,6 @@ public class GameService {
                 .map(MapNode::getId)
                 .collect(java.util.stream.Collectors.toList());
         s.setClearedNodeIds(cleared);
-
         return s;
     }
 
@@ -347,7 +330,6 @@ public class GameService {
                 state.getPlayerName(), state.getPlayerMaxHp(), state.getPlayerMaxMana());
         player.setCurrentHp(state.getPlayerCurrentHp());
         player.setCurrentMana(state.getPlayerCurrentMana());
-
         List<String> savedDeck = state.getDeckCardNames();
         if (savedDeck != null && !savedDeck.isEmpty()) {
             deck.clear();
@@ -359,8 +341,6 @@ public class GameService {
         } else {
             buildStarterDeck(this.className);
         }
-
-        // Ripristina stato mappa (retrocompatibile: se null usa posizione iniziale)
         mapService.restoreMap(state.getCurrentNodeId(), state.getClearedNodeIds());
     }
 
@@ -385,14 +365,8 @@ public class GameService {
     public void setClassName(String c)  { this.className = c; }
     public void setImagePath(String p)  { this.imagePath = p; }
     public void addGold(int amount)     { this.gold += amount; }
-
-    /** Espone MapService per accesso diretto dalla UI (e dai test). */
     public MapService getMapService()   { return mapService; }
 
-    /**
-     * Mantenuto per retrocompatibilità con i controller che lo usano ancora direttamente.
-     * @deprecated Usare i metodi di navigazione mappa: currentEncounter(), advanceEncounter(), moveToNode().
-     */
     @Deprecated
     public RunManager getRunManager()   { return runManager; }
 
