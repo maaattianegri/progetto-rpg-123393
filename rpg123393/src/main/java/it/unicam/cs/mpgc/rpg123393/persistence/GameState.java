@@ -26,6 +26,17 @@ public class GameState {
      */
     private List<String> deckCardNames = new ArrayList<>();
 
+    // -------------------------------------------------------
+    // Stato mappa (Fase 1 — mappa a nodi)
+    // Retrocompatibile: se assente nel JSON salvato, resta null.
+    // -------------------------------------------------------
+
+    /** ID del nodo corrente nella mappa. Null se la run usa ancora il RunManager legacy. */
+    private String       currentNodeId   = null;
+
+    /** ID di tutti i nodi già completati (cleared) nella run corrente. */
+    private List<String> clearedNodeIds  = new ArrayList<>();
+
     public GameState() {}
 
     public GameState(String playerName, int playerMaxHp, int playerCurrentHp,
@@ -65,13 +76,19 @@ public class GameState {
     public String getImagePath()           { return imagePath; }
     public void   setImagePath(String v)   { this.imagePath = v; }
 
-    public List<String> getUnlockedCards()              { return unlockedCards; }
-    public void         setUnlockedCards(List<String> v) { this.unlockedCards = v != null ? v : new ArrayList<>(); }
+    public List<String> getUnlockedCards()               { return unlockedCards; }
+    public void         setUnlockedCards(List<String> v)  { this.unlockedCards = v != null ? v : new ArrayList<>(); }
 
-    public List<String> getDeckCardNames()              { return deckCardNames; }
-    public void         setDeckCardNames(List<String> v) { this.deckCardNames = v != null ? v : new ArrayList<>(); }
+    public List<String> getDeckCardNames()               { return deckCardNames; }
+    public void         setDeckCardNames(List<String> v)  { this.deckCardNames = v != null ? v : new ArrayList<>(); }
 
-    /** Aggiunge una carta alla collezione se non gi\u00e0 presente. */
+    // Mappa
+    public String       getCurrentNodeId()                { return currentNodeId; }
+    public void         setCurrentNodeId(String v)        { this.currentNodeId = v; }
+    public List<String> getClearedNodeIds()               { return clearedNodeIds; }
+    public void         setClearedNodeIds(List<String> v) { this.clearedNodeIds = v != null ? v : new ArrayList<>(); }
+
+    /** Aggiunge una carta alla collezione se non già presente. */
     public void unlockCard(String cardName) {
         if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName);
     }
