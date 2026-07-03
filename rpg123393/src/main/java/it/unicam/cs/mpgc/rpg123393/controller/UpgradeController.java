@@ -27,7 +27,6 @@ public class UpgradeController {
     private boolean        fromRest;
     private int            upgradePrice;
 
-    /** Chiamato da ShopController quando si acquista un upgrade. */
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath,
                          List<ShopItem> shopItems) {
@@ -42,7 +41,6 @@ public class UpgradeController {
         buildDeckList();
     }
 
-    /** Chiamato da RestController per la scelta "potenzia carta" (gratis). */
     public void initDataFromRest(GameService gs, String playerName,
                                   int vigore, int arcano, String imagePath) {
         this.gameService  = gs;
@@ -65,7 +63,10 @@ public class UpgradeController {
             String color = CardStyleHelper.borderColor(card.getName());
 
             Button btn = new Button(card.getName() + "  (\u2192 " + GameService.upgradedName(card.getName()) + ")");
-            btn.setMaxWidth(Double.MAX_VALUE);
+            btn.setPrefWidth(210);
+            btn.setMinWidth(210);
+            btn.setPrefHeight(80);
+            btn.setWrapText(true);
             btn.setStyle(
                 "-fx-background-color: #1e1e3a;"
                 + "-fx-text-fill: white;"
@@ -76,6 +77,7 @@ public class UpgradeController {
                 + "-fx-border-width: 2;"
                 + "-fx-padding: 10 18;"
                 + "-fx-cursor: hand;"
+                + "-fx-alignment: center;"
             );
             btn.setOnAction(e -> upgradeCard(idx));
             deckFlow.getChildren().add(btn);
@@ -106,10 +108,6 @@ public class UpgradeController {
         }
     }
 
-    /**
-     * Bottone Annulla: torna allo shop senza potenziare nulla e senza scalare oro.
-     * Se fromRest, torna alla mappa.
-     */
     @FXML
     private void onCancel() {
         try {
