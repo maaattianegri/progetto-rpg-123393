@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="it.unicam.cs.mpgc.rpg123393.controller.MapController"
+      alignment="CENTER"
+      spacing="32"
+      style="-fx-background-color: #0d0d1e; -fx-padding: 48;">
+
+    <!-- Titolo -->
+    <Label text="🗺 Mappa del Dungeon"
+           style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #c4b5fd;"/>
+
+    <!-- Nodo corrente -->
+    <VBox alignment="CENTER" spacing="6"
+          style="-fx-background-color: #1e1e3a; -fx-background-radius: 12; -fx-padding: 20; -fx-border-color: #6d28d9; -fx-border-radius: 12; -fx-border-width: 2;">
+        <Label text="Posizione attuale"
+               style="-fx-font-size: 13px; -fx-text-fill: #9ca3af;"/>
+        <Label fx:id="currentNodeLabel"
+               text="—"
+               style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f5f3ff;"/>
+        <Label fx:id="currentNodeDescLabel"
+               text=""
+               style="-fx-font-size: 13px; -fx-text-fill: #a0a0c0;"
+               wrapText="true" maxWidth="400" alignment="CENTER"/>
+        <Label fx:id="progressLabel"
+               text=""
+               style="-fx-font-size: 12px; -fx-text-fill: #6d28d9;"/>
+    </VBox>
+
+    <!-- Freccia -->
+    <Label text="▼"
+           style="-fx-font-size: 22px; -fx-text-fill: #6d28d9;"/>
+
+    <!-- Titolo scelta -->
+    <Label text="Scegli il prossimo nodo:"
+           style="-fx-font-size: 16px; -fx-text-fill: #e5e7eb;"/>
+
+    <!-- Bottoni nodi raggiungibili (generati dinamicamente) -->
+    <HBox fx:id="nodeButtonsBox"
+          alignment="CENTER"
+          spacing="20"/>
+
+    <!-- Label di fallback se nessun successore -->
+    <Label fx:id="noNodesLabel"
+           text=""
+           visible="false" managed="false"
+           style="-fx-font-size: 14px; -fx-text-fill: #ef4444;"/>
+
+    <!-- Stats giocatore -->
+    <HBox alignment="CENTER" spacing="32">
+        <padding><Insets top="12"/></padding>
+        <Label fx:id="playerHpLabel"
+               text="HP: —"
+               style="-fx-font-size: 14px; -fx-text-fill: #4ade80;"/>
+        <Label fx:id="playerGoldLabel"
+               text="Oro: —"
+               style="-fx-font-size: 14px; -fx-text-fill: #fbbf24;"/>
+        <Label fx:id="playerLevelLabel"
+               text="Lv. —"
+               style="-fx-font-size: 14px; -fx-text-fill: #93c5fd;"/>
+    </HBox>
+
+</VBox>
