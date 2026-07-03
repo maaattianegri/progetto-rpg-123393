@@ -11,74 +11,114 @@ import java.util.Optional;
 /**
  * Gestisce la generazione e la navigazione della mappa a nodi.
  *
- * Fase 1 — mappa lineare mascherata:
- * La struttura tecnica è un grafo, ma la sequenza è fissa e identica
- * a quella del RunManager originale. Questo garantisce zero regressioni.
+ * Fase 2 — mappa a percorsi multipli:
+ * Alcuni nodi hanno più successori, il player sceglie il percorso dalla mappa.
  *
- * Sequenza Fase 1:
- *   ingresso -> BATTLE -> BATTLE -> SHOP -> ELITE -> ELITE -> SHOP
- *            -> ELITE -> ELITE -> SHOP -> BOSS -> BOSS
+ * Struttura:
+ *
+ *   n00 (BATTLE) -> n01 (BATTLE) -> n02 (BATTLE) -+-> n03a (ELITE)
+ *                                                  +-> n03b (REST)
+ *                                                  +-> n03c (EVENT)
+ *                                                  |
+ *                                       n03a/b/c --+--> n04 (SHOP)
+ *                                                       |
+ *                                                  n05 (ELITE) -> n06 (ELITE)
+ *                                                       |
+ *                                                  n07 (SHOP) -+-> n08a (ELITE)
+ *                                                              +-> n08b (REST)
+ *                                                              |
+ *                                              n08a/b --------+--> n09 (SHOP)
+ *                                                                  |
+ *                                                            n10 (BOSS) -> n11 (BOSS)
  */
 public class MapService {
 
-    private GameMap map;
+    private final GameMap map;
 
     public MapService() {
-        this.map = buildLinearMap();
+        this.map = buildBranchingMap();
     }
 
     // -------------------------------------------------------
-    // Generazione mappa
+    // Generazione mappa (Fase 2 — bivi reali)
     // -------------------------------------------------------
 
-    /**
-     * Costruisce la mappa lineare mascherata (Fase 1).
-     * Ogni nodo ha esattamente un successore, replicando la sequenza del RunManager.
-     */
-    private GameMap buildLinearMap() {
+    private GameMap buildBranchingMap() {
         GameMap gameMap = new GameMap();
 
-        MapNode ingresso  = new MapNode("n00", "Ingresso",          "Inizio della run.",              NodeType.BATTLE);
-        MapNode battle1   = new MapNode("n01", "Goblin",            "Un Goblin ti sbarra la strada.", NodeType.BATTLE);
-        MapNode battle2   = new MapNode("n02", "Ratto Gigante",     "Un Ratto Gigante ti attacca.",   NodeType.BATTLE);
-        MapNode shop1     = new MapNode("n03", "Mercante",          "Un mercante ti offre i suoi prodotti.", NodeType.SHOP);
-        MapNode elite1    = new MapNode("n04", "Orco Berserker",    "L'Orco Berserker ruggisce.",     NodeType.ELITE);
-        MapNode elite2    = new MapNode("n05", "Scheletro Arcano",  "Lo Scheletro Arcano ti fissa.",  NodeType.ELITE);
-        MapNode shop2     = new MapNode("n06", "Mercante",          "Il mercante ha nuova merce.",    NodeType.SHOP);
-        MapNode elite3    = new MapNode("n07", "Troll Rigenerante", "Il Troll si rigenera!",          NodeType.ELITE);
-        MapNode elite4    = new MapNode("n08", "Banshee",           "La Banshee urla nel buio.",      NodeType.ELITE);
-        MapNode shop3     = new MapNode("n09", "Mercante",          "Ultima chance prima del boss.",  NodeType.SHOP);
-        MapNode boss1     = new MapNode("n10", "Negromante",        "Il Negromante evoca non-morti.", NodeType.BOSS);
-        MapNode boss2     = new MapNode("n11", "Drago Antico",      "Il Drago Antico scuote la terra.", NodeType.BOSS);
+        // --- Corridoio iniziale (lineare) ---
+        MapNode n00 = new MapNode("n00", "Ingresso",         "Inizio della run.",                  NodeType.BATTLE);
+        MapNode n01 = new MapNode("n01", "Goblin",           "Un Goblin ti sbarra la strada.",      NodeType.BATTLE);
+        MapNode n02 = new MapNode("n02", "Ratto Gigante",    "Un Ratto Gigante ti attacca.",        NodeType.BATTLE);
 
-        ingresso.addNextNode("n01");
-        battle1.addNextNode("n02");
-        battle2.addNextNode("n03");
-        shop1.addNextNode("n04");
-        elite1.addNextNode("n05");
-        elite2.addNextNode("n06");
-        shop2.addNextNode("n07");
-        elite3.addNextNode("n08");
-        elite4.addNextNode("n09");
-        shop3.addNextNode("n10");
-        boss1.addNextNode("n11");
+        // --- Primo bivio (3 scelte dopo n02) ---
+        MapNode n03a = new MapNode("n03a", "Orco Berserker", "L'Orco Berserker ruggisce.",          NodeType.ELITE);
+        MapNode n03b = new MapNode("n03b", "Falò",           "Un fuoco crepitante ti aspetta.",     NodeType.REST);
+        MapNode n03c = new MapNode("n03c", "Presenza Oscura","Qualcosa nell'ombra ti osserva.",    NodeType.EVENT);
 
-        gameMap.addNode(ingresso);
-        gameMap.addNode(battle1);
-        gameMap.addNode(battle2);
-        gameMap.addNode(shop1);
-        gameMap.addNode(elite1);
-        gameMap.addNode(elite2);
-        gameMap.addNode(shop2);
-        gameMap.addNode(elite3);
-        gameMap.addNode(elite4);
-        gameMap.addNode(shop3);
-        gameMap.addNode(boss1);
-        gameMap.addNode(boss2);
+        // --- Convergenza al primo shop ---
+        MapNode n04  = new MapNode("n04",  "Mercante",        "Un mercante ti offre i suoi prodotti.", NodeType.SHOP);
+
+        // --- Tratto centrale (lineare) ---
+        MapNode n05  = new MapNode("n05",  "Scheletro Arcano","Lo Scheletro Arcano ti fissa.",       NodeType.ELITE);
+        MapNode n06  = new MapNode("n06",  "Troll Rigenerante","Il Troll si rigenera!",              NodeType.ELITE);
+        MapNode n07  = new MapNode("n07",  "Mercante",        "Il mercante ha nuova merce.",          NodeType.SHOP);
+
+        // --- Secondo bivio (2 scelte dopo n07) ---
+        MapNode n08a = new MapNode("n08a", "Banshee",         "La Banshee urla nel buio.",           NodeType.ELITE);
+        MapNode n08b = new MapNode("n08b", "Rifugio",         "Un angolo tranquillo per riposare.",  NodeType.REST);
+
+        // --- Convergenza al terzo shop ---
+        MapNode n09  = new MapNode("n09",  "Mercante",        "Ultima chance prima del boss.",       NodeType.SHOP);
+
+        // --- Boss finali ---
+        MapNode n10  = new MapNode("n10",  "Negromante",      "Il Negromante evoca non-morti.",      NodeType.BOSS);
+        MapNode n11  = new MapNode("n11",  "Drago Antico",    "Il Drago Antico scuote la terra.",    NodeType.BOSS);
+
+        // ---- Connessioni ----
+
+        // Corridoio iniziale
+        n00.addNextNode("n01");
+        n01.addNextNode("n02");
+
+        // Primo bivio
+        n02.addNextNode("n03a");
+        n02.addNextNode("n03b");
+        n02.addNextNode("n03c");
+
+        // Convergenza al primo shop
+        n03a.addNextNode("n04");
+        n03b.addNextNode("n04");
+        n03c.addNextNode("n04");
+
+        // Tratto centrale
+        n04.addNextNode("n05");
+        n05.addNextNode("n06");
+        n06.addNextNode("n07");
+
+        // Secondo bivio
+        n07.addNextNode("n08a");
+        n07.addNextNode("n08b");
+
+        // Convergenza al terzo shop
+        n08a.addNextNode("n09");
+        n08b.addNextNode("n09");
+
+        // Boss
+        n09.addNextNode("n10");
+        n10.addNextNode("n11");
+        // n11 non ha successori — fine della run
+
+        // ---- Aggiungi tutti i nodi ----
+        for (MapNode n : List.of(n00, n01, n02, n03a, n03b, n03c,
+                                  n04, n05, n06, n07, n08a, n08b,
+                                  n09, n10, n11)) {
+            gameMap.addNode(n);
+        }
 
         // Posiziona il giocatore al nodo iniziale
         gameMap.setCurrentNodeId("n00");
-        ingresso.setVisited(true);
+        n00.setVisited(true);
 
         return gameMap;
     }
@@ -87,13 +127,10 @@ public class MapService {
     // Navigazione
     // -------------------------------------------------------
 
-    public GameMap getMap() {
-        return map;
-    }
+    public GameMap getMap() { return map; }
 
     /**
-     * Restituisce il tipo di incontro del nodo corrente,
-     * compatibile con la logica esistente di GameService/BattleService.
+     * Tipo di incontro del nodo corrente.
      */
     public EncounterType currentEncounterType() {
         return map.getCurrentNode()
@@ -102,25 +139,29 @@ public class MapService {
     }
 
     /**
-     * Avanza verso il prossimo nodo (in Fase 1 ce n'è sempre uno solo).
-     * Marca il nodo corrente come cleared prima di spostarsi.
-     *
-     * @return il nodo verso cui ci si è spostati, oppure empty se non ci sono successori.
+     * Avanza automaticamente al nodo successivo.
+     * Usato solo quando il nodo corrente ha un unico successore (tratti lineari).
+     * Se ci sono bivi, non sposta il cursore e restituisce empty:
+     * il player deve scegliere esplicitamente tramite moveToNode().
      */
     public Optional<MapNode> advance() {
         map.clearCurrentNode();
         List<MapNode> reachable = map.getReachableNodes();
         if (reachable.isEmpty()) return Optional.empty();
-        // Fase 1: prende sempre il primo (unico) successore
-        MapNode next = reachable.get(0);
-        map.moveTo(next.getId());
-        return Optional.of(next);
+        if (reachable.size() == 1) {
+            // Tratto lineare: avanza automaticamente
+            MapNode next = reachable.get(0);
+            map.moveTo(next.getId());
+            return Optional.of(next);
+        }
+        // Bivio: il cursore rimane sul nodo cleared, la mappa mostrerà le scelte
+        return Optional.empty();
     }
 
     /**
-     * Sposta il giocatore verso un nodo specifico (per Fase 2 con bivi).
+     * Sposta il giocatore verso un nodo specifico scelto dalla mappa.
      *
-     * @return true se lo spostamento è valido.
+     * @return true se lo spostamento è valido (il nodo è tra i successori del corrente).
      */
     public boolean moveToNode(String nodeId) {
         map.clearCurrentNode();
@@ -134,14 +175,13 @@ public class MapService {
     }
 
     public boolean isCurrentNodeLastBoss() {
-        Optional<MapNode> current = map.getCurrentNode();
-        if (current.isEmpty()) return false;
-        MapNode node = current.get();
-        return node.getType() == NodeType.BOSS && node.getNextNodeIds().isEmpty();
+        return map.getCurrentNode()
+                .map(n -> n.getType() == NodeType.BOSS && n.getNextNodeIds().isEmpty())
+                .orElse(false);
     }
 
     /**
-     * Numero di shop completati fino ad ora. Usato da ShopPool per scalare i prezzi.
+     * Numero di shop completati. Usato da ShopPool per scalare i prezzi.
      */
     public int completedShopCount() {
         return (int) map.getAllNodes().stream()
@@ -150,8 +190,7 @@ public class MapService {
     }
 
     public int shopRound() {
-        int count = completedShopCount();
-        return Math.max(1, count + 1);
+        return Math.max(1, completedShopCount() + 1);
     }
 
     /** Ripristina la mappa da uno stato salvato. */

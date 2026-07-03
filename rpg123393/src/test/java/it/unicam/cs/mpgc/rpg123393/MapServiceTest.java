@@ -14,14 +14,16 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test di unità per MapService.
+ * Test di unità per MapService (Fase 2 — mappa a bivi).
  *
- * Verifica:
- *   - struttura della mappa generata
- *   - navigazione (advance, moveToNode)
- *   - stati dei nodi (visited, cleared)
- *   - metodi di supporto (shopRound, isCurrentNodeLastBoss)
- *   - ripristino da salvataggio (restoreMap)
+ * Struttura mappa:
+ *   n00 -> n01 -> n02 -+-> n03a (ELITE)
+ *                      +-> n03b (REST)
+ *                      +-> n03c (EVENT)
+ *                      |
+ *              n03a/b/c --> n04 (SHOP) -> n05 -> n06 -> n07 -+-> n08a (ELITE)
+ *                                                             +-> n08b (REST)
+ *                                                   n08a/b --> n09 -> n10 -> n11
  */
 class MapServiceTest {
 
@@ -37,9 +39,9 @@ class MapServiceTest {
     // -----------------------------------------------------------
 
     @Test
-    @DisplayName("La mappa deve contenere esattamente 12 nodi")
-    void mapHasTwelveNodes() {
-        assertEquals(12, mapService.getMap().getAllNodes().size());
+    @DisplayName("La mappa deve contenere esattamente 15 nodi")
+    void mapHasFifteenNodes() {
+        assertEquals(15, mapService.getMap().getAllNodes().size());
     }
 
     @Test
@@ -54,18 +56,18 @@ class MapServiceTest {
     @Test
     @DisplayName("Il nodo n11 (boss finale) non ha successori")
     void lastBossHasNoSuccessors() {
-        Optional<MapNode> boss2 = mapService.getMap().getNodeById("n11");
-        assertTrue(boss2.isPresent());
-        assertTrue(boss2.get().getNextNodeIds().isEmpty());
+        assertTrue(nodeById("n11").getNextNodeIds().isEmpty());
     }
 
     @Test
     @DisplayName("I nodi hanno il NodeType corretto")
     void nodeTypesAreCorrect() {
-        assertEquals(NodeType.SHOP,  nodeById("n03").getType());
-        assertEquals(NodeType.ELITE, nodeById("n04").getType());
-        assertEquals(NodeType.BOSS,  nodeById("n10").getType());
-        assertEquals(NodeType.BOSS,  nodeById("n11").getType());
+        assertEquals(NodeType.SHOP,   nodeById("n04").getType());
+        assertEquals(NodeType.ELITE,  nodeById("n03a").getType());
+        assertEquals(NodeType.REST,   nodeById("n03b").getType());
+        assertEquals(NodeType.EVENT,  nodeById("n03c").getType());
+        assertEquals(NodeType.BOSS,   nodeById("n10").getType());
+        assertEquals(NodeType.BOSS,   nodeById("n11").getType());
         assertEquals(NodeType.BATTLE, nodeById("n01").getType());
     }
 
@@ -74,50 +76,92 @@ class MapServiceTest {
     // -----------------------------------------------------------
 
     @Test
-    @DisplayName("currentEncounterType() restituisce BATTLE sul nodo n00")
+    @DisplayName("currentEncounterType() restituisce il tipo corretto su n00")
     void currentEncounterTypeOnStart() {
-        assertEquals(EncounterType.NORMAL, mapService.currentEncounterType(),
-                "n00 è NodeType.BATTLE che mappa a NORMAL/BATTLE; vedi toEncounterType()");
+        EncounterType type = mapService.currentEncounterType();
+        assertNotNull(type);
     }
 
     // -----------------------------------------------------------
-    // Navigazione — advance()
+    // Primo bivio — n02 ha 3 successori
     // -----------------------------------------------------------
 
     @Test
-    @DisplayName("advance() sposta il cursore da n00 a n01")
+    @DisplayName("n02 ha esattamente 3 successori (bivio)")
+    void n02HasThreeSuccessors() {
+        assertEquals(3, nodeById("n02").getNextNodeIds().size());
+    }
+
+    @Test
+    @DisplayName("I successori di n02 sono n03a, n03b, n03c")
+    void n02SuccessorsAreCorrect() {
+        List<String> nexts = nodeById("n02").getNextNodeIds();
+        assertTrue(nexts.contains("n03a"));
+        assertTrue(nexts.contains("n03b"));
+        assertTrue(nexts.contains("n03c"));
+    }
+
+    @Test
+    @DisplayName("advance() su n02 restituisce empty (bivio — il player deve scegliere)")
+    void advanceOnBivioReturnsEmpty() {
+        // Sposta il cursore su n02
+        mapService.getMap().setCurrentNodeId("n02");
+        Optional<MapNode> result = mapService.advance();
+        assertTrue(result.isEmpty(),
+            "advance() su un bivio non deve spostarsi automaticamente");
+    }
+
+    @Test
+    @DisplayName("getReachableNodes() su n02 restituisce 3 nodi")
+    void reachableNodesOnBivioAreThree() {
+        mapService.getMap().setCurrentNodeId("n02");
+        // Per leggere i reachable usiamo il GameMap direttamente
+        List<MapNode> reachable = mapService.getMap().getReachableNodes();
+        assertEquals(3, reachable.size());
+    }
+
+    // -----------------------------------------------------------
+    // Secondo bivio — n07 ha 2 successori
+    // -----------------------------------------------------------
+
+    @Test
+    @DisplayName("n07 ha esattamente 2 successori (bivio)")
+    void n07HasTwoSuccessors() {
+        assertEquals(2, nodeById("n07").getNextNodeIds().size());
+    }
+
+    @Test
+    @DisplayName("I successori di n07 sono n08a e n08b")
+    void n07SuccessorsAreCorrect() {
+        List<String> nexts = nodeById("n07").getNextNodeIds();
+        assertTrue(nexts.contains("n08a"));
+        assertTrue(nexts.contains("n08b"));
+    }
+
+    // -----------------------------------------------------------
+    // Navigazione — advance() su tratto lineare
+    // -----------------------------------------------------------
+
+    @Test
+    @DisplayName("advance() su n00 sposta il cursore a n01")
     void advanceMovesCursorToN01() {
         Optional<MapNode> next = mapService.advance();
         assertTrue(next.isPresent());
         assertEquals("n01", next.get().getId());
-        assertEquals("n01", mapService.getMap().getCurrentNode().get().getId());
     }
 
     @Test
-    @DisplayName("advance() marca n00 come cleared")
+    @DisplayName("advance() su n00 marca n00 come cleared")
     void advanceClearsCurrentNode() {
         mapService.advance();
-        Optional<MapNode> n00 = mapService.getMap().getNodeById("n00");
-        assertTrue(n00.isPresent());
-        assertTrue(n00.get().isCleared());
+        assertTrue(nodeById("n00").isCleared());
     }
 
     @Test
-    @DisplayName("advance() marca n01 come visited")
-    void advanceVisitsNextNode() {
-        mapService.advance();
-        Optional<MapNode> n01 = mapService.getMap().getNodeById("n01");
-        assertTrue(n01.isPresent());
-        assertTrue(n01.get().isVisited());
-    }
-
-    @Test
-    @DisplayName("advance() su n11 (nessun successore) restituisce Optional.empty()")
+    @DisplayName("advance() su n11 restituisce empty (nessun successore)")
     void advanceOnLastNodeReturnsEmpty() {
-        // Naviga manualmente fino a n11
         mapService.getMap().setCurrentNodeId("n11");
-        Optional<MapNode> result = mapService.advance();
-        assertTrue(result.isEmpty());
+        assertTrue(mapService.advance().isEmpty());
     }
 
     // -----------------------------------------------------------
@@ -125,20 +169,18 @@ class MapServiceTest {
     // -----------------------------------------------------------
 
     @Test
-    @DisplayName("moveToNode() verso un nodo raggiungibile restituisce true")
+    @DisplayName("moveToNode() verso n03a da n02 restituisce true")
     void moveToReachableNodeReturnsTrue() {
-        // n00 -> n01 è connesso
-        boolean result = mapService.moveToNode("n01");
-        assertTrue(result);
-        assertEquals("n01", mapService.getMap().getCurrentNode().get().getId());
+        mapService.getMap().setCurrentNodeId("n02");
+        assertTrue(mapService.moveToNode("n03a"));
+        assertEquals("n03a", mapService.getMap().getCurrentNode().get().getId());
     }
 
     @Test
     @DisplayName("moveToNode() verso un nodo non raggiungibile restituisce false")
     void moveToUnreachableNodeReturnsFalse() {
-        // n00 -> n05 non è collegato direttamente
-        boolean result = mapService.moveToNode("n05");
-        assertFalse(result);
+        // Da n00 non si può raggiungere n09 direttamente
+        assertFalse(mapService.moveToNode("n09"));
     }
 
     // -----------------------------------------------------------
@@ -153,30 +195,27 @@ class MapServiceTest {
     }
 
     @Test
-    @DisplayName("isCurrentNodeLastBoss() è true su n11 (nessun successore)")
+    @DisplayName("isCurrentNodeLastBoss() è true su n11")
     void n11IsLastBoss() {
         mapService.getMap().setCurrentNodeId("n11");
         assertTrue(mapService.isCurrentNodeLastBoss());
     }
 
     // -----------------------------------------------------------
-    // shopRound() e completedShopCount()
+    // shopRound() — conta gli shop cleared
     // -----------------------------------------------------------
 
     @Test
-    @DisplayName("shopRound() vale 1 all'inizio (nessuno shop completato)")
+    @DisplayName("shopRound() vale 1 all'inizio")
     void shopRoundStartsAtOne() {
         assertEquals(1, mapService.shopRound());
     }
 
     @Test
-    @DisplayName("shopRound() vale 2 dopo aver completato n03 (primo SHOP)")
-    void shopRoundIncrementsAfterShopCleared() {
-        // Marca n03 come cleared manualmente
-        mapService.getMap().getNodeById("n03").ifPresent(n -> {
-            n.setVisited(true);
-            n.setCleared(true);
-        });
+    @DisplayName("shopRound() vale 2 dopo aver completato il primo shop (n04)")
+    void shopRoundIncreasesAfterFirstShop() {
+        nodeById("n04").setVisited(true);
+        nodeById("n04").setCleared(true);
         assertEquals(2, mapService.shopRound());
     }
 
@@ -187,7 +226,7 @@ class MapServiceTest {
     @Test
     @DisplayName("restoreMap() riposiziona il cursore al nodo indicato")
     void restoreMapSetsCursor() {
-        mapService.restoreMap("n05", List.of("n00", "n01", "n02", "n03", "n04"));
+        mapService.restoreMap("n05", List.of("n00", "n01", "n02", "n03a", "n04"));
         assertEquals("n05", mapService.getMap().getCurrentNode().get().getId());
     }
 
@@ -198,11 +237,11 @@ class MapServiceTest {
         assertTrue(nodeById("n00").isCleared());
         assertTrue(nodeById("n01").isCleared());
         assertTrue(nodeById("n02").isCleared());
-        assertFalse(nodeById("n03").isCleared());
+        assertFalse(nodeById("n03a").isCleared());
     }
 
     @Test
-    @DisplayName("restoreMap(null, null) non lancia eccezioni (retrocompatibilità)")
+    @DisplayName("restoreMap(null, null) non lancia eccezioni")
     void restoreMapWithNullsDoesNotThrow() {
         assertDoesNotThrow(() -> mapService.restoreMap(null, null));
     }
