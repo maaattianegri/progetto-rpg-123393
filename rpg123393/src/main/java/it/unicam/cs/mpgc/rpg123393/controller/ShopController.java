@@ -144,8 +144,10 @@ public class ShopController {
             UpgradeController ctrl = loader.getController();
             if (ctrl == null) throw new IllegalStateException(
                     "UpgradeController non inizializzato: controllare fx:controller in upgrade-view.fxml");
-            // upgradePrice=0: il costo dell'item UPGRADE è già stato addebitato da buyItem()
-            ctrl.initDataWithPrice(gameService, playerName, vigore, arcano, imagePath, items, 0);
+            // Passa il prezzo reale: buyItem() per UPGRADE non scala il gold (vedi GameService),
+            // quindi è UpgradeController a scalarlo al momento del click su 'Potenzia'.
+            ctrl.initDataWithPrice(gameService, playerName, vigore, arcano, imagePath,
+                    items, gameService.getUpgradePrice());
         } catch (IOException e) {
             throw new RuntimeException("Impossibile aprire upgrade-view.fxml", e);
         }

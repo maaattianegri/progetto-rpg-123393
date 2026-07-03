@@ -30,6 +30,9 @@ public class UpgradeController {
     private boolean        fromRest;
     private int            upgradePrice;
 
+    /** true dopo che un upgrade è stato eseguito in questa sessione della fucina. */
+    private boolean        upgradeDone = false;
+
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath,
                          List<ShopItem> shopItems) {
@@ -73,6 +76,16 @@ public class UpgradeController {
 
     private void buildDeckList() {
         deckFlow.getChildren().clear();
+
+        // Aggiorna il contatore oro nell'header se esiste
+        if (infoLabel != null) {
+            String priceInfo = upgradePrice > 0
+                    ? "Costo potenziamento: " + upgradePrice + " \uD83E\uDE99   |   Oro disponibile: " + gameService.getGold() + " \uD83E\uDE99"
+                    : "Potenziamento gratuito   |   Oro disponibile: " + gameService.getGold() + " \uD83E\uDE99";
+            if (upgradeDone) priceInfo = "\u2705 Potenziamento eseguito! Puoi tornare allo shop.";
+            infoLabel.setText(priceInfo);
+        }
+
         List<ICard> deck = gameService.getDeck();
         for (int i = 0; i < deck.size(); i++) {
             final int idx = i;
@@ -81,35 +94,62 @@ public class UpgradeController {
     }
 
     private VBox buildCardTile(ICard card, int idx) {
-        String color = CardStyleHelper.borderColor(card.getName());
-        String upgradedName = GameService.upgradedName(card.getName());
+        boolean alreadyUpgraded = card.getName().endsWith("+");
+        boolean canUpgrade      = !alreadyUpgraded
+                && GameService.getUpgradedCardName(card.getName()) != null;
 
-        Label tagLabel = new Label("POTENZIAMENTO");
+        // Se l'upgrade è già stato fatto in questa sessione, blocca tutto
+        boolean blocked = upgradeDone || (!canUpgrade && !alreadyUpgraded);
+
+        String color = alreadyUpgraded ? "#4ade80"
+                     : canUpgrade      ? CardStyleHelper.borderColor(card.getName())
+                                       : "#4a4a6a";
+
+        String tagText = alreadyUpgraded ? "\u2705 GI\u00C0 POTENZIATA"
+                       : canUpgrade      ? "POTENZIAMENTO"
+                                        : "NON POTENZIABILE";
+
+        Label tagLabel = new Label(tagText);
         tagLabel.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
                 + "-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 3 10;"
                 + "-fx-background-radius: 10;");
 
         Label nameLabel = new Label(card.getName());
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold;");
+        nameLabel.setStyle("-fx-text-fill: " + (alreadyUpgraded ? "#4ade80" : "white")
+                + "; -fx-font-size: 15px; -fx-font-weight: bold;");
         nameLabel.setWrapText(true);
         nameLabel.setMaxWidth(180);
         nameLabel.setAlignment(Pos.CENTER);
 
-        Label arrowLabel = new Label("\u2192  " + upgradedName);
-        arrowLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 13px;");
+        String upgradedName = alreadyUpgraded ? card.getName()
+                            : GameService.upgradedName(card.getName());
+        Label arrowLabel = new Label(alreadyUpgraded ? "\u2714 Potenziata!"
+                                                     : "\u2192  " + upgradedName);
+        arrowLabel.setStyle("-fx-text-fill: " + (alreadyUpgraded ? "#4ade80" : "#e0c97f")
+                + "; -fx-font-size: 13px;");
         arrowLabel.setWrapText(true);
         arrowLabel.setMaxWidth(180);
         arrowLabel.setAlignment(Pos.CENTER);
 
-        Button upgradeBtn = new Button("Potenzia");
-        upgradeBtn.setStyle("-fx-background-color: " + color + ";"
-                + "-fx-text-fill: #1a1a2e; -fx-font-weight: bold;"
-                + "-fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: hand;");
-        upgradeBtn.setOnAction(e -> upgradeCard(idx));
+        boolean btnEnabled = canUpgrade && !upgradeDone
+                && (upgradePrice <= 0 || gameService.getGold() >= upgradePrice);
+
+        Button upgradeBtn = new Button(
+                alreadyUpgraded ? "Gi\u00e0 potenziata" :
+                upgradeDone     ? "Hai gi\u00e0 potenziato" :
+                !canUpgrade     ? "Non potenziabile" : "Potenzia");
+        upgradeBtn.setDisable(!btnEnabled);
+        upgradeBtn.setStyle("-fx-background-color: " + (btnEnabled ? color : "#3a3a5a") + ";"
+                + "-fx-text-fill: " + (btnEnabled ? "#1a1a2e" : "#6a6a9a") + ";"
+                + "-fx-font-weight: bold;"
+                + "-fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: "
+                + (btnEnabled ? "hand" : "default") + ";");
+        if (btnEnabled) upgradeBtn.setOnAction(e -> upgradeCard(idx));
 
         VBox box = new VBox(10, tagLabel, nameLabel, arrowLabel, upgradeBtn);
         box.setAlignment(Pos.CENTER);
-        box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
+        box.setStyle("-fx-background-color: " + (alreadyUpgraded ? "#1a2e1a" : "#1e1e3a")
+                + "; -fx-background-radius: 14;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
                 + "-fx-padding: 24; -fx-pref-width: 210; -fx-pref-height: 300;"
                 + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.15, 0, 0);");
@@ -117,6 +157,7 @@ public class UpgradeController {
     }
 
     private void upgradeCard(int index) {
+        // Controllo oro
         if (upgradePrice > 0 && gameService.getGold() < upgradePrice) {
             showAlert(Alert.AlertType.WARNING,
                     "Oro insufficiente!",
@@ -125,6 +166,7 @@ public class UpgradeController {
             return;
         }
 
+        // Esegui upgrade
         boolean ok = gameService.upgradeCard(index);
         if (!ok) {
             showAlert(Alert.AlertType.WARNING,
@@ -133,11 +175,14 @@ public class UpgradeController {
             return;
         }
 
+        // Scala l'oro SUBITO, prima di qualsiasi navigazione
         if (upgradePrice > 0) {
             gameService.spendGold(upgradePrice);
         }
 
-        navigateBack();
+        // Segna la sessione come "upgrade già eseguito" e ridisegna il deck in-place
+        upgradeDone = true;
+        buildDeckList();
     }
 
     private void showAlert(Alert.AlertType type, String header, String content) {

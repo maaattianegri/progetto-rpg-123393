@@ -238,7 +238,6 @@ public class GameService {
 
     /**
      * Ritorna il prezzo corrente della Fucina dell'Eroe per il round di shop attuale.
-     * Usato da UpgradeController per scalare l'oro al momento giusto.
      */
     public int getUpgradePrice() {
         return switch (mapService.shopRound()) {
@@ -262,6 +261,15 @@ public class GameService {
 
     public static String upgradedName(String name) {
         return name.endsWith("+") ? name : name + "+";
+    }
+
+    /**
+     * Ritorna il nome della versione potenziata della carta, o null se non è potenziabile.
+     * Usato da UpgradeController per decidere se mostrare il bottone abilitato.
+     */
+    public static String getUpgradedCardName(String name) {
+        if (name == null || name.endsWith("+")) return null;
+        return CardPool.getUpgradedCard(name) != null ? name + "+" : null;
     }
 
     public boolean upgradeCard(int deckIndex) {
