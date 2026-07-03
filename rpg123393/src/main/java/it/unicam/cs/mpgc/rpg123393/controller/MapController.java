@@ -20,20 +20,10 @@ import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
-/**
- * Controller della mappa grafica a nodi.
- * Disegna su un Pane: cerchi per i nodi, linee per le connessioni.
- * Stati visivi: CLEARED (verde opaco), CURRENT (pulsante, evidenziato),
- * REACHABLE (colorato, cliccabile), LOCKED (grigio scuro).
- */
 public class MapController {
 
-    // Dimensioni layout grafico
     private static final double COL_WIDTH  = 140.0;
     private static final double ROW_HEIGHT = 120.0;
     private static final double NODE_R     = 36.0;
@@ -54,12 +44,7 @@ public class MapController {
     private int         arcano;
     private String      imagePath;
 
-    // Posizioni calcolate per ogni nodo (id -> [cx, cy])
     private final Map<String, double[]> positions = new HashMap<>();
-
-    // -------------------------------------------------------
-    // Inizializzazione
-    // -------------------------------------------------------
 
     public void initData(GameService gs, String playerName, int vigore, int arcano, String imagePath) {
         this.gameService = gs;
@@ -72,30 +57,24 @@ public class MapController {
     }
 
     // -------------------------------------------------------
-    // Layout: assegna posizioni colonna/riga ai nodi
+    // Layout BFS
     // -------------------------------------------------------
 
-    /**
-     * Assegna a ogni nodo una posizione (cx, cy) sul Pane.
-     * La colonna = profondità BFS dalla radice.
-     * La riga = indice del nodo nella colonna (per gestire i bivi).
-     */
     private void buildLayout() {
         positions.clear();
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
+        Map<String, MapNode> byId = new HashMap<>();
+        for (MapNode n : all) byId.put(n.getId(), n);
 
-        // BFS per assegnare colonne
-        Map<String, Integer> colMap = new HashMap<>();
-        Map<String, Integer> rowMap = new HashMap<>();
-        Map<String, Integer> colCount = new HashMap<>();
-
-        // Trova la radice (nodo senza predecessori)
-        java.util.Set<String> hasParent = new java.util.HashSet<>();
+        Set<String> hasParent = new HashSet<>();
         for (MapNode n : all)
-            for (MapNode s : n.getSuccessors()) hasParent.add(s.getId());
+            for (String sid : n.getNextNodeIds()) hasParent.add(sid);
         MapNode root = all.stream().filter(n -> !hasParent.contains(n.getId())).findFirst().orElse(all.get(0));
 
-        java.util.Queue<MapNode> queue = new java.util.LinkedList<>();
+        Map<String, Integer> colMap   = new LinkedHashMap<>();
+        Map<String, Integer> colCount = new HashMap<>();
+        Map<String, Integer> rowMap   = new HashMap<>();
+        Queue<MapNode> queue = new LinkedList<>();
         queue.add(root);
         colMap.put(root.getId(), 0);
 
@@ -103,86 +82,85 @@ public class MapController {
             MapNode cur = queue.poll();
             int col = colMap.get(cur.getId());
             colCount.merge(String.valueOf(col), 1, Integer::sum);
-            int row = colCount.get(String.valueOf(col)) - 1;
-            rowMap.put(cur.getId(), row);
-            for (MapNode s : cur.getSuccessors()) {
-                if (!colMap.containsKey(s.getId())) {
-                    colMap.put(s.getId(), col + 1);
-                    queue.add(s);
+            rowMap.put(cur.getId(), colCount.get(String.valueOf(col)) - 1);
+            for (String sid : cur.getNextNodeIds()) {
+                if (!colMap.containsKey(sid) && byId.containsKey(sid)) {
+                    colMap.put(sid, col + 1);
+                    queue.add(byId.get(sid));
                 }
             }
         }
 
-        // Centra verticalmente i nodi per ogni colonna
         Map<Integer, Integer> colTotals = new HashMap<>();
         colMap.forEach((id, col) -> colTotals.merge(col, 1, Integer::sum));
 
         for (MapNode n : all) {
-            int col  = colMap.getOrDefault(n.getId(), 0);
-            int row  = rowMap.getOrDefault(n.getId(), 0);
-            int tot  = colTotals.getOrDefault(col, 1);
+            int col = colMap.getOrDefault(n.getId(), 0);
+            int row = rowMap.getOrDefault(n.getId(), 0);
+            int tot = colTotals.getOrDefault(col, 1);
             double cx = ORIGIN_X + col * COL_WIDTH;
             double cy = ORIGIN_Y + row * ROW_HEIGHT
-                        + ((double)(3 - tot) / 2.0) * ROW_HEIGHT; // centra la colonna
+                      + ((double)(3 - tot) / 2.0) * ROW_HEIGHT;
             positions.put(n.getId(), new double[]{cx, cy});
         }
 
-        // Dimensiona il Pane
         int maxCol = colMap.values().stream().mapToInt(Integer::intValue).max().orElse(0);
         mapPane.setMinWidth(ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 2);
         mapPane.setMinHeight(ORIGIN_Y * 2 + 3 * ROW_HEIGHT);
     }
 
     // -------------------------------------------------------
-    // Render: disegna linee e nodi
+    // Render
     // -------------------------------------------------------
 
     private void render() {
         mapPane.getChildren().clear();
 
-        List<MapNode> all       = gameService.getMapService().getMap().getAllNodes();
+        List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
+        Map<String, MapNode> byId = new HashMap<>();
+        for (MapNode n : all) byId.put(n.getId(), n);
+
         Optional<MapNode> curOpt = gameService.getCurrentNode();
-        String currentId        = curOpt.map(MapNode::getId).orElse("");
-        List<MapNode> reachable = gameService.getReachableNodes();
-        java.util.Set<String> reachableIds = new java.util.HashSet<>();
+        String currentId         = curOpt.map(MapNode::getId).orElse("");
+        List<MapNode> reachable  = gameService.getReachableNodes();
+        Set<String> reachableIds = new HashSet<>();
         reachable.forEach(n -> reachableIds.add(n.getId()));
 
-        // 1. Disegna le linee di connessione PRIMA dei nodi (z-order)
+        // 1. Linee
         for (MapNode n : all) {
             double[] from = positions.get(n.getId());
             if (from == null) continue;
-            for (MapNode s : n.getSuccessors()) {
-                double[] to = positions.get(s.getId());
+            for (String sid : n.getNextNodeIds()) {
+                double[] to = positions.get(sid);
                 if (to == null) continue;
                 Line line = new Line(from[0], from[1], to[0], to[1]);
                 boolean active = n.isCleared() || n.getId().equals(currentId);
                 line.setStroke(active ? Color.web("#4c1d95") : Color.web("#2a2a4a"));
                 line.setStrokeWidth(active ? 2.5 : 1.5);
-                line.getStrokeDashArray().addAll(active ? List.of() : List.of(6.0, 4.0));
+                if (!active) line.getStrokeDashArray().addAll(6.0, 4.0);
                 mapPane.getChildren().add(line);
             }
         }
 
-        // 2. Disegna i nodi
+        // 2. Nodi
         for (MapNode n : all) {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
-            boolean isCleared   = n.isCleared();
-            boolean isCurrent   = n.getId().equals(currentId);
-            boolean isReachable = reachableIds.contains(n.getId());
-            mapPane.getChildren().add(buildNodeGraphic(n, pos[0], pos[1], isCleared, isCurrent, isReachable));
+            mapPane.getChildren().add(buildNodeGraphic(
+                n, pos[0], pos[1],
+                n.isCleared(),
+                n.getId().equals(currentId),
+                reachableIds.contains(n.getId())
+            ));
         }
 
-        // 3. Aggiorna header
+        // 3. Header stats
         var p = gameService.getPlayer();
         playerHpLabel.setText("\u2764 " + p.getCurrentHp() + "/" + p.getMaxHp());
         playerGoldLabel.setText("\uD83E\uDE99 " + gameService.getGold());
         playerLevelLabel.setText("Lv. " + gameService.getPlayerLevel());
-        int idx   = gameService.getEncounterIndex();
-        int total = gameService.getEncounterTotal();
-        progressLabel.setText(idx + " / " + total + " nodi");
+        progressLabel.setText(gameService.getEncounterIndex() + " / " + gameService.getEncounterTotal() + " nodi");
 
-        // 4. Legenda
         buildLegend();
     }
 
@@ -192,17 +170,15 @@ public class MapController {
 
     private StackPane buildNodeGraphic(MapNode node, double cx, double cy,
                                         boolean isCleared, boolean isCurrent, boolean isReachable) {
-        String color   = nodeColor(node.getType());
-        String icon    = nodeIcon(node.getType());
+        String color = nodeColor(node.getType());
+        String icon  = nodeIcon(node.getType());
 
-        // Cerchio di sfondo
         Circle bg = new Circle(NODE_R);
         if (isCurrent) {
             bg.setFill(Color.web(color, 0.35));
             bg.setStroke(Color.web(color));
             bg.setStrokeWidth(3.5);
-            DropShadow glow = new DropShadow(18, Color.web(color));
-            bg.setEffect(glow);
+            bg.setEffect(new DropShadow(18, Color.web(color)));
         } else if (isCleared) {
             bg.setFill(Color.web("#1a2e1a"));
             bg.setStroke(Color.web("#4ade80", 0.6));
@@ -211,20 +187,17 @@ public class MapController {
             bg.setFill(Color.web(color, 0.2));
             bg.setStroke(Color.web(color));
             bg.setStrokeWidth(2.5);
-            DropShadow glow = new DropShadow(12, Color.web(color, 0.6));
-            bg.setEffect(glow);
+            bg.setEffect(new DropShadow(12, Color.web(color, 0.6)));
         } else {
             bg.setFill(Color.web("#1a1a2e"));
             bg.setStroke(Color.web("#2a2a4a"));
             bg.setStrokeWidth(1.5);
         }
 
-        // Icona emoji
         Label iconLabel = new Label(isCleared ? "\u2714" : icon);
         iconLabel.setStyle("-fx-font-size: " + (isCleared ? "16px" : "20px") + ";"
                 + "-fx-text-fill: " + (isCleared ? "#4ade80" : "white") + ";");
 
-        // Nome sotto
         Label nameLabel = new Label(node.getName());
         nameLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: "
                 + (isCurrent ? color : isCleared ? "#4ade80" : isReachable ? "white" : "#4a4a6a")
@@ -242,19 +215,19 @@ public class MapController {
         sp.setLayoutY(cy - NODE_R);
         sp.setPrefSize(NODE_R * 2, NODE_R * 2);
 
-        // Tooltip
-        Tooltip tip = new Tooltip(node.getName() + "\n" + node.getDescription()
-                + (isCurrent ? "\n\u25CF Posizione attuale" : "")
-                + (isCleared ? "\n\u2714 Completato" : "")
-                + (isReachable ? "\n\u2192 Clicca per andare qui" : ""));
+        Tooltip tip = new Tooltip(
+            node.getName() + "\n" + node.getDescription()
+            + (isCurrent   ? "\n\u25CF Posizione attuale"     : "")
+            + (isCleared   ? "\n\u2714 Completato"            : "")
+            + (isReachable ? "\n\u2192 Clicca per andare qui" : "")
+        );
         tip.setStyle("-fx-font-size: 12px;");
         Tooltip.install(sp, tip);
 
-        // Click solo su raggiungibili
         if (isReachable) {
             sp.setStyle("-fx-cursor: hand;");
             sp.setOnMouseEntered(e -> selectedNodeLabel.setText(
-                nodeIcon(node.getType()) + "  " + node.getName() + " — " + node.getDescription()));
+                nodeIcon(node.getType()) + "  " + node.getName() + " \u2014 " + node.getDescription()));
             sp.setOnMouseExited(e  -> selectedNodeLabel.setText("Clicca un nodo raggiungibile per avanzare"));
             sp.setOnMouseClicked(e -> onNodeSelected(node));
         }
@@ -269,10 +242,10 @@ public class MapController {
     private void buildLegend() {
         legendBox.getChildren().clear();
         String[][] items = {
-            {"\u2714", "#4ade80",  "Completato"},
-            {"\u25CF", "#c4b5fd",  "Posizione attuale"},
-            {"\u25CB", "white",    "Raggiungibile"},
-            {"\u25CB", "#2a2a4a",  "Bloccato"},
+            {"\u2714", "#4ade80", "Completato"},
+            {"\u25CF", "#c4b5fd", "Posizione attuale"},
+            {"\u25CB", "white",   "Raggiungibile"},
+            {"\u25CB", "#2a2a4a", "Bloccato"},
         };
         for (String[] it : items) {
             Label dot = new Label(it[0]);
