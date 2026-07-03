@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="it.unicam.cs.mpgc.rpg123393.controller.EventController"
+      alignment="CENTER"
+      spacing="24"
+      style="-fx-background-color: #0d0d1e; -fx-padding: 60;">
+
+    <!-- Titolo evento -->
+    <Label fx:id="titleLabel"
+           text="❓ Evento"
+           style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #c084fc;"/>
+
+    <!-- Testo narrativo -->
+    <Label fx:id="descriptionLabel"
+           text=""
+           style="-fx-font-size: 15px; -fx-text-fill: #e5e7eb;"
+           wrapText="true" maxWidth="520" alignment="CENTER"/>
+
+    <!-- Scelte (popolate dinamicamente) -->
+    <VBox fx:id="choicesBox"
+          alignment="CENTER"
+          spacing="12"
+          maxWidth="480">
+        <padding><Insets top="12" bottom="12"/></padding>
+    </VBox>
+
+    <!-- Esito della scelta -->
+    <Label fx:id="outcomeLabel"
+           text=""
+           style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #fbbf24;"
+           wrapText="true" maxWidth="480" alignment="CENTER"/>
+
+    <!-- Continua (appare dopo la scelta) -->
+    <Button fx:id="continueBtn"
+            text="Continua →"
+            onAction="#onContinue"
+            visible="false" managed="false"
+            style="-fx-background-color: #6d28d9; -fx-text-fill: white;
+                   -fx-font-size: 15px; -fx-font-weight: bold;
+                   -fx-padding: 12 36; -fx-background-radius: 10; -fx-cursor: hand;
+                   -fx-effect: dropshadow(gaussian, #6d28d9, 12, 0.3, 0, 0);"/>
+
+</VBox>

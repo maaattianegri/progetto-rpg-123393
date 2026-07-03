@@ -18,12 +18,10 @@ import java.util.Optional;
 /**
  * Controller della schermata mappa a nodi.
  *
- * Mostra il nodo corrente e i nodi raggiungibili come bottoni cliccabili.
- * In Fase 1 (mappa lineare) c'è sempre un solo successore, quindi il bottone
- * è uno solo. In Fase 2 (bivi) ne appariranno 2–3 senza modificare questo controller.
+ * Non contiene logica di gioco: chiede solo a GameService cosa mostrare
+ * e delega la navigazione a MapService tramite gameService.moveToNode().
  *
- * Il controller NON contiene logica di gioco: chiede solo a GameService cosa
- * mostrare e delega la navigazione a MapService tramite gameService.moveToNode().
+ * Gestisce tutti i NodeType: BATTLE, ELITE, BOSS, SHOP, REST, EVENT.
  */
 public class MapController {
 
@@ -60,7 +58,6 @@ public class MapController {
     // -------------------------------------------------------
 
     private void refresh() {
-        // Nodo corrente
         Optional<MapNode> currentOpt = gameService.getCurrentNode();
         currentOpt.ifPresentOrElse(
             node -> {
@@ -73,18 +70,15 @@ public class MapController {
             }
         );
 
-        // Progresso
         int idx   = gameService.getEncounterIndex();
         int total = gameService.getEncounterTotal();
         progressLabel.setText("Nodo " + idx + " / " + total);
 
-        // Stats giocatore
         var p = gameService.getPlayer();
         playerHpLabel.setText("❤ " + p.getCurrentHp() + "/" + p.getMaxHp());
         playerGoldLabel.setText("🪙 " + gameService.getGold());
         playerLevelLabel.setText("Lv. " + gameService.getPlayerLevel());
 
-        // Nodi raggiungibili
         nodeButtonsBox.getChildren().clear();
         List<MapNode> reachable = gameService.getReachableNodes();
 
@@ -96,8 +90,7 @@ public class MapController {
             noNodesLabel.setVisible(false);
             noNodesLabel.setManaged(false);
             for (MapNode node : reachable) {
-                Button btn = buildNodeButton(node);
-                nodeButtonsBox.getChildren().add(btn);
+                nodeButtonsBox.getChildren().add(buildNodeButton(node));
             }
         }
     }
@@ -105,7 +98,6 @@ public class MapController {
     private Button buildNodeButton(MapNode node) {
         String icon  = nodeIcon(node.getType());
         String color = nodeColor(node.getType());
-
         Button btn = new Button(icon + "  " + node.getName() + "\n" + node.getDescription());
         btn.setWrapText(true);
         btn.setMaxWidth(220);
@@ -126,13 +118,11 @@ public class MapController {
     }
 
     // -------------------------------------------------------
-    // Navigazione
+    // Navigazione verso il nodo scelto
     // -------------------------------------------------------
 
     private void onNodeSelected(MapNode node) {
-        // Sposta il giocatore al nodo scelto
         gameService.moveToNode(node.getId());
-
         EncounterType encounter = gameService.currentEncounter();
         try {
             Stage stage = (Stage) currentNodeLabel.getScene().getWindow();
@@ -143,8 +133,20 @@ public class MapController {
                     ShopController ctrl = loader.getController();
                     ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
                 }
+                case REST -> {
+                    FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/rest-view.fxml");
+                    RestController ctrl = loader.getController();
+                    ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+                }
+                case EVENT -> {
+                    FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/event-view.fxml");
+                    EventController ctrl = loader.getController();
+                    ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+                }
                 default -> {
-                    // BATTLE, ELITE, BOSS
+                    // NORMAL, BATTLE, ELITE, BOSS
                     FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
                     HelloController ctrl = loader.getController();

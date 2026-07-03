@@ -64,7 +64,6 @@ public class ShopController {
 
     private String itemColor(ShopItem item) {
         return switch (item.getType()) {
-            // Per le carte usiamo il colore canonico di classe tramite CardStyleHelper
             case CARD -> {
                 Object payload = item.getPayload();
                 if (payload instanceof ICard card)
@@ -79,7 +78,6 @@ public class ShopController {
 
     private VBox buildItemTile(ShopItem item) {
         String color = itemColor(item);
-
         String typeTag = switch (item.getType()) {
             case CARD       -> "CARTA";
             case RELIC      -> "RELIQUIA";
@@ -148,14 +146,15 @@ public class ShopController {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
+    /** Lascia lo shop e torna alla mappa per scegliere il prossimo nodo. */
     @FXML
     private void onContinue() {
         try {
             Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-            HelloController ctrl = loader.getController();
-            ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+            MapController ctrl = loader.getController();
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) { e.printStackTrace(); }
     }
 }

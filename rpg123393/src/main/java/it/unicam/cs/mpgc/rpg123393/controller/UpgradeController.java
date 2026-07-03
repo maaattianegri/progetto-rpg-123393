@@ -1,6 +1,5 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
-import it.unicam.cs.mpgc.rpg123393.model.CardPool;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.ShopItem;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
@@ -9,7 +8,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -18,16 +17,17 @@ import java.util.List;
 
 public class UpgradeController {
 
-    @FXML private FlowPane deckFlow;
-    @FXML private Label    infoLabel;
+    @FXML private VBox deckList;
 
     private GameService    gameService;
     private String         playerName;
     private int            vigore;
     private int            arcano;
     private String         imagePath;
-    private List<ShopItem> shopItems; // lista dello shop da preservare al ritorno
+    private List<ShopItem> shopItems;   // presente solo se arriva da ShopController
+    private boolean        fromRest;    // true se arriva da RestController
 
+    /** Chiamato da ShopController quando si acquista un upgrade. */
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath,
                          List<ShopItem> shopItems) {
@@ -37,61 +37,67 @@ public class UpgradeController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
         this.shopItems   = shopItems;
-        buildDeck();
+        this.fromRest    = false;
+        buildDeckList();
     }
 
-    private void buildDeck() {
-        deckFlow.getChildren().clear();
+    /** Chiamato da RestController per la scelta "potenzia carta". */
+    public void initDataFromRest(GameService gs, String playerName,
+                                  int vigore, int arcano, String imagePath) {
+        this.gameService = gs;
+        this.playerName  = playerName;
+        this.vigore      = vigore;
+        this.arcano      = arcano;
+        this.imagePath   = imagePath;
+        this.shopItems   = null;
+        this.fromRest    = true;
+        buildDeckList();
+    }
+
+    private void buildDeckList() {
+        deckList.getChildren().clear();
         List<ICard> deck = gameService.getDeck();
         for (int i = 0; i < deck.size(); i++) {
+            final int idx = i;
             ICard card = deck.get(i);
-            boolean canUpgrade = CardPool.getUpgradedCard(card.getName()) != null;
-            deckFlow.getChildren().add(buildTile(card, i, canUpgrade));
+            String color = CardStyleHelper.borderColor(card.getName());
+
+            Button btn = new Button(card.getName() + "  (→ " + GameService.upgradedName(card.getName()) + ")");
+            btn.setMaxWidth(Double.MAX_VALUE);
+            btn.setStyle(
+                "-fx-background-color: #1e1e3a;"
+                + "-fx-text-fill: white;"
+                + "-fx-font-size: 13px;"
+                + "-fx-border-color: " + color + ";"
+                + "-fx-border-radius: 8;"
+                + "-fx-background-radius: 8;"
+                + "-fx-border-width: 2;"
+                + "-fx-padding: 10 18;"
+                + "-fx-cursor: hand;"
+            );
+            btn.setOnAction(e -> upgradeCard(idx));
+            deckList.getChildren().add(btn);
         }
     }
 
-    private VBox buildTile(ICard card, int index, boolean canUpgrade) {
-        String color = CardStyleHelper.borderColor(card.getName());
-
-        Label nameLabel = new Label(card.getName());
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;");
-        nameLabel.setWrapText(true); nameLabel.setMaxWidth(140);
-
-        Label descLabel = new Label(CardStyleHelper.description(card.getName()));
-        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
-        descLabel.setWrapText(true); descLabel.setMaxWidth(140);
-
-        Button upgradeBtn = new Button(canUpgrade ? "Potenzia ↑" : "Max");
-        upgradeBtn.setDisable(!canUpgrade);
-        upgradeBtn.setStyle("-fx-background-color: " + (canUpgrade ? "#e67e22" : "#3a3a5a") + ";"
-                + "-fx-text-fill: " + (canUpgrade ? "#1a1a2e" : "#6a6a9a") + ";"
-                + "-fx-font-weight: bold; -fx-padding: 8 16; -fx-background-radius: 6; -fx-cursor: hand;");
-        upgradeBtn.setOnAction(e -> {
-            if (gameService.upgradeCard(index)) {
-                infoLabel.setText(card.getName() + " → " + GameService.upgradedName(card.getName()) + " ✓");
-                goBackToShop();
-            }
-        });
-
-        VBox box = new VBox(8, nameLabel, descLabel, upgradeBtn);
-        box.setAlignment(Pos.CENTER);
-        box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 10;"
-                + "-fx-border-color: " + color + "; -fx-border-radius: 10; -fx-border-width: 2;"
-                + "-fx-padding: 14; -fx-pref-width: 155; -fx-pref-height: 170;");
-        return box;
-    }
-
-    private void goBackToShop() {
+    private void upgradeCard(int index) {
+        boolean ok = gameService.upgradeCard(index);
+        if (!ok) return;
         try {
-            Stage stage = (Stage) deckFlow.getScene().getWindow();
-            FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
-            ShopController ctrl = loader.getController();
-            // riusa la lista esistente: niente rigenera
-            ctrl.initDataKeepItems(gameService, playerName, vigore, arcano, imagePath, shopItems);
+            Stage stage = (Stage) deckList.getScene().getWindow();
+            if (fromRest) {
+                // Torna alla mappa direttamente
+                FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+                MapController ctrl = loader.getController();
+                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            } else {
+                // Torna allo shop con la lista aggiornata
+                FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
+                ShopController ctrl = loader.getController();
+                ctrl.initDataKeepItems(gameService, playerName, vigore, arcano, imagePath, shopItems);
+            }
         } catch (IOException e) { e.printStackTrace(); }
     }
-
-    @FXML
-    private void onCancel() { goBackToShop(); }
 }
