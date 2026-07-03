@@ -49,14 +49,15 @@ public class MapNode {
         if (!nextNodeIds.contains(nodeId)) nextNodeIds.add(nodeId);
     }
 
-    /** Mappa il NodeType al corrispondente EncounterType per compatibilità con la logica battaglia esistente. */
+    /** Mappa NodeType -> EncounterType per compatibilità con la logica battaglia esistente. */
     public EncounterType toEncounterType() {
         return switch (type) {
             case BATTLE -> EncounterType.NORMAL;
             case ELITE  -> EncounterType.ELITE;
             case BOSS   -> EncounterType.BOSS;
             case SHOP   -> EncounterType.SHOP;
-            default     -> EncounterType.NORMAL;
+            case REST   -> EncounterType.REST;
+            case EVENT  -> EncounterType.EVENT;
         };
     }
 
