@@ -62,6 +62,38 @@ public class ShopController {
         for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
     }
 
+    /**
+     * Aggiorna solo la label dell'oro e lo stato disabilitato dei bottoni,
+     * senza ricostruire l'intera lista di tile.
+     */
+    private void refreshGoldAndButtons() {
+        goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
+        itemsBox.getChildren().forEach(node -> {
+            if (node instanceof VBox tile) {
+                // L'ultimo figlio di ogni tile è il bottone "Acquista"
+                tile.getChildren().stream()
+                    .filter(n -> n instanceof Button)
+                    .map(n -> (Button) n)
+                    .findFirst()
+                    .ifPresent(btn -> {
+                        // Il prezzo è nel tag userData impostato in buildItemTile
+                        if (btn.getUserData() instanceof Integer price) {
+                            boolean canAfford = gameService.getGold() >= price;
+                            btn.setDisable(!canAfford);
+                            // Aggiorna anche il colore del bottone
+                            String color = (String) tile.getUserData();
+                            if (color != null) {
+                                btn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
+                                        + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
+                                        + "-fx-font-weight: bold; -fx-padding: 10 24;"
+                                        + "-fx-background-radius: 8; -fx-cursor: hand;");
+                            }
+                        }
+                    });
+            }
+        });
+    }
+
     private String itemColor(ShopItem item) {
         return switch (item.getType()) {
             case CARD -> {
@@ -101,9 +133,12 @@ public class ShopController {
         Label priceLabel = new Label("\uD83E\uDE99 " + item.getPrice() + " oro");
         priceLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        Button buyBtn = new Button("Acquista");
+        // canAfford calcolato live al momento della costruzione iniziale
         boolean canAfford = gameService.getGold() >= item.getPrice();
+        Button buyBtn = new Button("Acquista");
         buyBtn.setDisable(!canAfford);
+        // Salva prezzo e colore nel bottone/tile per refreshGoldAndButtons()
+        buyBtn.setUserData(item.getPrice());
         buyBtn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
                 + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
                 + "-fx-font-weight: bold; -fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: hand;");
@@ -111,6 +146,8 @@ public class ShopController {
 
         VBox box = new VBox(10, tagLabel, nameLabel, descLabel, priceLabel, buyBtn);
         box.setAlignment(Pos.CENTER);
+        // Salva il colore nella tile per refreshGoldAndButtons()
+        box.setUserData(color);
         box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
                 + "-fx-padding: 24; -fx-pref-width: 210; -fx-pref-height: 300;"
@@ -119,14 +156,16 @@ public class ShopController {
     }
 
     private void handleBuy(ShopItem item, Button btn) {
-        boolean ok = gameService.buyItem(item);
-        if (!ok) {
+        // Check live al momento del click — non si fida del canAfford statico del bottone
+        if (gameService.getGold() < item.getPrice()) {
             Alert a = new Alert(Alert.AlertType.WARNING);
             a.setHeaderText(null);
             a.setContentText("Oro insufficiente!");
             a.showAndWait();
             return;
         }
+        boolean ok = gameService.buyItem(item);
+        if (!ok) return;
         if (item.getType() == ShopItem.ItemType.UPGRADE) {
             pendingUpgradeItem = item;
             openUpgradeView(item);
@@ -146,7 +185,6 @@ public class ShopController {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    /** Lascia lo shop e torna alla mappa per scegliere il prossimo nodo. */
     @FXML
     private void onContinue() {
         try {
