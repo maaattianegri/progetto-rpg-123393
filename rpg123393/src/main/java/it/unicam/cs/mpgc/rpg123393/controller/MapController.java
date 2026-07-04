@@ -44,7 +44,6 @@ public class MapController {
     @FXML private Label  selectedNodeLabel;
     @FXML private HBox   legendBox;
 
-    // Panel hover (aggiunto programmaticamente)
     private VBox hoverPanel;
 
     private GameService gameService;
@@ -148,7 +147,7 @@ public class MapController {
             }
         }
 
-        // 2. Hover panel (creato una volta, nascosto)
+        // 2. Hover panel
         hoverPanel = buildHoverPanel();
         mapPane.getChildren().add(hoverPanel);
 
@@ -184,11 +183,8 @@ public class MapController {
         Line line = new Line(from[0], from[1], to[0], to[1]);
         line.setStrokeLineCap(StrokeLineCap.ROUND);
         if (active) {
-            // Gradient: colore src -> colore dest
             Color cSrc  = Color.web(nodeColor(src.getType()));
             Color cDest = Color.web(nodeColor(dest.getType()));
-            // JavaFX Line non supporta LinearGradient su stroke direttamente,
-            // usiamo il colore medio come compromesso visivo
             double r = (cSrc.getRed()   + cDest.getRed())   / 2;
             double g = (cSrc.getGreen() + cDest.getGreen()) / 2;
             double b = (cSrc.getBlue()  + cDest.getBlue())  / 2;
@@ -247,7 +243,6 @@ public class MapController {
 
         hoverPanel.getChildren().addAll(iconLbl, nameLbl, typeLbl, descLbl);
 
-        // Posiziona il panel a destra del nodo, evitando di uscire dal Pane
         double px = cx + NODE_R + 10;
         double py = cy - NODE_R;
         if (px + 210 > mapPane.getWidth() && mapPane.getWidth() > 0)
@@ -273,7 +268,6 @@ public class MapController {
         String color = nodeColor(node.getType());
         String icon  = nodeIcon(node.getType());
 
-        // Anello pulsante solo per il nodo corrente
         Circle pulseRing = null;
         if (isCurrent) {
             pulseRing = new Circle(NODE_R + 8);
@@ -331,7 +325,6 @@ public class MapController {
         } else {
             sp = new StackPane(bg, nodeBox);
         }
-        // Centra rispetto al cerchio più grande (anello) se presente
         double spSize = (pulseRing != null) ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2);
         sp.setLayoutY(cy - spSize / 2);
@@ -383,6 +376,8 @@ public class MapController {
             Stage stage = (Stage) mapPane.getScene().getWindow();
             switch (encounter) {
                 case SHOP -> {
+                    // Nuovo shop: la Fucina torna disponibile per questa visita
+                    gameService.resetUpgradeForNextShop();
                     FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
                     loader.<ShopController>getController()
