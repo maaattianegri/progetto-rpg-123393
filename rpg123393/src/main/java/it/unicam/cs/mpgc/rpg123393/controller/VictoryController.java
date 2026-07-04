@@ -94,12 +94,16 @@ public class VictoryController {
         try {
             Stage stage = (Stage) xpLabel.getScene().getWindow();
 
+            // Boss finale: vai alla schermata vittoria run dedicata
             if (completedType == EncounterType.BOSS && wasLastBoss) {
-                SceneNavigator.navigateTo(stage,
-                        "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+                FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/run-victory-view.fxml");
+                RunVictoryController ctrl = loader.getController();
+                ctrl.initData(gameService, playerName);
                 return;
             }
 
+            // Boss intermedio: ricompensa carta
             if (completedType == EncounterType.BOSS) {
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/card-reward-view.fxml");
