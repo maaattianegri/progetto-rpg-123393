@@ -20,6 +20,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.GaussianBlur;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
@@ -44,12 +45,12 @@ public class MapController {
     private static final double ORIGIN_X   = 120.0;
     private static final double ORIGIN_Y   = 90.0;
     private static final double MAX_SCALE  = 2.00;
-    // MIN_SCALE non e' piu' statico: viene calcolato dinamicamente in
-    // animateToCurrentNode() dopo che il layout e' noto, come:
-    //   max(vpW / canvasW, vpH / canvasH) * MARGIN
-    // cosi' la mappa non entra mai completamente nel viewport e il
-    // pan e' sempre possibile indipendentemente dalla dimensione della finestra.
-    private static final double MARGIN     = 1.15; // la mappa occupa almeno il 115% del lato piu' corto
+    private static final double MARGIN     = 1.15;
+
+    private static final int    NEAR_DIST    = 1;
+    private static final int    MID_DIST     = 3;
+    private static final double OPACITY_MID  = 0.45;
+    private static final double OPACITY_FAR  = 0.15;
 
     @FXML private ScrollPane mapScroll;
     @FXML private Pane       mapPane;
@@ -71,9 +72,10 @@ public class MapController {
     private int         arcano;
     private String      imagePath;
 
-    private final Map<String, double[]> positions = new HashMap<>();
+    private final Map<String, double[]> positions   = new HashMap<>();
+    private final Map<String, Integer>  bfsDistance = new HashMap<>();
     private double currentScale = 1.0;
-    private double minScale     = 0.40; // aggiornato dinamicamente
+    private double minScale     = 0.40;
     private double dragStartX, dragStartY, dragStartH, dragStartV;
 
     public void initData(GameService gs, String name, int vigore, int arcano, String imagePath) {
@@ -97,7 +99,14 @@ public class MapController {
         buildLayout();
         render();
         setupPanAndZoom();
-        Platform.runLater(this::animateToCurrentNode);
+
+        // Doppio Platform.runLater: il primo attende la fine del ciclo di layout
+        // corrente (in cui lo ScrollPane calcola il suo size), il secondo attende
+        // il ciclo successivo in cui i viewportBounds sono definitivamente stabili.
+        // Senza questo, al rientro da un'altra schermata (es. battaglia) i bounds
+        // possono essere ancora quelli della scena precedente e minScale risulta
+        // completamente sbagliato.
+        Platform.runLater(() -> Platform.runLater(this::applyInitialZoomAndCenter));
     }
 
     // -------------------------------------------------------
@@ -152,11 +161,46 @@ public class MapController {
     }
 
     // -------------------------------------------------------
+    // BFS distanza dal nodo corrente
+    // -------------------------------------------------------
+
+    private void computeBfsDistances() {
+        bfsDistance.clear();
+        String currentId = gameService.getCurrentNode().map(MapNode::getId).orElse("");
+        if (currentId.isEmpty()) return;
+
+        List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
+        Map<String, Set<String>> adj = new HashMap<>();
+        for (MapNode n : all) {
+            adj.computeIfAbsent(n.getId(), k -> new HashSet<>());
+            for (String sid : n.getNextNodeIds()) {
+                adj.computeIfAbsent(n.getId(), k -> new HashSet<>()).add(sid);
+                adj.computeIfAbsent(sid,        k -> new HashSet<>()).add(n.getId());
+            }
+        }
+
+        Queue<String> q = new LinkedList<>();
+        bfsDistance.put(currentId, 0);
+        q.add(currentId);
+        while (!q.isEmpty()) {
+            String id   = q.poll();
+            int    dist = bfsDistance.get(id);
+            for (String nb : adj.getOrDefault(id, Collections.emptySet())) {
+                if (!bfsDistance.containsKey(nb)) {
+                    bfsDistance.put(nb, dist + 1);
+                    q.add(nb);
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------
     // Render
     // -------------------------------------------------------
 
     private void render() {
         canvas.getChildren().clear();
+        computeBfsDistances();
 
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
         Map<String, MapNode> byId = new HashMap<>();
@@ -177,7 +221,9 @@ public class MapController {
             for (String sid : n.getNextNodeIds()) {
                 double[] to = positions.get(sid);
                 if (to == null) continue;
-                drawConnection(from, to, n, byId.get(sid), currentId);
+                int distSrc  = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
+                int distDest = bfsDistance.getOrDefault(sid,       Integer.MAX_VALUE);
+                drawConnection(from, to, n, byId.get(sid), currentId, distSrc, distDest);
             }
         }
 
@@ -189,13 +235,15 @@ public class MapController {
             if (pos == null) continue;
             boolean locked = n.isLockedFor(playerClass);
             boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
+            int dist = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
             canvas.getChildren().add(buildNodeGraphic(
                     n, pos[0], pos[1],
                     n.isCleared(),
                     n.getId().equals(currentId),
                     reachableIds.contains(n.getId()) && !locked,
                     locked,
-                    isNewlyReachable
+                    isNewlyReachable,
+                    dist
             ));
         }
 
@@ -242,8 +290,6 @@ public class MapController {
     private void handleScroll(ScrollEvent e) {
         e.consume();
         double factor   = e.getDeltaY() > 0 ? 1.10 : 0.90;
-        // Usa minScale dinamico: impedisce di zoomare cosi' indietro da
-        // far entrare tutta la mappa nel viewport.
         double newScale = clamp(currentScale * factor, minScale, MAX_SCALE);
         if (newScale == currentScale) return;
 
@@ -271,54 +317,57 @@ public class MapController {
         });
     }
 
-    private void animateToCurrentNode() {
-        // Questo metodo viene chiamato con Platform.runLater, quindi il layout
-        // e' gia' noto e i viewportBounds sono affidabili.
-
-        // 1. Calcola minScale dinamico: il canvas deve sempre essere piu' grande
-        //    del viewport in almeno una dimensione, cosi' il pan e' sempre possibile.
+    /**
+     * Calcola minScale dai viewportBounds effettivi e applica lo zoom iniziale.
+     * Chiamato via doppio Platform.runLater per garantire che lo ScrollPane
+     * abbia completato almeno due cicli di layout e i bounds siano stabili.
+     */
+    private void applyInitialZoomAndCenter() {
         Bounds vp = mapScroll.getViewportBounds();
         double canvasW = canvas.getPrefWidth();
         double canvasH = canvas.getPrefHeight();
-        if (canvasW > 0 && canvasH > 0 && vp.getWidth() > 0 && vp.getHeight() > 0) {
-            // Lo scale minimo garantisce che canvas * minScale > viewport in almeno un asse.
-            // MARGIN > 1 assicura un piccolo eccesso cosi' extraW/H e' sempre > 0.
-            double minByW = (vp.getWidth()  / canvasW) * MARGIN;
-            double minByH = (vp.getHeight() / canvasH) * MARGIN;
-            // Prendiamo il massimo: vogliamo che la mappa ecceda il viewport
-            // sia in larghezza CHE in altezza, cosi' si puo' sempre scorrere
-            // in entrambe le direzioni.
-            minScale = Math.max(minByW, minByH);
-            // Clamp: non ha senso avere minScale > MAX_SCALE
-            minScale = Math.min(minScale, MAX_SCALE);
+
+        // Fallback: se i bounds non sono ancora validi (raro ma possibile su
+        // sistemi lenti), aspetta un altro frame con un breve delay.
+        if (vp.getWidth() <= 1 || vp.getHeight() <= 1 || canvasW <= 0 || canvasH <= 0) {
+            new Timeline(new KeyFrame(Duration.millis(80),
+                    e -> applyInitialZoomAndCenter())).play();
+            return;
         }
 
-        // 2. Parte con uno zoom leggermente superiore al minimo (visivamente piacevole).
+        double minByW = (vp.getWidth()  / canvasW) * MARGIN;
+        double minByH = (vp.getHeight() / canvasH) * MARGIN;
+        minScale = Math.min(Math.max(minByW, minByH), MAX_SCALE);
+
         currentScale = clamp(minScale * 1.3, minScale, MAX_SCALE);
         canvas.setScaleX(currentScale);
         canvas.setScaleY(currentScale);
         canvas.setTranslateX((1 - currentScale) * canvasW / 2);
         canvas.setTranslateY((1 - currentScale) * canvasH / 2);
 
-        // 3. Centra sul nodo corrente.
+        // Centra sul nodo corrente con animazione.
         gameService.getCurrentNode().ifPresent(cur -> {
             double[] pos = positions.get(cur.getId());
             if (pos == null) return;
-            Bounds nb = canvasWrapper.getLayoutBounds();
-            Bounds nvp = mapScroll.getViewportBounds();
-            double extraW = nb.getWidth()  - nvp.getWidth();
-            double extraH = nb.getHeight() - nvp.getHeight();
-            double h = extraW > 0 ? clamp((pos[0] * currentScale - nvp.getWidth()  / 2) / extraW, 0, 1) : 0.5;
-            double v = extraH > 0 ? clamp((pos[1] * currentScale - nvp.getHeight() / 2) / extraH, 0, 1) : 0.5;
-            Timeline tl = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                            new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
-                            new KeyValue(mapScroll.vvalueProperty(), mapScroll.getVvalue())),
-                    new KeyFrame(Duration.millis(520),
-                            new KeyValue(mapScroll.hvalueProperty(), h),
-                            new KeyValue(mapScroll.vvalueProperty(), v))
-            );
-            tl.play();
+            // Dopo aver applicato la scala, i bounds del wrapper sono aggiornati
+            // al prossimo pulse: usiamo un ulteriore runLater per leggerli.
+            Platform.runLater(() -> {
+                Bounds nb  = canvasWrapper.getLayoutBounds();
+                Bounds nvp = mapScroll.getViewportBounds();
+                double extraW = nb.getWidth()  - nvp.getWidth();
+                double extraH = nb.getHeight() - nvp.getHeight();
+                double h = extraW > 0 ? clamp((pos[0] * currentScale - nvp.getWidth()  / 2) / extraW, 0, 1) : 0.5;
+                double v = extraH > 0 ? clamp((pos[1] * currentScale - nvp.getHeight() / 2) / extraH, 0, 1) : 0.5;
+                Timeline tl = new Timeline(
+                        new KeyFrame(Duration.ZERO,
+                                new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
+                                new KeyValue(mapScroll.vvalueProperty(), mapScroll.getVvalue())),
+                        new KeyFrame(Duration.millis(520),
+                                new KeyValue(mapScroll.hvalueProperty(), h),
+                                new KeyValue(mapScroll.vvalueProperty(), v))
+                );
+                tl.play();
+            });
         });
     }
 
@@ -326,22 +375,36 @@ public class MapController {
     // Connessioni
     // -------------------------------------------------------
 
-    private void drawConnection(double[] from, double[] to, MapNode src, MapNode dest, String currentId) {
+    private void drawConnection(double[] from, double[] to, MapNode src, MapNode dest,
+                                String currentId, int distSrc, int distDest) {
         if (dest == null) return;
+
+        int maxDist = Math.max(
+                src.isCleared()  ? 0 : distSrc,
+                dest.isCleared() ? 0 : distDest
+        );
+        double lineOpacity;
+        if      (maxDist <= NEAR_DIST) lineOpacity = 0.85;
+        else if (maxDist <= MID_DIST)  lineOpacity = OPACITY_MID;
+        else                           lineOpacity = OPACITY_FAR;
+
         boolean active = src.isCleared() || src.getId().equals(currentId);
         Line line = new Line(from[0], from[1], to[0], to[1]);
         line.setStrokeLineCap(StrokeLineCap.ROUND);
-        if (active) {
+        if (active && maxDist <= NEAR_DIST) {
             Color cs = Color.web(nodeColor(src.getType()));
             Color cd = Color.web(nodeColor(dest.getType()));
-            line.setStroke(Color.color((cs.getRed()+cd.getRed())/2,(cs.getGreen()+cd.getGreen())/2,(cs.getBlue()+cd.getBlue())/2));
-            line.setStrokeWidth(3.0); line.setOpacity(0.85);
+            line.setStroke(Color.color(
+                    (cs.getRed()  +cd.getRed())  /2,
+                    (cs.getGreen()+cd.getGreen())/2,
+                    (cs.getBlue() +cd.getBlue()) /2));
+            line.setStrokeWidth(3.0);
         } else {
             line.setStroke(Color.web("#2a2a4a"));
-            line.setStrokeWidth(1.5);
+            line.setStrokeWidth(maxDist <= MID_DIST ? 1.5 : 1.0);
             line.getStrokeDashArray().addAll(6.0, 4.0);
-            line.setOpacity(0.5);
         }
+        line.setOpacity(lineOpacity);
         canvas.getChildren().add(line);
     }
 
@@ -359,7 +422,9 @@ public class MapController {
         return p;
     }
 
-    private void showHoverPanel(MapNode node, double cx, double cy, boolean locked) {
+    private void showHoverPanel(MapNode node, double cx, double cy, boolean locked, int dist) {
+        if (!node.isCleared() && dist > NEAR_DIST) return;
+
         hoverPanel.getChildren().clear();
         String color = locked ? "#6b7280" : nodeColor(node.getType());
         Label iconLbl = new Label(locked ? "\ud83d\udd12" : nodeIcon(node.getType()));
@@ -396,11 +461,19 @@ public class MapController {
     private StackPane buildNodeGraphic(MapNode node, double cx, double cy,
                                        boolean isCleared, boolean isCurrent,
                                        boolean isReachable, boolean isLocked,
-                                       boolean isNewlyReachable) {
-        String color = isLocked ? "#4b5563" : nodeColor(node.getType());
-        String icon  = isLocked ? "\ud83d\udd12" : nodeIcon(node.getType());
+                                       boolean isNewlyReachable, int dist) {
+        boolean revealed = isCleared || dist <= NEAR_DIST;
+        boolean midFog   = !revealed && dist <= MID_DIST;
+        boolean farFog   = !revealed && dist >  MID_DIST;
 
-        boolean isSecretUnlocked = node.getRequiredClass() != null && !isLocked;
+        String color = revealed
+                ? (isLocked ? "#4b5563" : nodeColor(node.getType()))
+                : "#3a3a5a";
+        String icon  = revealed
+                ? (isLocked ? "\ud83d\udd12" : nodeIcon(node.getType()))
+                : "?";
+
+        boolean isSecretUnlocked = revealed && node.getRequiredClass() != null && !isLocked;
 
         Circle pulseRing = null;
         if (isCurrent) {
@@ -415,7 +488,15 @@ public class MapController {
         }
 
         Circle bg = new Circle(NODE_R);
-        if (isCurrent) {
+        if (farFog) {
+            bg.setFill(Color.web("#111128"));
+            bg.setStroke(Color.web("#1e1e38"));
+            bg.setStrokeWidth(1.0);
+        } else if (midFog) {
+            bg.setFill(Color.web("#14142a"));
+            bg.setStroke(Color.web("#2e2e50"));
+            bg.setStrokeWidth(1.5);
+        } else if (isCurrent) {
             bg.setFill(Color.web(color, 0.35)); bg.setStroke(Color.web(color));
             bg.setStrokeWidth(3.5); bg.setEffect(new DropShadow(22, Color.web(color)));
         } else if (isCleared) {
@@ -434,22 +515,26 @@ public class MapController {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#2a2a4a")); bg.setStrokeWidth(1.5);
         }
 
-        Label iconLabel = new Label(isCleared ? "\u2714" : icon);
-        iconLabel.setStyle("-fx-font-size:" + (isCleared ? "16" : "22") + "px;"
-                + "-fx-text-fill:" + (isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white") + ";");
+        String iconFontSize = (isCleared && revealed) ? "16" : "22";
+        String iconColor    = farFog || midFog ? "#252540"
+                            : isCleared         ? "#4ade80"
+                            : isLocked          ? "#6b7280" : "white";
+        Label iconLabel = new Label(revealed && isCleared ? "\u2714" : icon);
+        iconLabel.setStyle("-fx-font-size:" + iconFontSize + "px;-fx-text-fill:" + iconColor + ";");
 
-        String nameColor = isCurrent        ? color
-                         : isCleared        ? "#4ade80"
-                         : isLocked         ? "#4b5563"
-                         : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
-                         : isReachable      ? "white"
-                         : "#4a4a6a";
-        boolean nameBold = isCurrent || (isSecretUnlocked && isNewlyReachable);
-
-        Label nameLabel = new Label(node.getName());
-        nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:" + nameColor
-                + ";-fx-font-weight:" + (nameBold ? "bold" : "normal") + ";");
-        nameLabel.setMaxWidth(NODE_R * 2 + 10); nameLabel.setWrapText(true); nameLabel.setAlignment(Pos.CENTER);
+        Label nameLabel = new Label(revealed ? node.getName() : "");
+        if (revealed) {
+            String nameColor = isCurrent        ? color
+                             : isCleared        ? "#4ade80"
+                             : isLocked         ? "#4b5563"
+                             : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
+                             : isReachable      ? "white"
+                             : "#4a4a6a";
+            boolean nameBold = isCurrent || (isSecretUnlocked && isNewlyReachable);
+            nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:" + nameColor
+                    + ";-fx-font-weight:" + (nameBold ? "bold" : "normal") + ";");
+            nameLabel.setMaxWidth(NODE_R * 2 + 10); nameLabel.setWrapText(true); nameLabel.setAlignment(Pos.CENTER);
+        }
 
         VBox nodeBox = new VBox(2, iconLabel, nameLabel);
         nodeBox.setAlignment(Pos.CENTER); nodeBox.setMaxWidth(NODE_R * 2);
@@ -457,6 +542,9 @@ public class MapController {
         StackPane sp = pulseRing != null ? new StackPane(pulseRing, bg, nodeBox) : new StackPane(bg, nodeBox);
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
+
+        if      (farFog) { sp.setOpacity(OPACITY_FAR); sp.setEffect(new GaussianBlur(4)); }
+        else if (midFog) { sp.setOpacity(OPACITY_MID); }
 
         if (isSecretUnlocked && isNewlyReachable) {
             sp.setOpacity(0);
@@ -471,9 +559,9 @@ public class MapController {
             seq.play();
         }
 
-        sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked));
+        sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked, dist));
         sp.setOnMouseExited(e  -> hideHoverPanel());
-        if (isReachable) {
+        if (isReachable && revealed) {
             sp.setStyle("-fx-cursor:hand;");
             sp.setOnMouseClicked(e -> onNodeSelected(node));
         }
@@ -487,12 +575,13 @@ public class MapController {
     private void buildLegend() {
         legendBox.getChildren().clear();
         String[][] items = {
-                {"\u2714",  "#4ade80", "Completato"},
-                {"\u25cf",  "#c4b5fd", "Posizione attuale"},
-                {"\u25cb",  "white",   "Raggiungibile"},
-                {"\u2726",  "#fbbf24", "Sbloccato dalla tua classe"},
-                {"\u25cb",  "#2a2a4a", "Non ancora accessibile"},
-                {"\ud83d\udd12", "#6b7280", "Solo certa classe"}
+                {"\u2714",      "#4ade80", "Completato (rivelato)"},
+                {"\u25cf",      "#c4b5fd", "Posizione attuale"},
+                {"\u25cb",      "white",   "Raggiungibile"},
+                {"\u2726",      "#fbbf24", "Sbloccato dalla tua classe"},
+                {"?",           "#3a3a5a", "Inesplorato (vicino)"},
+                {"\u25cb",      "#1e1e38", "Nella nebbia"},
+                {"\ud83d\udd12","#6b7280", "Solo certa classe"}
         };
         for (String[] it : items) {
             Label dot = new Label(it[0]); dot.setStyle("-fx-font-size:14px;-fx-text-fill:" + it[1] + ";");
