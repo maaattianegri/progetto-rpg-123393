@@ -66,16 +66,19 @@ public class RunManager {
         return 3;
     }
 
-    /** Oro drop in base al tipo di incontro. Valori alzati per rendere lo shop accessibile. */
+    /**
+     * Oro drop in base al tipo di incontro.
+     * Valori ridotti per rendere le scelte nello shop più significative.
+     */
     public static int goldDrop(EncounterType type) {
         return switch (type) {
-            case NORMAL -> 20 + (int)(Math.random() * 16); // 20-35
-            case ELITE  -> 40 + (int)(Math.random() * 21); // 40-60
-            case BOSS   -> 80 + (int)(Math.random() * 41); // 80-120
+            case NORMAL -> 12 + (int)(Math.random() * 11); // 12-22
+            case ELITE  -> 35 + (int)(Math.random() * 16); // 35-50
+            case BOSS   -> 70 + (int)(Math.random() * 31); // 70-100
             default     -> 0;
         };
     }
 
     /** Oro bonus fisso all'inizio della run. */
-    public static int startingGold() { return 30; }
+    public static int startingGold() { return 15; }
 }

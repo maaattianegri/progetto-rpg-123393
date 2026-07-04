@@ -6,57 +6,81 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Definisce i pool di carte per classe.
- *
- * Logica colore/classe:
- *   🔴 Rosso       → Guerriero   (danni fisici, qualche scudo)
- *   🔵 Blu         → Paladino    (scudo, cura, danno condizionale, smite)
- *   🟠 Arancione   → Mago / Dracomante  (danni magici/fuoco, veleno magico)
- *   🟢 Verde       → Assassino   (veleno, doppi colpi, danni scalanti)
- *   🟣 Viola       → Neutrale    (utilità, cure, disponibile a tutti)
- *   ⚪ Argento     → Starter     (multiclasse: Colpo di Spada, Scudo di Legno)
- */
 public class CardPool {
+
+    public static List<ICard> getStarterPool() {
+        return List.of(
+                new StrikeCard(),
+                new StrikePlusCard(),
+                new DefendCard(),
+                new DefendPlusCard()
+        );
+    }
 
     public static List<ICard> getClassPool(String className) {
         if (className == null) return new ArrayList<>();
         return switch (className) {
             case "Guerriero" -> List.of(
                     new DevastatingStrikeCard(),
+                    new DevastatingStrikePlusCard(),
                     new BattleCryCard(),
+                    new BattleCryPlusCard(),
                     new WhirlwindCard(),
+                    new WhirlwindPlusCard(),
                     new BerserkerRageCard(),
-                    new TauntCard()
+                    new BerserkerRagePlusCard(),
+                    new TauntCard(),
+                    new TauntPlusCard()
             );
             case "Paladino" -> List.of(
                     new HolyShieldCard(),
+                    new HolyShieldPlusCard(),
                     new DivineLightCard(),
+                    new DivineLightPlusCard(),
                     new RetributionCard(),
+                    new RetributionPlusCard(),
                     new ConsecrationCard(),
+                    new ConsecrationPlusCard(),
                     new IronVowCard(),
+                    new IronVowPlusCard(),
                     new SmiteCard(),
+                    new SmitePlusCard(),
                     new BlessingCard(),
-                    new HammerOfJusticeCard()
+                    new BlessingPlusCard(),
+                    new HammerOfJusticeCard(),
+                    new HammerOfJusticePlusCard()
             );
             case "Mago" -> List.of(
+                    new FireNovaCard(),
+                    new FireNovaPlusCard(),
                     new ArcaneStormCard(),
+                    new ArcaneStormPlusCard(),
                     new FrostboltCard(),
+                    new FrostboltPlusCard(),
                     new ManaShieldCard(),
-                    new FireNovaCard()
+                    new ManaShieldPlusCard()
             );
             case "Dracomante" -> List.of(
                     new DragonClawCard(),
+                    new DragonClawPlusCard(),
                     new DragonBreathCard2(),
+                    new DragonBreathPlusCard(),
                     new ScaleArmorCard(),
-                    new DragonFangCard()
+                    new ScaleArmorPlusCard(),
+                    new DragonFangCard(),
+                    new DragonFangPlusCard()
             );
             case "Assassino" -> List.of(
                     new PoisonBladeCard(),
+                    new PoisonBladePlusCard(),
                     new ShadowStepCard(),
+                    new ShadowStepPlusCard(),
                     new DeadlyStrikeCard(),
+                    new DeadlyStrikePlusCard(),
                     new AcidPoisonCard(),
-                    new DoubleBladCard()
+                    new AcidPoisonPlusCard(),
+                    new DoubleBladCard(),
+                    new DoubleBladPlusCard()
             );
             default -> new ArrayList<>();
         };
@@ -68,6 +92,7 @@ public class CardPool {
 
     public static List<ICard> getRewardOptions(String className) {
         List<ICard> pool = new ArrayList<>(getClassPool(className));
+        pool.removeIf(c -> c.getName().endsWith("+"));
         pool.addAll(getNeutralPool());
         Collections.shuffle(pool);
         return pool.subList(0, Math.min(3, pool.size()));
@@ -75,55 +100,100 @@ public class CardPool {
 
     public static List<ICard> getAllCards() {
         List<ICard> all = new ArrayList<>();
-        all.add(new StrikeCard());
-        all.add(new DefendCard());
+        all.addAll(getStarterPool());
+        all.add(new FireballCard());
+        all.add(new FireballPlusCard());
         for (String cls : List.of("Guerriero", "Paladino", "Mago", "Dracomante", "Assassino"))
             all.addAll(getClassPool(cls));
         all.addAll(getNeutralPool());
-        all.addAll(getUpgradedPool());
         return all;
     }
 
     public static List<ICard> getUpgradedPool() {
-        return List.of(
-                new StrikePlusCard(),
-                new DefendPlusCard(),
-                new FireballPlusCard(),
-                new DevastatingStrikePlusCard(),
-                new PoisonBladePlusCard(),
-                new DragonFangPlusCard(),
-                new DragonClawPlusCard(),
-                new DragonBreathPlusCard(),
-                new ScaleArmorPlusCard()
-        );
+        List<ICard> all = new ArrayList<>();
+        all.add(new StrikePlusCard());
+        all.add(new DefendPlusCard());
+        all.add(new FireballPlusCard());
+        // Guerriero
+        all.add(new DevastatingStrikePlusCard());
+        all.add(new BattleCryPlusCard());
+        all.add(new WhirlwindPlusCard());
+        all.add(new BerserkerRagePlusCard());
+        all.add(new TauntPlusCard());
+        // Paladino
+        all.add(new HolyShieldPlusCard());
+        all.add(new DivineLightPlusCard());
+        all.add(new RetributionPlusCard());
+        all.add(new ConsecrationPlusCard());
+        all.add(new IronVowPlusCard());
+        all.add(new SmitePlusCard());
+        all.add(new BlessingPlusCard());
+        all.add(new HammerOfJusticePlusCard());
+        // Mago
+        all.add(new FireNovaPlusCard());
+        all.add(new ArcaneStormPlusCard());
+        all.add(new FrostboltPlusCard());
+        all.add(new ManaShieldPlusCard());
+        // Dracomante
+        all.add(new DragonClawPlusCard());
+        all.add(new DragonBreathPlusCard());
+        all.add(new ScaleArmorPlusCard());
+        all.add(new DragonFangPlusCard());
+        // Assassino
+        all.add(new PoisonBladePlusCard());
+        all.add(new ShadowStepPlusCard());
+        all.add(new DeadlyStrikePlusCard());
+        all.add(new AcidPoisonPlusCard());
+        all.add(new DoubleBladPlusCard());
+        return all;
     }
 
     public static ICard getUpgradedCard(String name) {
         return switch (name) {
-            case "Colpo di Spada"       -> new StrikePlusCard();
-            case "Scudo di Legno"       -> new DefendPlusCard();
-            case "Palla di Fuoco"       -> new FireballPlusCard();
-            case "Colpo Devastante"     -> new DevastatingStrikePlusCard();
-            case "Lama Avvelenata"      -> new PoisonBladePlusCard();
-            case "Zanna di Drago"       -> new DragonFangPlusCard();
-            case "Artiglio del Drago"   -> new DragonClawPlusCard();
-            case "Soffio del Drago"     -> new DragonBreathPlusCard();
-            case "Armatura di Scaglie"  -> new ScaleArmorPlusCard();
-            default                     -> null;
+            case "Colpo di Spada"           -> new StrikePlusCard();
+            case "Scudo di Legno"           -> new DefendPlusCard();
+            case "Palla di Fuoco"           -> new FireballPlusCard();
+            // Guerriero
+            case "Colpo Devastante"         -> new DevastatingStrikePlusCard();
+            case "Grida di Battaglia"       -> new BattleCryPlusCard();
+            case "Mulinello"                -> new WhirlwindPlusCard();
+            case "Furia Berserker"          -> new BerserkerRagePlusCard();
+            case "Sfida"                    -> new TauntPlusCard();
+            // Paladino
+            case "Scudo Sacro"              -> new HolyShieldPlusCard();
+            case "Luce Divina"              -> new DivineLightPlusCard();
+            case "Punizione Divina"         -> new RetributionPlusCard();
+            case "Consacrazione"            -> new ConsecrationPlusCard();
+            case "Voto di Ferro"            -> new IronVowPlusCard();
+            case "Castigo Sacro"            -> new SmitePlusCard();
+            case "Benedizione"              -> new BlessingPlusCard();
+            case "Martello della Giustizia" -> new HammerOfJusticePlusCard();
+            // Mago
+            case "Nova di Fuoco"            -> new FireNovaPlusCard();
+            case "Tempesta Arcana"          -> new ArcaneStormPlusCard();
+            case "Dardo di Ghiaccio"        -> new FrostboltPlusCard();
+            case "Scudo di Mana"            -> new ManaShieldPlusCard();
+            // Dracomante
+            case "Artiglio del Drago"       -> new DragonClawPlusCard();
+            case "Soffio del Drago"         -> new DragonBreathPlusCard();
+            case "Armatura di Scaglie"      -> new ScaleArmorPlusCard();
+            case "Zanna di Drago"           -> new DragonFangPlusCard();
+            // Assassino
+            case "Lama Avvelenata"          -> new PoisonBladePlusCard();
+            case "Passo nell'Ombra"         -> new ShadowStepPlusCard();
+            case "Colpo Letale"             -> new DeadlyStrikePlusCard();
+            case "Veleno Acido"             -> new AcidPoisonPlusCard();
+            case "Doppia Lama"              -> new DoubleBladPlusCard();
+            default                         -> null;
         };
     }
 
-    /**
-     * Restituisce una nuova istanza della carta con il nome specificato,
-     * cercando in tutto il pool (starter + classi + neutral + upgraded).
-     * Usato da GameService.restoreFromState() per ripristinare il deck da save.
-     *
-     * @param name il valore restituito da ICard.getName()
-     * @return una nuova istanza della carta, o null se il nome non è riconosciuto
-     */
     public static ICard getCardByName(String name) {
         if (name == null) return null;
         for (ICard card : getAllCards()) {
+            if (name.equals(card.getName())) return card;
+        }
+        for (ICard card : getUpgradedPool()) {
             if (name.equals(card.getName())) return card;
         }
         return null;

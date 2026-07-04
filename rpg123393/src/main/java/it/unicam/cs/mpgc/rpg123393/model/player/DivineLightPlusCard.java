@@ -3,13 +3,16 @@ package it.unicam.cs.mpgc.rpg123393.model.player;
 import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 
-/** Paladino — Punizione Divina: 10 danni. Se hai scudo > 0, danni +6. Costo 2. */
-public class RetributionCard implements ICard {
-    @Override public String getName()     { return "Punizione Divina"; }
+/** Paladino — Luce Divina+: cura 15 HP + 6 scudo. Costo 2. */
+public class DivineLightPlusCard implements ICard {
+    @Override public String getName()     { return "Luce Divina+"; }
     @Override public int    getManaCost() { return 2; }
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
-        int dmg = 10 + (user.getBlock() > 0 ? 6 : 0);
-        target.takeDamage(dmg);
+        if (user.getCurrentMana() >= getManaCost()) {
+            user.useMana(getManaCost());
+            user.heal(15);
+            user.addBlock(6);
+        }
     }
 }
