@@ -4,10 +4,9 @@ import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 
 /**
- * 🔵 PALADINO — Voto di Ferro
+ * PALADINO — Voto di Ferro
  * Costo: 3 mana
- * Effetto: Applica 20 scudo a te stesso.
- * Stats: SCUDO +20
+ * Effetto: 12 scudo + 8 danni al nemico.
  */
 public class IronVowCard implements ICard {
     @Override public String getName()      { return "Voto di Ferro"; }
@@ -18,7 +17,8 @@ public class IronVowCard implements ICard {
     public void play(GameCharacter user, GameCharacter target) {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
-            user.addBlock(20);
+            user.addBlock(12);
+            target.takeDamage(8);
         }
     }
 }

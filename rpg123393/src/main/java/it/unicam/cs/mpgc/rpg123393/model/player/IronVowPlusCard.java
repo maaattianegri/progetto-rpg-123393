@@ -4,21 +4,21 @@ import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 
 /**
- * PALADINO — Consacrazione
- * Costo: 2 mana
- * Effetto: 8 danni al nemico + 6 scudo a te stesso.
+ * PALADINO — Voto di Ferro+
+ * Costo: 3 mana
+ * Effetto: 15 scudo + 10 danni al nemico.
  */
-public class ConsecrationCard implements ICard {
-    @Override public String getName()      { return "Consacrazione"; }
-    @Override public int    getManaCost()  { return 2; }
+public class IronVowPlusCard implements ICard {
+    @Override public String getName()      { return "Voto di Ferro+"; }
+    @Override public int    getManaCost()  { return 3; }
     @Override public String getImagePath() { return null; }
 
     @Override
     public void play(GameCharacter user, GameCharacter target) {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
-            target.takeDamage(8);
-            user.addBlock(6);
+            user.addBlock(15);
+            target.takeDamage(10);
         }
     }
 }
