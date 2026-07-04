@@ -54,13 +54,16 @@ public class JsonSaveRepository implements SaveRepository {
         sb.append("  \"saveDate\": \"").append(escape(s.getSaveDate())).append("\",\n");
         sb.append("  \"className\": \"").append(escape(s.getClassName())).append("\",\n");
         sb.append("  \"imagePath\": \"").append(escape(s.getImagePath())).append("\",\n");
-        sb.append("  \"unlockedCards\": [");
-        List<String> cards = s.getUnlockedCards();
-        for (int i = 0; i < cards.size(); i++) {
-            sb.append("\"").append(escape(cards.get(i))).append("\"");
-            if (i < cards.size() - 1) sb.append(", ");
-        }
-        sb.append("]\n}");
+        sb.append("  \"currentNodeId\": ");
+        if (s.getCurrentNodeId() != null)
+            sb.append("\"").append(escape(s.getCurrentNodeId())).append("\"");
+        else
+            sb.append("null");
+        sb.append(",\n");
+        sb.append("  \"unlockedCards\": ").append(stringArrayToJson(s.getUnlockedCards())).append(",\n");
+        sb.append("  \"deckCardNames\": ").append(stringArrayToJson(s.getDeckCardNames())).append(",\n");
+        sb.append("  \"clearedNodeIds\": ").append(stringArrayToJson(s.getClearedNodeIds())).append("\n");
+        sb.append("}");
         return sb.toString();
     }
 
@@ -68,19 +71,40 @@ public class JsonSaveRepository implements SaveRepository {
         GameState s = new GameState();
         for (String line : json.split("\n")) {
             line = line.trim().replaceAll(",?$", "");
-            if      (line.startsWith("\"playerName\""))       s.setPlayerName(stringValue(line));
-            else if (line.startsWith("\"playerMaxHp\""))      s.setPlayerMaxHp(intValue(line));
-            else if (line.startsWith("\"playerCurrentHp\""))  s.setPlayerCurrentHp(intValue(line));
-            else if (line.startsWith("\"playerMaxMana\""))    s.setPlayerMaxMana(intValue(line));
-            else if (line.startsWith("\"playerCurrentMana\""))s.setPlayerCurrentMana(intValue(line));
-            else if (line.startsWith("\"playerLevel\""))      s.setPlayerLevel(intValue(line));
-            else if (line.startsWith("\"playerXp\""))         s.setPlayerXp(intValue(line));
-            else if (line.startsWith("\"saveDate\""))         s.setSaveDate(stringValue(line));
-            else if (line.startsWith("\"className\""))        s.setClassName(stringValue(line));
-            else if (line.startsWith("\"imagePath\""))        s.setImagePath(stringValue(line));
+            if      (line.startsWith("\"playerName\""))        s.setPlayerName(stringValue(line));
+            else if (line.startsWith("\"playerMaxHp\""))       s.setPlayerMaxHp(intValue(line));
+            else if (line.startsWith("\"playerCurrentHp\""))   s.setPlayerCurrentHp(intValue(line));
+            else if (line.startsWith("\"playerMaxMana\""))     s.setPlayerMaxMana(intValue(line));
+            else if (line.startsWith("\"playerCurrentMana\"")) s.setPlayerCurrentMana(intValue(line));
+            else if (line.startsWith("\"playerLevel\""))       s.setPlayerLevel(intValue(line));
+            else if (line.startsWith("\"playerXp\""))          s.setPlayerXp(intValue(line));
+            else if (line.startsWith("\"saveDate\""))          s.setSaveDate(stringValue(line));
+            else if (line.startsWith("\"className\""))         s.setClassName(stringValue(line));
+            else if (line.startsWith("\"imagePath\""))         s.setImagePath(stringValue(line));
+            else if (line.startsWith("\"currentNodeId\"")) {
+                String raw = line.split(":", 2)[1].trim();
+                s.setCurrentNodeId(raw.equals("null") ? null : raw.replace("\"", ""));
+            }
         }
         s.setUnlockedCards(parseStringArray(json, "unlockedCards"));
+        s.setDeckCardNames(parseStringArray(json, "deckCardNames"));
+        s.setClearedNodeIds(parseStringArray(json, "clearedNodeIds"));
         return s;
+    }
+
+    // -------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------
+
+    private String stringArrayToJson(List<String> list) {
+        if (list == null || list.isEmpty()) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            sb.append("\"").append(escape(list.get(i))).append("\"");
+            if (i < list.size() - 1) sb.append(", ");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private List<String> parseStringArray(String json, String field) {
