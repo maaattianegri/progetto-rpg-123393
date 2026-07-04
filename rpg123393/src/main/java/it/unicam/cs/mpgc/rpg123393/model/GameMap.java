@@ -50,7 +50,8 @@ public class GameMap {
 
     /**
      * Restituisce i nodi raggiungibili dal nodo corrente.
-     * Un nodo è raggiungibile se è collegato al nodo corrente e non è ancora cleared.
+     * Un nodo è raggiungibile se è collegato al nodo corrente
+     * e non è ancora stato completato (cleared).
      */
     public List<MapNode> getReachableNodes() {
         Optional<MapNode> current = getCurrentNode();
@@ -58,7 +59,9 @@ public class GameMap {
 
         List<MapNode> reachable = new ArrayList<>();
         for (String nextId : current.get().getNextNodeIds()) {
-            getNodeById(nextId).ifPresent(reachable::add);
+            getNodeById(nextId)
+                .filter(n -> !n.isCleared())
+                .ifPresent(reachable::add);
         }
         return reachable;
     }

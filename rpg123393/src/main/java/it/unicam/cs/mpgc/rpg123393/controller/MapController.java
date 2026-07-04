@@ -64,15 +64,6 @@ public class MapController {
 
     // -------------------------------------------------------
     // Layout BFS multi-ramo
-    //
-    // Algoritmo:
-    // 1. BFS per assegnare "colonna" (profondità) a ogni nodo.
-    // 2. Per i nodi nella stessa colonna, calcoliamo il numero di
-    //    "slot" totali nella colonna e li distribuiamo verticalmente
-    //    centrandoli rispetto all'altezza del pannello.
-    // 3. Nodi che convergono (es. n03a/b/c tutti -> n04) vengono
-    //    trattati normalmente: n04 è in colonna successiva, da solo,
-    //    quindi verrà centrato.
     // -------------------------------------------------------
 
     private void buildLayout() {
@@ -105,16 +96,17 @@ public class MapController {
             }
         }
 
-        // Raggruppa nodi per colonna, nell'ordine in cui sono stati visitati dal BFS
-        // (questo preserva l'ordine dei figli, es. n03a sopra n03b sopra n03c)
+        // Raggruppa nodi per colonna nell'ordine BFS
         Map<Integer, List<String>> colNodes = new LinkedHashMap<>();
         colMap.forEach((id, col) ->
             colNodes.computeIfAbsent(col, k -> new ArrayList<>()).add(id));
 
         int maxCol = colMap.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+        int maxRows = getMaxNodesInAnyCol(colNodes);
 
-        // Altezza totale del pannello usabile
-        double totalH = ORIGIN_Y * 2 + (getMaxNodesInAnyCol(colNodes) - 1) * ROW_HEIGHT;
+        // Altezza totale basata sul numero massimo di nodi in una colonna.
+        // Usiamo almeno 3 righe come floor per evitare layout troppo compresso.
+        double totalH = ORIGIN_Y * 2 + (Math.max(maxRows, 3) - 1) * ROW_HEIGHT;
 
         for (Map.Entry<Integer, List<String>> entry : colNodes.entrySet()) {
             int col = entry.getKey();
@@ -122,7 +114,7 @@ public class MapController {
             int count = ids.size();
             double cx = ORIGIN_X + col * COL_WIDTH;
 
-            // Distribuisci verticalmente, centrati
+            // Distribuisci verticalmente, centrati rispetto a totalH
             double blockHeight = (count - 1) * ROW_HEIGHT;
             double startY = totalH / 2.0 - blockHeight / 2.0;
 
@@ -132,8 +124,11 @@ public class MapController {
             }
         }
 
-        mapPane.setMinWidth(ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 2);
-        mapPane.setMinHeight(totalH + NODE_R * 2);
+        // FIX: setMinWidth/MinHeight garantisce che il Pane non clippi i nodi
+        // anche con mappe ampie. Il padding laterale di NODE_R*3 dà spazio
+        // sufficiente per l'hover panel senza uscire dal viewport.
+        mapPane.setMinWidth(ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 3);
+        mapPane.setMinHeight(totalH + NODE_R * 3);
     }
 
     private int getMaxNodesInAnyCol(Map<Integer, List<String>> colNodes) {
@@ -171,7 +166,7 @@ public class MapController {
             }
         }
 
-        // 2. Hover panel
+        // 2. Hover panel (aggiunto prima dei nodi così sta sotto)
         hoverPanel = buildHoverPanel();
         mapPane.getChildren().add(hoverPanel);
 
@@ -267,12 +262,15 @@ public class MapController {
 
         hoverPanel.getChildren().addAll(iconLbl, nameLbl, typeLbl, descLbl);
 
+        // FIX: usa mapPane.getPrefWidth() come fallback quando getWidth() è ancora 0
+        // (primo hover prima che JavaFX completi il layout pass)
+        double paneW = mapPane.getWidth() > 0 ? mapPane.getWidth() : mapPane.getPrefWidth();
         double px = cx + NODE_R + 10;
         double py = cy - NODE_R;
-        if (px + 210 > mapPane.getWidth() && mapPane.getWidth() > 0)
+        if (paneW > 0 && px + 210 > paneW)
             px = cx - NODE_R - 220;
-        hoverPanel.setLayoutX(px);
-        hoverPanel.setLayoutY(py);
+        hoverPanel.setLayoutX(Math.max(0, px));
+        hoverPanel.setLayoutY(Math.max(0, py));
         hoverPanel.setVisible(true);
         hoverPanel.setManaged(true);
         hoverPanel.toFront();
