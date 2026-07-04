@@ -160,7 +160,7 @@ public class MapController {
         gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
         String playerClass = gameService.getClassName();
 
-        // FIX animazione: calcola i figli diretti del nodo corrente
+        // Figli diretti del nodo corrente → usati per isNewlyReachable
         Set<String> currentNodeNextIds = gameService.getCurrentNode()
                 .map(n -> new HashSet<>(n.getNextNodeIds()))
                 .orElse(new HashSet<>());
@@ -208,11 +208,11 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        // FIX drag: listener su mapScroll (handler, non filter) per ricevere eventi anche quando
-        // i nodi figli li consumano; dragStart aggiornato frame-by-frame in handleMouseDragged
-        mapScroll.setOnMousePressed(this::handleMousePressed);
-        mapScroll.setOnMouseDragged(this::handleMouseDragged);
-        mapScroll.addEventFilter(ScrollEvent.SCROLL, this::handleScroll);
+        // FIX drag: addEventFilter su mapScroll intercetta nella fase di cattura,
+        // prima che lo skin interno del ScrollPane o i nodi figli possano consumare l'evento
+        mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
+        mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
+        mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
     }
 
     private void handleMousePressed(MouseEvent e) {
@@ -233,7 +233,7 @@ public class MapController {
         double extraH = contentH - vp.getHeight();
         if (extraW > 0) mapScroll.setHvalue(clamp(dragStartH - dx / extraW, 0, 1));
         if (extraH > 0) mapScroll.setVvalue(clamp(dragStartV - dy / extraH, 0, 1));
-        // Aggiorna dragStart frame-by-frame per delta incrementale fluido
+        // Aggiornamento frame-by-frame: delta sempre relativo all'ultimo evento
         dragStartX = e.getSceneX();
         dragStartY = e.getSceneY();
         dragStartH = mapScroll.getHvalue();
@@ -365,7 +365,7 @@ public class MapController {
         String color = isLocked ? "#4b5563" : nodeColor(node.getType());
         String icon  = isLocked ? "🔒" : nodeIcon(node.getType());
 
-        // Nodo segreto sbloccato dalla classe corrente
+        // Segreto sbloccato: ha requiredClass ma NON è locked (la classe corrente può accedervi)
         boolean isSecretUnlocked = node.getRequiredClass() != null && !isLocked;
 
         Circle pulseRing = null;
@@ -389,16 +389,16 @@ public class MapController {
         } else if (isLocked) {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#4b5563")); bg.setStrokeWidth(1.5);
             ColorAdjust ca = new ColorAdjust(); ca.setSaturation(-0.8); bg.setEffect(ca);
-        } else if (isSecretUnlocked) {
-            // Glow dorato permanente per nodi segreti sbloccati
+        } else if (isSecretUnlocked && isNewlyReachable) {
+            // Glow dorato: SOLO quando il nodo è figlio diretto del nodo corrente
             bg.setFill(Color.web(color, 0.25)); bg.setStroke(Color.web("#fbbf24"));
             bg.setStrokeWidth(2.5);
-            DropShadow goldGlow = new DropShadow(20, Color.web("#fbbf24", 0.8));
-            bg.setEffect(goldGlow);
+            bg.setEffect(new DropShadow(20, Color.web("#fbbf24", 0.8)));
         } else if (isReachable) {
             bg.setFill(Color.web(color, 0.2)); bg.setStroke(Color.web(color));
             bg.setStrokeWidth(2.5); bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
         } else {
+            // Nodo segreto non ancora raggiungibile: stesso stile dei nodi normali inaccessibili
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#2a2a4a")); bg.setStrokeWidth(1.5);
         }
 
@@ -406,10 +406,18 @@ public class MapController {
         iconLabel.setStyle("-fx-font-size:" + (isCleared ? "16" : "22") + "px;"
                 + "-fx-text-fill:" + (isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white") + ";");
 
+        // Colore nome: dorato solo se segreto E già raggiungibile ora
+        String nameColor = isCurrent        ? color
+                         : isCleared        ? "#4ade80"
+                         : isLocked         ? "#4b5563"
+                         : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
+                         : isReachable      ? "white"
+                         : "#4a4a6a";
+        boolean nameBold = isCurrent || (isSecretUnlocked && isNewlyReachable);
+
         Label nameLabel = new Label(node.getName());
-        nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:"
-                + (isCurrent ? color : isCleared ? "#4ade80" : isLocked ? "#4b5563" : isSecretUnlocked ? "#fbbf24" : isReachable ? "white" : "#4a4a6a")
-                + ";-fx-font-weight:" + (isCurrent || isSecretUnlocked ? "bold" : "normal") + ";");
+        nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:" + nameColor
+                + ";-fx-font-weight:" + (nameBold ? "bold" : "normal") + ";");
         nameLabel.setMaxWidth(NODE_R * 2 + 10); nameLabel.setWrapText(true); nameLabel.setAlignment(Pos.CENTER);
 
         VBox nodeBox = new VBox(2, iconLabel, nameLabel);
@@ -419,19 +427,17 @@ public class MapController {
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
-        // FIX animazione: scatta SOLO se il nodo è appena diventato raggiungibile (figlio diretto del nodo corrente)
+        // Animazione intro: solo se segreto E figlio diretto del nodo corrente
         if (isSecretUnlocked && isNewlyReachable) {
             sp.setOpacity(0);
             sp.setScaleX(0.7); sp.setScaleY(0.7);
             FadeTransition ft = new FadeTransition(Duration.millis(600), sp);
             ft.setFromValue(0); ft.setToValue(1);
             ScaleTransition st = new ScaleTransition(Duration.millis(600), sp);
-            st.setFromX(0.7); st.setFromY(0.7);
-            st.setToX(1.0);   st.setToY(1.0);
+            st.setFromX(0.7); st.setFromY(0.7); st.setToX(1.0); st.setToY(1.0);
             SequentialTransition seq = new SequentialTransition(
                     new javafx.animation.PauseTransition(Duration.millis(150)),
-                    new javafx.animation.ParallelTransition(ft, st)
-            );
+                    new javafx.animation.ParallelTransition(ft, st));
             seq.play();
         }
 
