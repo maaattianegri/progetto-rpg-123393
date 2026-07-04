@@ -97,7 +97,7 @@
 
     <!-- Bottoni -->
     <VBox alignment="CENTER" spacing="12" style="-fx-padding: 8 0 0 0;">
-        <Button text="Prossimo Scontro" onAction="#onNextBattle"
+        <Button fx:id="nextButton" text="Prossimo Scontro" onAction="#onNextBattle"
                 prefWidth="280"
                 style="-fx-background-color: #4ecca3; -fx-text-fill: #1a1a2e;
                        -fx-font-size: 16px; -fx-font-weight: bold;
