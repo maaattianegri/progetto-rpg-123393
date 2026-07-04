@@ -160,6 +160,11 @@ public class MapController {
         gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
         String playerClass = gameService.getClassName();
 
+        // FIX animazione: calcola i figli diretti del nodo corrente
+        Set<String> currentNodeNextIds = gameService.getCurrentNode()
+                .map(n -> new HashSet<>(n.getNextNodeIds()))
+                .orElse(new HashSet<>());
+
         for (MapNode n : all) {
             double[] from = positions.get(n.getId());
             if (from == null) continue;
@@ -177,12 +182,14 @@ public class MapController {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
             boolean locked = n.isLockedFor(playerClass);
+            boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
             zoomGroup.getChildren().add(buildNodeGraphic(
                     n, pos[0], pos[1],
                     n.isCleared(),
                     n.getId().equals(currentId),
                     reachableIds.contains(n.getId()) && !locked,
-                    locked
+                    locked,
+                    isNewlyReachable
             ));
         }
 
@@ -201,10 +208,11 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        // FIX: listener su mapPane (non mapScroll) per evitare interferenze con lo skin del ScrollPane
-        mapPane.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
-        mapPane.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
-        mapScroll.addEventFilter(ScrollEvent.SCROLL,      this::handleScroll);
+        // FIX drag: listener su mapScroll (handler, non filter) per ricevere eventi anche quando
+        // i nodi figli li consumano; dragStart aggiornato frame-by-frame in handleMouseDragged
+        mapScroll.setOnMousePressed(this::handleMousePressed);
+        mapScroll.setOnMouseDragged(this::handleMouseDragged);
+        mapScroll.addEventFilter(ScrollEvent.SCROLL, this::handleScroll);
     }
 
     private void handleMousePressed(MouseEvent e) {
@@ -225,6 +233,11 @@ public class MapController {
         double extraH = contentH - vp.getHeight();
         if (extraW > 0) mapScroll.setHvalue(clamp(dragStartH - dx / extraW, 0, 1));
         if (extraH > 0) mapScroll.setVvalue(clamp(dragStartV - dy / extraH, 0, 1));
+        // Aggiorna dragStart frame-by-frame per delta incrementale fluido
+        dragStartX = e.getSceneX();
+        dragStartY = e.getSceneY();
+        dragStartH = mapScroll.getHvalue();
+        dragStartV = mapScroll.getVvalue();
     }
 
     private void handleScroll(ScrollEvent e) {
@@ -347,7 +360,8 @@ public class MapController {
 
     private StackPane buildNodeGraphic(MapNode node, double cx, double cy,
                                        boolean isCleared, boolean isCurrent,
-                                       boolean isReachable, boolean isLocked) {
+                                       boolean isReachable, boolean isLocked,
+                                       boolean isNewlyReachable) {
         String color = isLocked ? "#4b5563" : nodeColor(node.getType());
         String icon  = isLocked ? "🔒" : nodeIcon(node.getType());
 
@@ -405,8 +419,8 @@ public class MapController {
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
-        // Animazione intro per nodi segreti sbloccati
-        if (isSecretUnlocked) {
+        // FIX animazione: scatta SOLO se il nodo è appena diventato raggiungibile (figlio diretto del nodo corrente)
+        if (isSecretUnlocked && isNewlyReachable) {
             sp.setOpacity(0);
             sp.setScaleX(0.7); sp.setScaleY(0.7);
             FadeTransition ft = new FadeTransition(Duration.millis(600), sp);
