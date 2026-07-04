@@ -8,7 +8,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
  *   #9b59b6  🟣 Mago
  *   #e67e22  🟠 Dracomante
  *   #27ae60  🟢 Assassino
- *   #c77dff  ⚡ Neutrale
+ *   #00bcd4  🟦 Neutrale (ciano)
  *   #9aaaba  ⚪ Starter multiclasse
  */
 public class CardStyleHelper {
@@ -50,8 +50,8 @@ public class CardStyleHelper {
                  "Colpo Letale",      "Colpo Letale+",
                  "Veleno Acido",      "Veleno Acido+",
                  "Doppia Lama",       "Doppia Lama+"            -> "#27ae60";
-            // ⚡ Neutrale
-            case "Pozione Rapida"                              -> "#c77dff";
+            // 🟦 Neutrale (ciano)
+            case "Pozione Rapida"                              -> "#00bcd4";
             default                                            -> "#888888";
         };
     }
@@ -64,7 +64,7 @@ public class CardStyleHelper {
             case "#9b59b6" -> "🔮";
             case "#e67e22" -> "🐉";
             case "#27ae60" -> "☠";
-            case "#c77dff" -> "+";
+            case "#00bcd4" -> "♥";
             default        -> "?";
         };
     }
@@ -135,7 +135,7 @@ public class CardStyleHelper {
             case "Veleno Acido+"            -> "☠ +6 veleno (no danno diretto)  |  1 mana";
             case "Doppia Lama"              -> "⚔ 4+4 danni (2 colpi)  |  2 mana";
             case "Doppia Lama+"             -> "⚔ 6+6 danni (2 colpi)  |  2 mana";
-            // ── ⚡ Neutrale ──
+            // ── 🟦 Neutrale ──
             case "Pozione Rapida"           -> "❤ cura 10 HP  |  1 mana";
             default                         -> "";
         };

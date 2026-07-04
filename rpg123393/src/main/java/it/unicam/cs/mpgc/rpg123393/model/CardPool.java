@@ -8,6 +8,15 @@ import java.util.List;
 
 public class CardPool {
 
+    public static List<ICard> getStarterPool() {
+        return List.of(
+                new StrikeCard(),
+                new StrikePlusCard(),
+                new DefendCard(),
+                new DefendPlusCard()
+        );
+    }
+
     public static List<ICard> getClassPool(String className) {
         if (className == null) return new ArrayList<>();
         return switch (className) {
@@ -91,10 +100,7 @@ public class CardPool {
 
     public static List<ICard> getAllCards() {
         List<ICard> all = new ArrayList<>();
-        all.add(new StrikeCard());
-        all.add(new StrikePlusCard());
-        all.add(new DefendCard());
-        all.add(new DefendPlusCard());
+        all.addAll(getStarterPool());
         all.add(new FireballCard());
         all.add(new FireballPlusCard());
         for (String cls : List.of("Guerriero", "Paladino", "Mago", "Dracomante", "Assassino"))

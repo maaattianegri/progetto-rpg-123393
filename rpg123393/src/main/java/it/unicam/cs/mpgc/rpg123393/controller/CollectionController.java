@@ -47,7 +47,7 @@ public class CollectionController {
             java.util.Map.entry("Mago",       "#9b59b6"),
             java.util.Map.entry("Dracomante", "#e67e22"),
             java.util.Map.entry("Assassino",  "#27ae60"),
-            java.util.Map.entry("Neutro",     "#c77dff")
+            java.util.Map.entry("Neutro",     "#00bcd4")
     );
 
     @FXML
@@ -189,7 +189,7 @@ public class CollectionController {
             case "#9b59b6" -> "🔮 Mago";
             case "#e67e22" -> "🐉 Dracomante";
             case "#27ae60" -> "☠ Assassino";
-            case "#c77dff" -> "❆ Neutrale";
+            case "#00bcd4" -> "♥ Neutrale";
             default        -> "";
         };
         detailClass.setText(cls);
