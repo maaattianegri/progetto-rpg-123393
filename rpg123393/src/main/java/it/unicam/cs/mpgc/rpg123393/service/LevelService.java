@@ -10,6 +10,9 @@ public class LevelService {
     // Ogni livello successivo richiede BASE * livello corrente.
     private static final int BASE_XP = 100;
 
+    /** Mana massimo assoluto raggiungibile durante la run. */
+    public static final int MAX_MANA_CAP = 9;
+
     /**
      * Calcola quanta esperienza serve per salire al livello successivo.
      * Formula: BASE_XP * livello corrente.
@@ -44,17 +47,20 @@ public class LevelService {
 
     /**
      * Calcola il bonus di mana massimo guadagnato salendo di livello.
+     * +1 mana ogni 3 livelli, con cap assoluto a MAX_MANA_CAP.
+     * Esempi: lv3 → +1, lv6 → +1, lv9 → +1. Tutti gli altri livelli → 0.
      */
     public int manaBonusOnLevelUp(int newLevel) {
-        return 5 + (newLevel / 2);
+        return newLevel % 3 == 0 ? 1 : 0;
     }
 
     /**
      * Restituisce un messaggio descrittivo del level up.
      */
     public String levelUpMessage(String characterName, int newLevel) {
+        int manaBonus = manaBonusOnLevelUp(newLevel);
+        String manaStr = manaBonus > 0 ? ", +" + manaBonus + " Mana" : "";
         return characterName + " è salito al livello " + newLevel + "! +"
-                + hpBonusOnLevelUp(newLevel) + " HP, +"
-                + manaBonusOnLevelUp(newLevel) + " Mana.";
+                + hpBonusOnLevelUp(newLevel) + " HP" + manaStr + ".";
     }
 }

@@ -57,7 +57,7 @@ public class EnemyFactory {
         return switch (eliteIndex++ % 4) {
             case 0 -> new GameCharacter("Orco Berserker",   70 + level * 8,  4);
             case 1 -> new GameCharacter("Scheletro Arcano", 58 + level * 7,  5);
-            case 2 -> new GameCharacter("Troll Rigenerante",95 + level * 12, 5);
+            case 2 -> new GameCharacter("Troll Rigenerante",80 + level * 10, 5); // ridotto da 95+12 a 80+10
             default-> new GameCharacter("Banshee",          65 + level * 8,  4);
         };
     }

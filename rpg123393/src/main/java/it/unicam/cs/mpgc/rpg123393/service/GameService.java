@@ -91,7 +91,7 @@ public class GameService {
             case "Mago"       -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
             case "Dracomante" -> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
             case "Paladino"   -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
-            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); }
+            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); } // ridotto da 3x a 2x PoisonBlade, aggiunta DefendCard
             default           -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
         }
     }
@@ -313,8 +313,12 @@ public class GameService {
         while (levelService.shouldLevelUp(playerXp, playerLevel)) {
             playerXp = levelService.consumeXpForLevelUp(playerXp, playerLevel);
             playerLevel++;
-            player.setMaxHp(player.getMaxHp()    + levelService.hpBonusOnLevelUp(playerLevel));
-            player.setMaxMana(player.getMaxMana() + levelService.manaBonusOnLevelUp(playerLevel));
+            player.setMaxHp(player.getMaxHp() + levelService.hpBonusOnLevelUp(playerLevel));
+            int manaBonus = levelService.manaBonusOnLevelUp(playerLevel);
+            if (manaBonus > 0) {
+                int newMana = Math.min(player.getMaxMana() + manaBonus, LevelService.MAX_MANA_CAP);
+                player.setMaxMana(newMana);
+            }
             messages.add(levelService.levelUpMessage(player.getName(), playerLevel));
         }
         return messages;
