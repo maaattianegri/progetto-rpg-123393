@@ -26,8 +26,9 @@ import java.util.Optional;
  *                                                       |
  *                                                  n07 (SHOP) -+-> n08a (ELITE)
  *                                                              +-> n08b (REST)
+ *                                                              +-> n08c (EVENT)  <-- nuovo
  *                                                              |
- *                                              n08a/b --------+--> n09 (SHOP)
+ *                                          n08a/b/c ----------+--> n09 (SHOP)
  *                                                                  |
  *                                                            n10 (BOSS) -> n11 (BOSS)
  */
@@ -47,33 +48,34 @@ public class MapService {
         GameMap gameMap = new GameMap();
 
         // --- Corridoio iniziale (lineare) ---
-        MapNode n00 = new MapNode("n00", "Ingresso",         "Inizio della run.",                  NodeType.BATTLE);
-        MapNode n01 = new MapNode("n01", "Goblin",           "Un Goblin ti sbarra la strada.",      NodeType.BATTLE);
-        MapNode n02 = new MapNode("n02", "Ratto Gigante",    "Un Ratto Gigante ti attacca.",        NodeType.BATTLE);
+        MapNode n00 = new MapNode("n00", "Ingresso",          "Inizio della run.",                   NodeType.BATTLE);
+        MapNode n01 = new MapNode("n01", "Goblin",            "Un Goblin ti sbarra la strada.",       NodeType.BATTLE);
+        MapNode n02 = new MapNode("n02", "Ratto Gigante",     "Un Ratto Gigante ti attacca.",         NodeType.BATTLE);
 
         // --- Primo bivio (3 scelte dopo n02) ---
-        MapNode n03a = new MapNode("n03a", "Orco Berserker", "L'Orco Berserker ruggisce.",          NodeType.ELITE);
-        MapNode n03b = new MapNode("n03b", "Fal\u00f2",           "Un fuoco crepitante ti aspetta.",     NodeType.REST);
-        MapNode n03c = new MapNode("n03c", "Presenza Oscura","Qualcosa nell'ombra ti osserva.",    NodeType.EVENT);
+        MapNode n03a = new MapNode("n03a", "Orco Berserker",  "L'Orco Berserker ruggisce.",           NodeType.ELITE);
+        MapNode n03b = new MapNode("n03b", "Fal\u00f2",            "Un fuoco crepitante ti aspetta.",      NodeType.REST);
+        MapNode n03c = new MapNode("n03c", "Presenza Oscura", "Qualcosa nell'ombra ti osserva.",     NodeType.EVENT);
 
         // --- Convergenza al primo shop ---
-        MapNode n04  = new MapNode("n04",  "Mercante",        "Un mercante ti offre i suoi prodotti.", NodeType.SHOP);
+        MapNode n04  = new MapNode("n04",  "Mercante",         "Un mercante ti offre i suoi prodotti.", NodeType.SHOP);
 
         // --- Tratto centrale (lineare) ---
-        MapNode n05  = new MapNode("n05",  "Scheletro Arcano","Lo Scheletro Arcano ti fissa.",       NodeType.ELITE);
-        MapNode n06  = new MapNode("n06",  "Troll Rigenerante","Il Troll si rigenera!",              NodeType.ELITE);
-        MapNode n07  = new MapNode("n07",  "Mercante",        "Il mercante ha nuova merce.",          NodeType.SHOP);
+        MapNode n05  = new MapNode("n05",  "Scheletro Arcano", "Lo Scheletro Arcano ti fissa.",        NodeType.ELITE);
+        MapNode n06  = new MapNode("n06",  "Troll Rigenerante","Il Troll si rigenera!",               NodeType.ELITE);
+        MapNode n07  = new MapNode("n07",  "Mercante",         "Il mercante ha nuova merce.",           NodeType.SHOP);
 
-        // --- Secondo bivio (2 scelte dopo n07) ---
-        MapNode n08a = new MapNode("n08a", "Banshee",         "La Banshee urla nel buio.",           NodeType.ELITE);
-        MapNode n08b = new MapNode("n08b", "Rifugio",         "Un angolo tranquillo per riposare.",  NodeType.REST);
+        // --- Secondo bivio (3 scelte dopo n07) ---
+        MapNode n08a = new MapNode("n08a", "Banshee",          "La Banshee urla nel buio.",            NodeType.ELITE);
+        MapNode n08b = new MapNode("n08b", "Rifugio",          "Un angolo tranquillo per riposare.",   NodeType.REST);
+        MapNode n08c = new MapNode("n08c", "Voce nell'Ombra",  "Una voce ti sussurra dal buio.",       NodeType.EVENT);
 
         // --- Convergenza al terzo shop ---
-        MapNode n09  = new MapNode("n09",  "Mercante",        "Ultima chance prima del boss.",       NodeType.SHOP);
+        MapNode n09  = new MapNode("n09",  "Mercante",         "Ultima chance prima del boss.",        NodeType.SHOP);
 
         // --- Boss finali ---
-        MapNode n10  = new MapNode("n10",  "Negromante",      "Il Negromante evoca non-morti.",      NodeType.BOSS);
-        MapNode n11  = new MapNode("n11",  "Drago Antico",    "Il Drago Antico scuote la terra.",    NodeType.BOSS);
+        MapNode n10  = new MapNode("n10",  "Negromante",       "Il Negromante evoca non-morti.",       NodeType.BOSS);
+        MapNode n11  = new MapNode("n11",  "Drago Antico",     "Il Drago Antico scuote la terra.",     NodeType.BOSS);
 
         // ---- Connessioni ----
 
@@ -96,13 +98,15 @@ public class MapService {
         n05.addNextNode("n06");
         n06.addNextNode("n07");
 
-        // Secondo bivio
+        // Secondo bivio (ora 3 opzioni)
         n07.addNextNode("n08a");
         n07.addNextNode("n08b");
+        n07.addNextNode("n08c");
 
         // Convergenza al terzo shop
         n08a.addNextNode("n09");
         n08b.addNextNode("n09");
+        n08c.addNextNode("n09");
 
         // Boss
         n09.addNextNode("n10");
@@ -111,7 +115,7 @@ public class MapService {
 
         // ---- Aggiungi tutti i nodi ----
         for (MapNode n : List.of(n00, n01, n02, n03a, n03b, n03c,
-                                  n04, n05, n06, n07, n08a, n08b,
+                                  n04, n05, n06, n07, n08a, n08b, n08c,
                                   n09, n10, n11)) {
             gameMap.addNode(n);
         }
@@ -140,9 +144,8 @@ public class MapService {
 
     /**
      * Marca il nodo corrente come cleared (incontro completato).
-     * NON sposta il cursore: la navigazione al nodo successivo è sempre
+     * NON sposta il cursore: la navigazione al nodo successivo è sempre
      * delegata all'utente tramite click sulla mappa (moveToNode).
-     * Questo vale sia per tratti lineari che per bivi.
      */
     public Optional<MapNode> advance() {
         map.clearCurrentNode();

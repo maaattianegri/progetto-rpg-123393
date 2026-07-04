@@ -75,6 +75,8 @@ public class GameService {
         } else {
             loadUnlockedCardsFromSave();
         }
+        // Resetta l'anti-ripetizione degli eventi per questa nuova run
+        EventPool.resetForNewRun();
     }
 
     public void createPlayer(String name, int vigore, int arcano) {

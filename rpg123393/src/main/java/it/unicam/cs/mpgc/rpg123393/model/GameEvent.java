@@ -1,12 +1,15 @@
 package it.unicam.cs.mpgc.rpg123393.model;
 
+import it.unicam.cs.mpgc.rpg123393.service.GameService;
+
 import java.util.List;
 
 /**
  * Rappresenta un evento narrativo della mappa.
  *
  * Un evento ha un testo descrittivo e una lista di scelte.
- * Ogni scelta ha un testo e un effetto (lambda) applicato a GameCharacter del player.
+ * Ogni scelta ha un testo e un effetto (lambda) applicato a GameService,
+ * così da poter modificare sia il player che l'oro, il mazzo, ecc.
  */
 public class GameEvent {
 
@@ -29,12 +32,12 @@ public class GameEvent {
     // -------------------------------------------------------
 
     public static class EventChoice {
-        private final String                      text;
-        private final String                      outcomeDescription;
-        private final java.util.function.Consumer<GameCharacter> effect;
+        private final String                                    text;
+        private final String                                    outcomeDescription;
+        private final java.util.function.Consumer<GameService>  effect;
 
         public EventChoice(String text, String outcomeDescription,
-                           java.util.function.Consumer<GameCharacter> effect) {
+                           java.util.function.Consumer<GameService> effect) {
             this.text               = text;
             this.outcomeDescription = outcomeDescription;
             this.effect             = effect;
@@ -42,6 +45,11 @@ public class GameEvent {
 
         public String getText()               { return text; }
         public String getOutcomeDescription() { return outcomeDescription; }
-        public void   applyEffect(GameCharacter player) { effect.accept(player); }
+
+        /**
+         * Applica l'effetto della scelta tramite GameService.
+         * In questo modo l'effetto può toccare player, oro, mazzo, reliquie, ecc.
+         */
+        public void applyEffect(GameService gs) { effect.accept(gs); }
     }
 }
