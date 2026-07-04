@@ -28,6 +28,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -55,6 +56,7 @@ public class MapController {
     @FXML private HBox       controlsLegendBox;
 
     private Group  zoomGroup;
+    private Scale  zoomTransform;
     private VBox   hoverPanel;
 
     private GameService gameService;
@@ -74,8 +76,9 @@ public class MapController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        // Group wrapper per zoom deterministico
-        zoomGroup = new Group();
+        zoomGroup     = new Group();
+        zoomTransform = new Scale(1, 1, 0, 0);
+        zoomGroup.getTransforms().add(zoomTransform);
         mapPane.getChildren().add(zoomGroup);
 
         buildLayout();
@@ -151,7 +154,6 @@ public class MapController {
         gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
         String playerClass = gameService.getClassName();
 
-        // Connessioni
         for (MapNode n : all) {
             double[] from = positions.get(n.getId());
             if (from == null) continue;
@@ -162,11 +164,9 @@ public class MapController {
             }
         }
 
-        // Hover panel
         hoverPanel = buildHoverPanel();
         zoomGroup.getChildren().add(hoverPanel);
 
-        // Nodi
         for (MapNode n : all) {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
@@ -195,9 +195,11 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        mapScroll.setOnMousePressed(this::handleMousePressed);
-        mapScroll.setOnMouseDragged(this::handleMouseDragged);
-        mapScroll.setOnScroll(this::handleScroll);
+        // addEventFilter: cattura l'evento PRIMA che arrivi ai nodi figli,
+        // cosi' il drag funziona anche quando si clicca direttamente su un nodo.
+        mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
+        mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
+        mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
     }
 
     private void handleMousePressed(MouseEvent e) {
@@ -225,26 +227,28 @@ public class MapController {
         double newScale = clamp(currentScale * factor, MIN_SCALE, MAX_SCALE);
         if (newScale == currentScale) return;
 
-        // Coordinate del cursore nel contenuto prima dello zoom
-        Bounds vp = mapScroll.getViewportBounds();
-        double contentW = mapPane.getPrefWidth()  * currentScale;
-        double contentH = mapPane.getPrefHeight() * currentScale;
-        double mouseContentX = mapScroll.getHvalue() * Math.max(0, contentW - vp.getWidth())  + e.getX();
-        double mouseContentY = mapScroll.getVvalue() * Math.max(0, contentH - vp.getHeight()) + e.getY();
+        // Coordinate del cursore nel sistema di riferimento del Pane (pre-zoom)
+        Bounds vpBounds = mapScroll.getViewportBounds();
+        double scrollX  = mapScroll.getHvalue() * Math.max(0, mapPane.getPrefWidth()  * currentScale - vpBounds.getWidth());
+        double scrollY  = mapScroll.getVvalue() * Math.max(0, mapPane.getPrefHeight() * currentScale - vpBounds.getHeight());
+        // e.getX()/e.getY() sono gia' in coordinate viewport
+        double cursorPaneX = (scrollX + e.getX()) / currentScale;
+        double cursorPaneY = (scrollY + e.getY()) / currentScale;
 
+        // Applica scala con pivot esattamente sul cursore
         currentScale = newScale;
-        zoomGroup.setScaleX(currentScale);
-        zoomGroup.setScaleY(currentScale);
+        zoomTransform.setX(currentScale);
+        zoomTransform.setY(currentScale);
+        zoomTransform.setPivotX(cursorPaneX);
+        zoomTransform.setPivotY(cursorPaneY);
 
-        // Ricalcola dimensioni contenuto dopo zoom
+        // Ricalcola scroll per mantenere il cursore fermo
         double newContentW = mapPane.getPrefWidth()  * currentScale;
         double newContentH = mapPane.getPrefHeight() * currentScale;
-
-        // Mantieni lo stesso punto del cursore al centro della viewport
-        double newH = (mouseContentX - e.getX()) / Math.max(1, newContentW - vp.getWidth());
-        double newV = (mouseContentY - e.getY()) / Math.max(1, newContentH - vp.getHeight());
-        mapScroll.setHvalue(clamp(newH, 0, 1));
-        mapScroll.setVvalue(clamp(newV, 0, 1));
+        double newScrollX  = cursorPaneX * currentScale - e.getX();
+        double newScrollY  = cursorPaneY * currentScale - e.getY();
+        mapScroll.setHvalue(clamp(newScrollX / Math.max(1, newContentW - vpBounds.getWidth()),  0, 1));
+        mapScroll.setVvalue(clamp(newScrollY / Math.max(1, newContentH - vpBounds.getHeight()), 0, 1));
     }
 
     private void animateToCurrentNode() {
@@ -280,7 +284,7 @@ public class MapController {
         if (active) {
             Color cs = Color.web(nodeColor(src.getType()));
             Color cd = Color.web(nodeColor(dest.getType()));
-            line.setStroke(Color.color((cs.getRed()+cd.getRed())/2, (cs.getGreen()+cd.getGreen())/2, (cs.getBlue()+cd.getBlue())/2));
+            line.setStroke(Color.color((cs.getRed()+cd.getRed())/2,(cs.getGreen()+cd.getGreen())/2,(cs.getBlue()+cd.getBlue())/2));
             line.setStrokeWidth(3.0); line.setOpacity(0.85);
         } else {
             line.setStroke(Color.web("#2a2a4a"));
@@ -308,7 +312,6 @@ public class MapController {
     private void showHoverPanel(MapNode node, double cx, double cy, boolean locked) {
         hoverPanel.getChildren().clear();
         String color = locked ? "#6b7280" : nodeColor(node.getType());
-
         Label iconLbl = new Label(locked ? "🔒" : nodeIcon(node.getType()));
         iconLbl.setStyle("-fx-font-size:28px;");
         Label nameLbl = new Label(node.getName());
@@ -407,11 +410,11 @@ public class MapController {
     private void buildLegend() {
         legendBox.getChildren().clear();
         String[][] items = {
-                {"✔",  "#4ade80", "Completato"},
-                {"●",  "#c4b5fd", "Posizione attuale"},
-                {"○",  "white",   "Raggiungibile"},
-                {"○",  "#2a2a4a", "Bloccato"},
-                {"🔒", "#6b7280", "Solo certa classe"}
+                {"✔",   "#4ade80", "Completato"},
+                {"●",   "#c4b5fd", "Posizione attuale"},
+                {"○",   "white",   "Raggiungibile"},
+                {"○",   "#2a2a4a", "Bloccato"},
+                {"🔒",  "#6b7280", "Solo certa classe"}
         };
         for (String[] it : items) {
             Label dot = new Label(it[0]); dot.setStyle("-fx-font-size:14px;-fx-text-fill:" + it[1] + ";");
