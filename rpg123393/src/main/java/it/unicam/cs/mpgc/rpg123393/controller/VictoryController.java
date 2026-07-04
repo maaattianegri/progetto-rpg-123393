@@ -22,7 +22,6 @@ public class VictoryController {
     @FXML private Label levelStatLabel;
     @FXML private Label xpProgressLabel;
 
-    /** Pannello intero delle statistiche run — nascosto di default, visibile solo sul boss finale. */
     @FXML private VBox  runStatsPanel;
     @FXML private Label nodesStatLabel;
     @FXML private Label goldStatLabel;
@@ -67,9 +66,9 @@ public class VictoryController {
         }
         xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + gs.getXpRequired());
 
-        // Statistiche run: visibili SOLO dopo l'ultimo boss
         if (wasLastBoss) {
-            long total = gs.getMapService().getMap().getAllNodes().size();
+            // Run completata: mostra statistiche e CANCELLA il save
+            long total   = gs.getMapService().getMap().getAllNodes().size();
             long cleared = gs.getMapService().getMap().getAllNodes().stream()
                     .filter(n -> n.isCleared()).count();
             nodesStatLabel.setText("\uD83D\uDDFA Nodi completati: " + cleared + "/" + total);
@@ -78,13 +77,15 @@ public class VictoryController {
             upgradesStatLabel.setText("\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
             runStatsPanel.setVisible(true);
             runStatsPanel.setManaged(true);
-        }
-        // se non è l'ultimo boss il pannello rimane hidden (come da FXML)
-
-        try {
-            new JsonSaveRepository().save(gs.toGameState());
-        } catch (IOException e) {
-            System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
+            // Cancella il save: la run è finita, non deve essere ripresa
+            new JsonSaveRepository().deleteSave();
+        } else {
+            // Run in corso: salva normalmente
+            try {
+                new JsonSaveRepository().save(gs.toGameState());
+            } catch (IOException e) {
+                System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
+            }
         }
     }
 

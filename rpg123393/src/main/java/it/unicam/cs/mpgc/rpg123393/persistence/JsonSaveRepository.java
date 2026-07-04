@@ -28,6 +28,15 @@ public class JsonSaveRepository implements SaveRepository {
         return Files.exists(Paths.get(SAVE_FILE));
     }
 
+    @Override
+    public void deleteSave() {
+        try {
+            Files.deleteIfExists(Paths.get(SAVE_FILE));
+        } catch (IOException e) {
+            System.err.println("[WARN] Impossibile cancellare il save: " + e.getMessage());
+        }
+    }
+
     // -------------------------------------------------------
     // Serializzazione
     // -------------------------------------------------------
@@ -45,7 +54,6 @@ public class JsonSaveRepository implements SaveRepository {
         sb.append("  \"saveDate\": \"").append(escape(s.getSaveDate())).append("\",\n");
         sb.append("  \"className\": \"").append(escape(s.getClassName())).append("\",\n");
         sb.append("  \"imagePath\": \"").append(escape(s.getImagePath())).append("\",\n");
-        // unlockedCards come array JSON
         sb.append("  \"unlockedCards\": [");
         List<String> cards = s.getUnlockedCards();
         for (int i = 0; i < cards.size(); i++) {
@@ -58,7 +66,6 @@ public class JsonSaveRepository implements SaveRepository {
 
     private GameState fromJson(String json) {
         GameState s = new GameState();
-        // Parse riga per riga per i campi scalari
         for (String line : json.split("\n")) {
             line = line.trim().replaceAll(",?$", "");
             if      (line.startsWith("\"playerName\""))       s.setPlayerName(stringValue(line));
@@ -72,12 +79,10 @@ public class JsonSaveRepository implements SaveRepository {
             else if (line.startsWith("\"className\""))        s.setClassName(stringValue(line));
             else if (line.startsWith("\"imagePath\""))        s.setImagePath(stringValue(line));
         }
-        // Parse array unlockedCards
         s.setUnlockedCards(parseStringArray(json, "unlockedCards"));
         return s;
     }
 
-    /** Estrae un array JSON di stringhe dato il campo. */
     private List<String> parseStringArray(String json, String field) {
         List<String> result = new ArrayList<>();
         String marker = "\"" + field + "\": [";

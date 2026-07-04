@@ -81,6 +81,12 @@ public class MapController {
         zoomGroup.getTransforms().add(zoomTransform);
         mapPane.getChildren().add(zoomGroup);
 
+        // Disabilita scrollbar native: gestiamo tutto manualmente
+        mapScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        mapScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        // Blocca il pan nativo del ScrollPane
+        mapScroll.setPannable(false);
+
         buildLayout();
         render();
         setupPanAndZoom();
@@ -195,8 +201,6 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        // addEventFilter: cattura l'evento PRIMA che arrivi ai nodi figli,
-        // cosi' il drag funziona anche quando si clicca direttamente su un nodo.
         mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
         mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
         mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
@@ -210,6 +214,8 @@ public class MapController {
     }
 
     private void handleMouseDragged(MouseEvent e) {
+        // Consuma l'evento per evitare interferenze con il ScrollPane nativo
+        e.consume();
         double dx = e.getSceneX() - dragStartX;
         double dy = e.getSceneY() - dragStartY;
         Bounds vp = mapScroll.getViewportBounds();
@@ -227,22 +233,18 @@ public class MapController {
         double newScale = clamp(currentScale * factor, MIN_SCALE, MAX_SCALE);
         if (newScale == currentScale) return;
 
-        // Coordinate del cursore nel sistema di riferimento del Pane (pre-zoom)
         Bounds vpBounds = mapScroll.getViewportBounds();
         double scrollX  = mapScroll.getHvalue() * Math.max(0, mapPane.getPrefWidth()  * currentScale - vpBounds.getWidth());
         double scrollY  = mapScroll.getVvalue() * Math.max(0, mapPane.getPrefHeight() * currentScale - vpBounds.getHeight());
-        // e.getX()/e.getY() sono gia' in coordinate viewport
         double cursorPaneX = (scrollX + e.getX()) / currentScale;
         double cursorPaneY = (scrollY + e.getY()) / currentScale;
 
-        // Applica scala con pivot esattamente sul cursore
         currentScale = newScale;
         zoomTransform.setX(currentScale);
         zoomTransform.setY(currentScale);
         zoomTransform.setPivotX(cursorPaneX);
         zoomTransform.setPivotY(cursorPaneY);
 
-        // Ricalcola scroll per mantenere il cursore fermo
         double newContentW = mapPane.getPrefWidth()  * currentScale;
         double newContentH = mapPane.getPrefHeight() * currentScale;
         double newScrollX  = cursorPaneX * currentScale - e.getX();
@@ -427,7 +429,7 @@ public class MapController {
     private void buildControlsLegend() {
         controlsLegendBox.getChildren().clear();
         String[][] items = {
-                {"Click + drag", "Muoviti nella mappa"},
+                {"Click + drag", "Muoviti nella mappa (orizzontale e verticale)"},
                 {"Scroll ↑",     "Aumenta zoom"},
                 {"Scroll ↓",     "Riduci zoom"},
                 {"Click nodo",   "Avanza al nodo raggiungibile"}

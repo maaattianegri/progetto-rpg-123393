@@ -1,6 +1,7 @@
 package it.unicam.cs.mpgc.rpg123393.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -8,9 +9,8 @@ import java.util.List;
  * POJO serializzabile via JSON.
  *
  * Il campo requiredClass (null = aperto a tutti) limita l'accesso
- * a una specifica classe del player. Il MapController usa questo
- * campo per mostrare il nodo come bloccato (icona 🔒, colore desaturato)
- * e non cliccabile se la classe non corrisponde.
+ * a una specifica classe del player. Supporta classi multiple separate
+ * da pipe, es. "Dracomante|Assassino".
  */
 public class MapNode {
 
@@ -20,7 +20,7 @@ public class MapNode {
     private NodeType type;
     private boolean  visited;
     private boolean  cleared;
-    /** null = accessibile a tutti; altrimenti nome esatto della classe richiesta. */
+    /** null = accessibile a tutti; altrimenti nome/i classe/i richiesta/e separati da '|'. */
     private String   requiredClass;
 
     private List<String> nextNodeIds = new ArrayList<>();
@@ -56,8 +56,14 @@ public class MapNode {
     public List<String> getNextNodeIds()             { return nextNodeIds; }
     public void     setNextNodeIds(List<String> ids) { this.nextNodeIds = ids != null ? ids : new ArrayList<>(); }
 
+    /**
+     * Restituisce true se il nodo è bloccato per la classe data.
+     * Supporta requiredClass multi-valore separato da '|'.
+     */
     public boolean isLockedFor(String playerClass) {
-        return requiredClass != null && !requiredClass.equals(playerClass);
+        if (requiredClass == null || requiredClass.isBlank()) return false;
+        List<String> allowed = Arrays.asList(requiredClass.split("\\|"));
+        return !allowed.contains(playerClass);
     }
 
     public void addNextNode(String nodeId) {
