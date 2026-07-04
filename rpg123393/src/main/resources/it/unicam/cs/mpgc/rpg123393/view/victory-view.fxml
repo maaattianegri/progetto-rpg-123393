@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.Region?>
 
-<VBox alignment="CENTER" spacing="28"
+<VBox alignment="CENTER" spacing="22"
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.VictoryController"
@@ -20,7 +20,7 @@
            style="-fx-font-size: 52px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;
                   -fx-effect: dropshadow(gaussian, #e0c97f, 20, 0.4, 0, 0);"/>
 
-    <!-- Sottotitolo dinamico -->
+    <!-- Sottotitolo -->
     <Label fx:id="summaryLabel" text="Hai sconfitto il nemico!"
            style="-fx-font-size: 18px; -fx-text-fill: #c8c8e0;" wrapText="true" textAlignment="CENTER"/>
 
@@ -36,13 +36,12 @@
                       -fx-background-radius: 20;" visible="false" managed="false"/>
     </HBox>
 
-    <!-- Griglia statistiche -->
+    <!-- Griglia statistiche battaglia -->
     <VBox alignment="CENTER" spacing="0"
           style="-fx-background-color: #22224a; -fx-background-radius: 14;
                  -fx-border-color: #3a3a6a; -fx-border-radius: 14; -fx-border-width: 1;
                  -fx-padding: 0; -fx-max-width: 480;">
 
-        <!-- Header griglia -->
         <HBox alignment="CENTER" spacing="0"
               style="-fx-background-color: #2a2a5a; -fx-background-radius: 14 14 0 0; -fx-padding: 10 0;">
             <Label text="HP RIMASTI" style="-fx-text-fill: #a0a0c0; -fx-font-size: 11px; -fx-font-weight: bold; -fx-pref-width: 160; -fx-alignment: CENTER;"/>
@@ -52,7 +51,6 @@
 
         <Separator style="-fx-background-color: #3a3a6a;"/>
 
-        <!-- Valori griglia -->
         <HBox alignment="CENTER" spacing="0" style="-fx-padding: 18 0;">
             <Label fx:id="hpStatLabel" text="—"
                    style="-fx-text-fill: #4ecca3; -fx-font-size: 22px; -fx-font-weight: bold;
@@ -64,12 +62,38 @@
                    style="-fx-text-fill: #c77dff; -fx-font-size: 22px; -fx-font-weight: bold;
                           -fx-pref-width: 160; -fx-alignment: CENTER;"/>
         </HBox>
-
     </VBox>
 
     <!-- XP verso prossimo livello -->
     <Label fx:id="xpProgressLabel" text=""
            style="-fx-font-size: 13px; -fx-text-fill: #6a6a9a;"/>
+
+    <!-- Pannello statistiche run completa: nascosto di default, visibile solo dopo l'ultimo boss -->
+    <VBox fx:id="runStatsPanel" alignment="CENTER" spacing="0"
+          visible="false" managed="false"
+          style="-fx-background-color: #12101a; -fx-background-radius: 14;
+                 -fx-border-color: #3a2a5a; -fx-border-radius: 14; -fx-border-width: 1;
+                 -fx-padding: 0; -fx-max-width: 480;">
+
+        <HBox alignment="CENTER" spacing="0"
+              style="-fx-background-color: #1e1830; -fx-background-radius: 14 14 0 0; -fx-padding: 10 0;">
+            <Label text="🏆  STATISTICHE RUN COMPLETA"
+                   style="-fx-text-fill: #e0c97f; -fx-font-size: 12px; -fx-font-weight: bold; -fx-alignment: CENTER;"/>
+        </HBox>
+
+        <Separator style="-fx-background-color: #3a2a5a;"/>
+
+        <VBox spacing="10" style="-fx-padding: 18 32;">
+            <Label fx:id="nodesStatLabel" text=""
+                   style="-fx-text-fill: #a0a0c0; -fx-font-size: 14px;"/>
+            <Label fx:id="goldStatLabel" text=""
+                   style="-fx-text-fill: #fbbf24; -fx-font-size: 14px;"/>
+            <Label fx:id="cardsStatLabel" text=""
+                   style="-fx-text-fill: #60a5fa; -fx-font-size: 14px;"/>
+            <Label fx:id="upgradesStatLabel" text=""
+                   style="-fx-text-fill: #c084fc; -fx-font-size: 14px;"/>
+        </VBox>
+    </VBox>
 
     <!-- Bottoni -->
     <VBox alignment="CENTER" spacing="12" style="-fx-padding: 8 0 0 0;">

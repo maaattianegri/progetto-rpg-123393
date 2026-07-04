@@ -9,16 +9,12 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.paint.CycleMethod;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
@@ -30,19 +26,20 @@ import java.util.*;
 
 public class MapController {
 
-    private static final double COL_WIDTH  = 150.0;
-    private static final double ROW_HEIGHT = 130.0;
-    private static final double NODE_R     = 44.0;
-    private static final double ORIGIN_X   = 80.0;
-    private static final double ORIGIN_Y   = 70.0;
+    // Layout constants
+    private static final double COL_WIDTH  = 160.0;
+    private static final double ROW_HEIGHT = 120.0;
+    private static final double NODE_R     = 40.0;
+    private static final double ORIGIN_X   = 90.0;
+    private static final double ORIGIN_Y   = 60.0;
 
-    @FXML private Pane   mapPane;
-    @FXML private Label  progressLabel;
-    @FXML private Label  playerHpLabel;
-    @FXML private Label  playerGoldLabel;
-    @FXML private Label  playerLevelLabel;
-    @FXML private Label  selectedNodeLabel;
-    @FXML private HBox   legendBox;
+    @FXML private Pane  mapPane;
+    @FXML private Label progressLabel;
+    @FXML private Label playerHpLabel;
+    @FXML private Label playerGoldLabel;
+    @FXML private Label playerLevelLabel;
+    @FXML private Label selectedNodeLabel;
+    @FXML private HBox  legendBox;
 
     private VBox hoverPanel;
 
@@ -52,6 +49,7 @@ public class MapController {
     private int         arcano;
     private String      imagePath;
 
+    /** nodeId -> [cx, cy] calcolate dal layout BFS multi-ramo */
     private final Map<String, double[]> positions = new HashMap<>();
 
     public void initData(GameService gs, String playerName, int vigore, int arcano, String imagePath) {
@@ -65,7 +63,16 @@ public class MapController {
     }
 
     // -------------------------------------------------------
-    // Layout BFS
+    // Layout BFS multi-ramo
+    //
+    // Algoritmo:
+    // 1. BFS per assegnare "colonna" (profondità) a ogni nodo.
+    // 2. Per i nodi nella stessa colonna, calcoliamo il numero di
+    //    "slot" totali nella colonna e li distribuiamo verticalmente
+    //    centrandoli rispetto all'altezza del pannello.
+    // 3. Nodi che convergono (es. n03a/b/c tutti -> n04) vengono
+    //    trattati normalmente: n04 è in colonna successiva, da solo,
+    //    quindi verrà centrato.
     // -------------------------------------------------------
 
     private void buildLayout() {
@@ -74,23 +81,22 @@ public class MapController {
         Map<String, MapNode> byId = new HashMap<>();
         for (MapNode n : all) byId.put(n.getId(), n);
 
+        // Trova la radice (nodo senza genitori)
         Set<String> hasParent = new HashSet<>();
         for (MapNode n : all)
             for (String sid : n.getNextNodeIds()) hasParent.add(sid);
-        MapNode root = all.stream().filter(n -> !hasParent.contains(n.getId())).findFirst().orElse(all.get(0));
+        MapNode root = all.stream()
+                .filter(n -> !hasParent.contains(n.getId()))
+                .findFirst().orElse(all.get(0));
 
-        Map<String, Integer> colMap   = new LinkedHashMap<>();
-        Map<String, Integer> colCount = new HashMap<>();
-        Map<String, Integer> rowMap   = new HashMap<>();
+        // BFS: assegna colonna minima (distanza dalla radice)
+        Map<String, Integer> colMap = new LinkedHashMap<>();
         Queue<MapNode> queue = new LinkedList<>();
         queue.add(root);
         colMap.put(root.getId(), 0);
-
         while (!queue.isEmpty()) {
             MapNode cur = queue.poll();
             int col = colMap.get(cur.getId());
-            colCount.merge(String.valueOf(col), 1, Integer::sum);
-            rowMap.put(cur.getId(), colCount.get(String.valueOf(col)) - 1);
             for (String sid : cur.getNextNodeIds()) {
                 if (!colMap.containsKey(sid) && byId.containsKey(sid)) {
                     colMap.put(sid, col + 1);
@@ -99,22 +105,40 @@ public class MapController {
             }
         }
 
-        Map<Integer, Integer> colTotals = new HashMap<>();
-        colMap.forEach((id, col) -> colTotals.merge(col, 1, Integer::sum));
-
-        for (MapNode n : all) {
-            int col = colMap.getOrDefault(n.getId(), 0);
-            int row = rowMap.getOrDefault(n.getId(), 0);
-            int tot = colTotals.getOrDefault(col, 1);
-            double cx = ORIGIN_X + col * COL_WIDTH;
-            double cy = ORIGIN_Y + row * ROW_HEIGHT
-                      + ((double)(3 - tot) / 2.0) * ROW_HEIGHT;
-            positions.put(n.getId(), new double[]{cx, cy});
-        }
+        // Raggruppa nodi per colonna, nell'ordine in cui sono stati visitati dal BFS
+        // (questo preserva l'ordine dei figli, es. n03a sopra n03b sopra n03c)
+        Map<Integer, List<String>> colNodes = new LinkedHashMap<>();
+        colMap.forEach((id, col) ->
+            colNodes.computeIfAbsent(col, k -> new ArrayList<>()).add(id));
 
         int maxCol = colMap.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+
+        // Altezza totale del pannello usabile
+        double totalH = ORIGIN_Y * 2 + (getMaxNodesInAnyCol(colNodes) - 1) * ROW_HEIGHT;
+
+        for (Map.Entry<Integer, List<String>> entry : colNodes.entrySet()) {
+            int col = entry.getKey();
+            List<String> ids = entry.getValue();
+            int count = ids.size();
+            double cx = ORIGIN_X + col * COL_WIDTH;
+
+            // Distribuisci verticalmente, centrati
+            double blockHeight = (count - 1) * ROW_HEIGHT;
+            double startY = totalH / 2.0 - blockHeight / 2.0;
+
+            for (int i = 0; i < count; i++) {
+                double cy = startY + i * ROW_HEIGHT;
+                positions.put(ids.get(i), new double[]{cx, cy});
+            }
+        }
+
         mapPane.setMinWidth(ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 2);
-        mapPane.setMinHeight(ORIGIN_Y * 2 + 3 * ROW_HEIGHT);
+        mapPane.setMinHeight(totalH + NODE_R * 2);
+    }
+
+    private int getMaxNodesInAnyCol(Map<Integer, List<String>> colNodes) {
+        return colNodes.values().stream()
+                .mapToInt(List::size).max().orElse(1);
     }
 
     // -------------------------------------------------------
@@ -128,13 +152,13 @@ public class MapController {
         Map<String, MapNode> byId = new HashMap<>();
         for (MapNode n : all) byId.put(n.getId(), n);
 
-        Optional<MapNode> curOpt = gameService.getCurrentNode();
-        String currentId         = curOpt.map(MapNode::getId).orElse("");
-        List<MapNode> reachable  = gameService.getReachableNodes();
-        Set<String> reachableIds = new HashSet<>();
+        Optional<MapNode> curOpt  = gameService.getCurrentNode();
+        String currentId          = curOpt.map(MapNode::getId).orElse("");
+        List<MapNode> reachable   = gameService.getReachableNodes();
+        Set<String> reachableIds  = new HashSet<>();
         reachable.forEach(n -> reachableIds.add(n.getId()));
 
-        // 1. Linee gradient
+        // 1. Connessioni
         for (MapNode n : all) {
             double[] from = positions.get(n.getId());
             if (from == null) continue;
@@ -174,7 +198,7 @@ public class MapController {
     }
 
     // -------------------------------------------------------
-    // Connessioni con gradient
+    // Connessioni
     // -------------------------------------------------------
 
     private void drawConnection(double[] from, double[] to,
@@ -304,14 +328,14 @@ public class MapController {
         }
 
         Label iconLabel = new Label(isCleared ? "\u2714" : icon);
-        iconLabel.setStyle("-fx-font-size: " + (isCleared ? "18px" : "24px") + ";"
+        iconLabel.setStyle("-fx-font-size: " + (isCleared ? "16px" : "22px") + ";"
                 + "-fx-text-fill: " + (isCleared ? "#4ade80" : "white") + ";");
 
         Label nameLabel = new Label(node.getName());
-        nameLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: "
+        nameLabel.setStyle("-fx-font-size: 9px; -fx-text-fill: "
                 + (isCurrent ? color : isCleared ? "#4ade80" : isReachable ? "white" : "#4a4a6a")
                 + "; -fx-font-weight: " + (isCurrent ? "bold" : "normal") + ";");
-        nameLabel.setMaxWidth(NODE_R * 2 + 20);
+        nameLabel.setMaxWidth(NODE_R * 2 + 10);
         nameLabel.setWrapText(true);
         nameLabel.setAlignment(Pos.CENTER);
 
@@ -376,7 +400,6 @@ public class MapController {
             Stage stage = (Stage) mapPane.getScene().getWindow();
             switch (encounter) {
                 case SHOP -> {
-                    // Nuovo shop: la Fucina torna disponibile per questa visita
                     gameService.resetUpgradeForNextShop();
                     FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");

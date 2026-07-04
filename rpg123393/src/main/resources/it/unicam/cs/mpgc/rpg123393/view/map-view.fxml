@@ -2,7 +2,6 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
@@ -34,18 +33,12 @@
     <HBox fx:id="legendBox" alignment="CENTER" spacing="18"
           style="-fx-padding: 0 32 10 32; -fx-background-color: #0d0d1e;"/>
 
-    <!-- Canvas mappa (scroll orizzontale) -->
-    <ScrollPane fitToHeight="false" fitToWidth="false"
-                hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
-                style="-fx-background: #0d0d1e; -fx-background-color: #0d0d1e;
-                       -fx-border-color: transparent;"
-                VBox.vgrow="ALWAYS">
-        <Pane fx:id="mapPane"
-              style="-fx-background-color: #0d0d1e;"
-              minHeight="420" minWidth="900"/>
-    </ScrollPane>
+    <!-- Canvas mappa (nessuno scroll: la mappa si adatta alla finestra) -->
+    <Pane fx:id="mapPane"
+          style="-fx-background-color: #0d0d1e;"
+          VBox.vgrow="ALWAYS"/>
 
-    <!-- Label nodo selezionato (tooltip testuale) -->
+    <!-- Label nodo selezionato -->
     <HBox alignment="CENTER" style="-fx-padding: 10 32 20 32; -fx-background-color: #0d0d1e;">
         <Label fx:id="selectedNodeLabel" text="Clicca un nodo raggiungibile per avanzare"
                style="-fx-font-size: 13px; -fx-text-fill: #9ca3af;" wrapText="true"

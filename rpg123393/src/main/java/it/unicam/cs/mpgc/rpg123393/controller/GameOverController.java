@@ -1,5 +1,6 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
+import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,6 +16,11 @@ public class GameOverController {
     @FXML private Label hpStatLabel;
     @FXML private Label enemyStatLabel;
     @FXML private Label levelStatLabel;
+
+    @FXML private Label nodesStatLabel;
+    @FXML private Label goldStatLabel;
+    @FXML private Label cardsStatLabel;
+    @FXML private Label upgradesStatLabel;
 
     private String playerName;
     private int    vigore;
@@ -35,7 +41,19 @@ public class GameOverController {
         epilogueLabel.setText(buildEpilogue(e.getName()));
         hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         enemyStatLabel.setText(e.getName());
-        levelStatLabel.setText(String.valueOf(gameService.getPlayerLevel()));
+        levelStatLabel.setText("Lv. " + gameService.getPlayerLevel());
+
+        long nodesCleared = gameService.getMapService().getMap().getAllNodes().stream()
+                .filter(n -> n.isCleared()).count();
+
+        safeSet(nodesStatLabel,    "Nodi completati: " + nodesCleared);
+        safeSet(goldStatLabel,     "\uD83E\uDE99 Oro accumulato: " + gameService.getTotalGoldEarned());
+        safeSet(cardsStatLabel,    "\uD83C\uDCCF Carte nel mazzo: " + gameService.getDeck().size());
+        safeSet(upgradesStatLabel, "\u2B50 Potenziamenti usati: " + gameService.getTotalUpgradesUsed());
+    }
+
+    private void safeSet(Label lbl, String text) {
+        if (lbl != null) lbl.setText(text);
     }
 
     private String buildEpilogue(String enemyName) {
