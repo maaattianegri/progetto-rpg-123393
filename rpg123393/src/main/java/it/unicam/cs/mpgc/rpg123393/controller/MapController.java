@@ -43,17 +43,16 @@ public class MapController {
     private static final double NODE_R     = 40.0;
     private static final double ORIGIN_X   = 120.0;
     private static final double ORIGIN_Y   = 90.0;
-    private static final double MIN_SCALE  = 0.40;
     private static final double MAX_SCALE  = 2.00;
+    // MIN_SCALE non e' piu' statico: viene calcolato dinamicamente in
+    // animateToCurrentNode() dopo che il layout e' noto, come:
+    //   max(vpW / canvasW, vpH / canvasH) * MARGIN
+    // cosi' la mappa non entra mai completamente nel viewport e il
+    // pan e' sempre possibile indipendentemente dalla dimensione della finestra.
+    private static final double MARGIN     = 1.15; // la mappa occupa almeno il 115% del lato piu' corto
 
-    // mapPane e' il Pane dichiarato nel FXML come content dello ScrollPane.
-    // canvas e' il Pane su cui disegniamo nodi e linee; viene wrappato in
-    // un Group (canvasWrapper) che viene impostato come content dello ScrollPane
-    // via codice. Il Group ridimensiona il suo bounding box seguendo
-    // setScaleX/Y del figlio, quindi lo ScrollPane calcola correttamente
-    // il range scrollabile dopo ogni zoom.
     @FXML private ScrollPane mapScroll;
-    @FXML private Pane       mapPane;   // non usato come content - rimane per compatibilita' FXML
+    @FXML private Pane       mapPane;
     @FXML private Label      progressLabel;
     @FXML private Label      playerHpLabel;
     @FXML private Label      playerGoldLabel;
@@ -62,8 +61,8 @@ public class MapController {
     @FXML private HBox       legendBox;
     @FXML private HBox       controlsLegendBox;
 
-    private Pane   canvas;         // superficie di disegno
-    private Group  canvasWrapper;  // wrapper che lo ScrollPane misura
+    private Pane   canvas;
+    private Group  canvasWrapper;
     private VBox   hoverPanel;
 
     private GameService gameService;
@@ -74,6 +73,7 @@ public class MapController {
 
     private final Map<String, double[]> positions = new HashMap<>();
     private double currentScale = 1.0;
+    private double minScale     = 0.40; // aggiornato dinamicamente
     private double dragStartX, dragStartY, dragStartH, dragStartV;
 
     public void initData(GameService gs, String name, int vigore, int arcano, String imagePath) {
@@ -83,19 +83,10 @@ public class MapController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        // canvas: il Pane su cui disegniamo. Ha background scuro e dimensioni
-        // fisiche che corrispondono all'area logica della mappa.
         canvas = new Pane();
         canvas.setStyle("-fx-background-color: #0d0d1e;");
-
-        // canvasWrapper: Group che wrappa canvas. Un Group calcola il suo
-        // layoutBounds come l'unione dei boundsInParent dei figli, includendo
-        // le trasformazioni (scaleX/Y). Cosi' lo ScrollPane vede le dimensioni
-        // reali dopo lo zoom e aggiorna correttamente hmin/hmax/vmin/vmax.
         canvasWrapper = new Group(canvas);
 
-        // Sostituiamo il content dello ScrollPane (era mapPane dal FXML)
-        // con il nostro wrapper programmato.
         mapScroll.setContent(canvasWrapper);
         mapScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         mapScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -240,13 +231,10 @@ public class MapController {
         e.consume();
         double dx = e.getSceneX() - dragStartX;
         double dy = e.getSceneY() - dragStartY;
-
-        // Il bounding box del canvasWrapper include gia' lo zoom (setScaleX/Y su canvas).
-        // Usiamo i layoutBounds del wrapper che lo ScrollPane usa internamente.
-        Bounds contentBounds = canvasWrapper.getLayoutBounds();
+        Bounds cb = canvasWrapper.getLayoutBounds();
         Bounds vp = mapScroll.getViewportBounds();
-        double extraW = contentBounds.getWidth()  - vp.getWidth();
-        double extraH = contentBounds.getHeight() - vp.getHeight();
+        double extraW = cb.getWidth()  - vp.getWidth();
+        double extraH = cb.getHeight() - vp.getHeight();
         if (extraW > 0) mapScroll.setHvalue(clamp(dragStartH - dx / extraW, 0, 1));
         if (extraH > 0) mapScroll.setVvalue(clamp(dragStartV - dy / extraH, 0, 1));
     }
@@ -254,10 +242,11 @@ public class MapController {
     private void handleScroll(ScrollEvent e) {
         e.consume();
         double factor   = e.getDeltaY() > 0 ? 1.10 : 0.90;
-        double newScale = clamp(currentScale * factor, MIN_SCALE, MAX_SCALE);
+        // Usa minScale dinamico: impedisce di zoomare cosi' indietro da
+        // far entrare tutta la mappa nel viewport.
+        double newScale = clamp(currentScale * factor, minScale, MAX_SCALE);
         if (newScale == currentScale) return;
 
-        // Coordinate del cursore nel sistema di riferimento del canvas (pre-zoom)
         Bounds vp = mapScroll.getViewportBounds();
         double scrolledX = mapScroll.getHvalue() * Math.max(0, canvasWrapper.getLayoutBounds().getWidth()  - vp.getWidth());
         double scrolledY = mapScroll.getVvalue() * Math.max(0, canvasWrapper.getLayoutBounds().getHeight() - vp.getHeight());
@@ -265,18 +254,13 @@ public class MapController {
         double cursorCanvasY = (scrolledY + e.getY()) / currentScale;
 
         currentScale = newScale;
-        // setScaleX/Y su canvas: il Group wrapper aggiorna automaticamente
-        // il suo layoutBounds e lo ScrollPane ricalcola hmin/hmax/vmin/vmax.
         canvas.setScaleX(currentScale);
         canvas.setScaleY(currentScale);
-        // Riposiziona il pivot tramite translateX/Y per mantenere il punto
-        // sotto il cursore fisso durante lo zoom.
         canvas.setTranslateX((1 - currentScale) * canvas.getPrefWidth()  / 2);
         canvas.setTranslateY((1 - currentScale) * canvas.getPrefHeight() / 2);
 
-        // Ricalcola Hvalue/Vvalue per mantenere il punto del cursore fermo.
         Platform.runLater(() -> {
-            Bounds nb = canvasWrapper.getLayoutBounds();
+            Bounds nb  = canvasWrapper.getLayoutBounds();
             Bounds nvp = mapScroll.getViewportBounds();
             double newScrollX = cursorCanvasX * currentScale - e.getX();
             double newScrollY = cursorCanvasY * currentScale - e.getY();
@@ -288,15 +272,44 @@ public class MapController {
     }
 
     private void animateToCurrentNode() {
+        // Questo metodo viene chiamato con Platform.runLater, quindi il layout
+        // e' gia' noto e i viewportBounds sono affidabili.
+
+        // 1. Calcola minScale dinamico: il canvas deve sempre essere piu' grande
+        //    del viewport in almeno una dimensione, cosi' il pan e' sempre possibile.
+        Bounds vp = mapScroll.getViewportBounds();
+        double canvasW = canvas.getPrefWidth();
+        double canvasH = canvas.getPrefHeight();
+        if (canvasW > 0 && canvasH > 0 && vp.getWidth() > 0 && vp.getHeight() > 0) {
+            // Lo scale minimo garantisce che canvas * minScale > viewport in almeno un asse.
+            // MARGIN > 1 assicura un piccolo eccesso cosi' extraW/H e' sempre > 0.
+            double minByW = (vp.getWidth()  / canvasW) * MARGIN;
+            double minByH = (vp.getHeight() / canvasH) * MARGIN;
+            // Prendiamo il massimo: vogliamo che la mappa ecceda il viewport
+            // sia in larghezza CHE in altezza, cosi' si puo' sempre scorrere
+            // in entrambe le direzioni.
+            minScale = Math.max(minByW, minByH);
+            // Clamp: non ha senso avere minScale > MAX_SCALE
+            minScale = Math.min(minScale, MAX_SCALE);
+        }
+
+        // 2. Parte con uno zoom leggermente superiore al minimo (visivamente piacevole).
+        currentScale = clamp(minScale * 1.3, minScale, MAX_SCALE);
+        canvas.setScaleX(currentScale);
+        canvas.setScaleY(currentScale);
+        canvas.setTranslateX((1 - currentScale) * canvasW / 2);
+        canvas.setTranslateY((1 - currentScale) * canvasH / 2);
+
+        // 3. Centra sul nodo corrente.
         gameService.getCurrentNode().ifPresent(cur -> {
             double[] pos = positions.get(cur.getId());
             if (pos == null) return;
-            Bounds nb  = canvasWrapper.getLayoutBounds();
-            Bounds vp  = mapScroll.getViewportBounds();
-            double extraW = nb.getWidth()  - vp.getWidth();
-            double extraH = nb.getHeight() - vp.getHeight();
-            double h = extraW > 0 ? clamp((pos[0] * currentScale - vp.getWidth()  / 2) / extraW, 0, 1) : 0;
-            double v = extraH > 0 ? clamp((pos[1] * currentScale - vp.getHeight() / 2) / extraH, 0, 1) : 0;
+            Bounds nb = canvasWrapper.getLayoutBounds();
+            Bounds nvp = mapScroll.getViewportBounds();
+            double extraW = nb.getWidth()  - nvp.getWidth();
+            double extraH = nb.getHeight() - nvp.getHeight();
+            double h = extraW > 0 ? clamp((pos[0] * currentScale - nvp.getWidth()  / 2) / extraW, 0, 1) : 0.5;
+            double v = extraH > 0 ? clamp((pos[1] * currentScale - nvp.getHeight() / 2) / extraH, 0, 1) : 0.5;
             Timeline tl = new Timeline(
                     new KeyFrame(Duration.ZERO,
                             new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
