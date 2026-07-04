@@ -18,6 +18,10 @@ import java.io.IOException;
  *
  * Dopo la scelta, entrambe le opzioni diventano disabilitate
  * e appare il bottone "Continua" per andare alla mappa.
+ *
+ * FIX: il nodo REST viene marcato come cleared in entrambi i percorsi
+ * (onHeal e onUpgrade), così la mappa non lo mostra più come nodo corrente
+ * non completato dopo la visita all'upgrade-view.
  */
 public class RestController {
 
@@ -56,6 +60,8 @@ public class RestController {
         p.heal(healAmount);
         feedbackLabel.setText("\u2764 Hai recuperato " + healAmount + " HP!");
         refreshHp();
+        // Marca il nodo REST come completato
+        gameService.getMapService().advance();
         lockChoices();
     }
 
@@ -63,8 +69,9 @@ public class RestController {
     private void onUpgrade() {
         if (choiceMade) return;
         choiceMade = true;
+        // Marca il nodo REST come completato prima di navigare all'upgrade
+        gameService.getMapService().advance();
         lockChoices();
-        // Apre upgrade-view; quando torna, UpgradeController naviga alla mappa
         try {
             Stage stage = (Stage) titleLabel.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
