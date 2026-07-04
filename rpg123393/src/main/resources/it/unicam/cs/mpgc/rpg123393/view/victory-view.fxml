@@ -68,8 +68,9 @@
     <Label fx:id="xpProgressLabel" text=""
            style="-fx-font-size: 13px; -fx-text-fill: #6a6a9a;"/>
 
-    <!-- Pannello statistiche run completa (visibile solo dopo ultimo boss) -->
-    <VBox alignment="CENTER" spacing="0"
+    <!-- Pannello statistiche run completa: nascosto di default, visibile solo dopo l'ultimo boss -->
+    <VBox fx:id="runStatsPanel" alignment="CENTER" spacing="0"
+          visible="false" managed="false"
           style="-fx-background-color: #12101a; -fx-background-radius: 14;
                  -fx-border-color: #3a2a5a; -fx-border-radius: 14; -fx-border-width: 1;
                  -fx-padding: 0; -fx-max-width: 480;">
@@ -84,13 +85,13 @@
 
         <VBox spacing="10" style="-fx-padding: 18 32;">
             <Label fx:id="nodesStatLabel" text=""
-                   style="-fx-text-fill: #a0a0c0; -fx-font-size: 14px;" visible="false" managed="false"/>
+                   style="-fx-text-fill: #a0a0c0; -fx-font-size: 14px;"/>
             <Label fx:id="goldStatLabel" text=""
-                   style="-fx-text-fill: #fbbf24; -fx-font-size: 14px;" visible="false" managed="false"/>
+                   style="-fx-text-fill: #fbbf24; -fx-font-size: 14px;"/>
             <Label fx:id="cardsStatLabel" text=""
-                   style="-fx-text-fill: #60a5fa; -fx-font-size: 14px;" visible="false" managed="false"/>
+                   style="-fx-text-fill: #60a5fa; -fx-font-size: 14px;"/>
             <Label fx:id="upgradesStatLabel" text=""
-                   style="-fx-text-fill: #c084fc; -fx-font-size: 14px;" visible="false" managed="false"/>
+                   style="-fx-text-fill: #c084fc; -fx-font-size: 14px;"/>
         </VBox>
     </VBox>
 

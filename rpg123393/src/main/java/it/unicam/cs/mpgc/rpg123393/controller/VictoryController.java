@@ -6,6 +6,7 @@ import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -21,6 +22,8 @@ public class VictoryController {
     @FXML private Label levelStatLabel;
     @FXML private Label xpProgressLabel;
 
+    /** Pannello intero delle statistiche run — nascosto di default, visibile solo sul boss finale. */
+    @FXML private VBox  runStatsPanel;
     @FXML private Label nodesStatLabel;
     @FXML private Label goldStatLabel;
     @FXML private Label cardsStatLabel;
@@ -55,8 +58,7 @@ public class VictoryController {
         enemyStatLabel.setText(gs.getEnemy().getName());
         levelStatLabel.setText("Lv. " + gs.getPlayerLevel());
 
-        String goldMsg = "  +" + goldDrop + " \uD83E\uDE99";
-        summaryLabel.setText("Hai sconfitto " + gs.getEnemy().getName() + "!" + goldMsg);
+        summaryLabel.setText("Hai sconfitto " + gs.getEnemy().getName() + "!  +" + goldDrop + " \uD83E\uDE99");
 
         if (!levelUpMsgs.isEmpty()) {
             levelUpBadge.setText("LEVEL UP!");
@@ -65,39 +67,25 @@ public class VictoryController {
         }
         xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + gs.getXpRequired());
 
+        // Statistiche run: visibili SOLO dopo l'ultimo boss
         if (wasLastBoss) {
-            long nodesCleared = gs.getMapService().getMap().getAllNodes().stream()
+            long total = gs.getMapService().getMap().getAllNodes().size();
+            long cleared = gs.getMapService().getMap().getAllNodes().stream()
                     .filter(n -> n.isCleared()).count();
-            safeSet(nodesStatLabel,    "\uD83D\uDDFA Nodi completati: " + nodesCleared
-                    + "/" + gs.getMapService().getMap().getAllNodes().size());
-            safeSet(goldStatLabel,     "\uD83E\uDE99 Oro totale guadagnato: " + gs.getTotalGoldEarned());
-            safeSet(cardsStatLabel,    "\uD83C\uDCCF Carte nel mazzo: " + gs.getDeck().size());
-            safeSet(upgradesStatLabel, "\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
-            showRunStats(true);
-        } else {
-            showRunStats(false);
+            nodesStatLabel.setText("\uD83D\uDDFA Nodi completati: " + cleared + "/" + total);
+            goldStatLabel.setText("\uD83E\uDE99 Oro totale guadagnato: " + gs.getTotalGoldEarned());
+            cardsStatLabel.setText("\uD83C\uDCCF Carte nel mazzo: " + gs.getDeck().size());
+            upgradesStatLabel.setText("\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
+            runStatsPanel.setVisible(true);
+            runStatsPanel.setManaged(true);
         }
+        // se non è l'ultimo boss il pannello rimane hidden (come da FXML)
 
         try {
             new JsonSaveRepository().save(gs.toGameState());
         } catch (IOException e) {
             System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
         }
-    }
-
-    private void showRunStats(boolean visible) {
-        safeVisible(nodesStatLabel,    visible);
-        safeVisible(goldStatLabel,     visible);
-        safeVisible(cardsStatLabel,    visible);
-        safeVisible(upgradesStatLabel, visible);
-    }
-
-    private void safeSet(Label lbl, String text) {
-        if (lbl != null) lbl.setText(text);
-    }
-
-    private void safeVisible(Label lbl, boolean visible) {
-        if (lbl != null) { lbl.setVisible(visible); lbl.setManaged(visible); }
     }
 
     @FXML
