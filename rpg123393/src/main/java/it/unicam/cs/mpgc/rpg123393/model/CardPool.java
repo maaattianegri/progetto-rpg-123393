@@ -94,22 +94,40 @@ public class CardPool {
                 new DragonFangPlusCard(),
                 new DragonClawPlusCard(),
                 new DragonBreathPlusCard(),
-                new ScaleArmorPlusCard()
+                new ScaleArmorPlusCard(),
+                // Paladino
+                new HolyShieldPlusCard(),
+                new DivineLightPlusCard(),
+                new RetributionPlusCard(),
+                new ConsecrationPlusCard(),
+                new IronVowPlusCard(),
+                new SmitePlusCard(),
+                new BlessingPlusCard(),
+                new HammerOfJusticePlusCard()
         );
     }
 
     public static ICard getUpgradedCard(String name) {
         return switch (name) {
-            case "Colpo di Spada"       -> new StrikePlusCard();
-            case "Scudo di Legno"       -> new DefendPlusCard();
-            case "Palla di Fuoco"       -> new FireballPlusCard();
-            case "Colpo Devastante"     -> new DevastatingStrikePlusCard();
-            case "Lama Avvelenata"      -> new PoisonBladePlusCard();
-            case "Zanna di Drago"       -> new DragonFangPlusCard();
-            case "Artiglio del Drago"   -> new DragonClawPlusCard();
-            case "Soffio del Drago"     -> new DragonBreathPlusCard();
-            case "Armatura di Scaglie"  -> new ScaleArmorPlusCard();
-            default                     -> null;
+            case "Colpo di Spada"              -> new StrikePlusCard();
+            case "Scudo di Legno"              -> new DefendPlusCard();
+            case "Palla di Fuoco"              -> new FireballPlusCard();
+            case "Colpo Devastante"            -> new DevastatingStrikePlusCard();
+            case "Lama Avvelenata"             -> new PoisonBladePlusCard();
+            case "Zanna di Drago"              -> new DragonFangPlusCard();
+            case "Artiglio del Drago"          -> new DragonClawPlusCard();
+            case "Soffio del Drago"            -> new DragonBreathPlusCard();
+            case "Armatura di Scaglie"         -> new ScaleArmorPlusCard();
+            // Paladino
+            case "Scudo Sacro"                 -> new HolyShieldPlusCard();
+            case "Luce Divina"                 -> new DivineLightPlusCard();
+            case "Punizione Divina"            -> new RetributionPlusCard();
+            case "Consacrazione"               -> new ConsecrationPlusCard();
+            case "Voto di Ferro"               -> new IronVowPlusCard();
+            case "Castigo Sacro"               -> new SmitePlusCard();
+            case "Benedizione"                 -> new BlessingPlusCard();
+            case "Martello della Giustizia"    -> new HammerOfJusticePlusCard();
+            default                            -> null;
         };
     }
 
