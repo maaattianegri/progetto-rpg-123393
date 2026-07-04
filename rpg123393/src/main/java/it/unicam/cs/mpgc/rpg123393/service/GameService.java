@@ -31,6 +31,7 @@ public class GameService {
     private int           playerLevel = 1;
     private int           playerXp    = 0;
 
+    private String vigore_str;
     private int    vigore;
     private int    arcano;
     private String className;
@@ -42,6 +43,12 @@ public class GameService {
     private List<Relic>   relics        = new ArrayList<>();
 
     private int gold = RunManager.startingGold();
+
+    /** Oro totale guadagnato durante la run (per le statistiche di fine run). */
+    private int totalGoldEarned = 0;
+
+    /** Numero di potenziamenti eseguiti durante la run. */
+    private int totalUpgradesUsed = 0;
 
     /**
      * true se la Fucina dell'Eroe e' gia' stata usata durante la visita
@@ -148,6 +155,7 @@ public class GameService {
     public int collectGoldDrop() {
         int drop = RunManager.goldDrop(mapService.currentEncounterType());
         gold += drop;
+        totalGoldEarned += drop;
         return drop;
     }
 
@@ -163,6 +171,7 @@ public class GameService {
     /** Chiamato da UpgradeController dopo aver effettivamente potenziato una carta. */
     public void markUpgradeUsed() {
         upgradeUsedThisShop = true;
+        totalUpgradesUsed++;
     }
 
     /** Usato da ShopPool per decidere se includere la Fucina nella lista items. */
@@ -366,27 +375,29 @@ public class GameService {
     // Getter
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()         { return player; }
-    public GameCharacter getEnemy()          { return enemy; }
-    public ICard[]       getHand()           { return hand; }
-    public int           getPlayerLevel()    { return playerLevel; }
-    public int           getPlayerXp()       { return playerXp; }
-    public int           getXpRequired()     { return levelService.xpRequiredForNextLevel(playerLevel); }
-    public int           getVigore()         { return vigore; }
-    public int           getArcano()         { return arcano; }
-    public String        getClassName()      { return className; }
-    public String        getImagePath()      { return imagePath; }
-    public List<ICard>   getDeck()           { return deck; }
-    public List<String>  getUnlockedCards()  { return unlockedCards; }
-    public List<Relic>   getRelics()         { return relics; }
-    public int           getGold()           { return gold; }
-    public void setClassName(String c)  { this.className = c; }
-    public void setImagePath(String p)  { this.imagePath = p; }
-    public void addGold(int amount)     { this.gold += amount; }
-    public MapService getMapService()   { return mapService; }
+    public GameCharacter getPlayer()           { return player; }
+    public GameCharacter getEnemy()            { return enemy; }
+    public ICard[]       getHand()             { return hand; }
+    public int           getPlayerLevel()      { return playerLevel; }
+    public int           getPlayerXp()         { return playerXp; }
+    public int           getXpRequired()       { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int           getVigore()           { return vigore; }
+    public int           getArcano()           { return arcano; }
+    public String        getClassName()        { return className; }
+    public String        getImagePath()        { return imagePath; }
+    public List<ICard>   getDeck()             { return deck; }
+    public List<String>  getUnlockedCards()    { return unlockedCards; }
+    public List<Relic>   getRelics()           { return relics; }
+    public int           getGold()             { return gold; }
+    public int           getTotalGoldEarned()  { return totalGoldEarned; }
+    public int           getTotalUpgradesUsed(){ return totalUpgradesUsed; }
+    public void setClassName(String c)   { this.className = c; }
+    public void setImagePath(String p)   { this.imagePath = p; }
+    public void addGold(int amount)      { this.gold += amount; totalGoldEarned += amount; }
+    public MapService getMapService()    { return mapService; }
 
     @Deprecated
-    public RunManager getRunManager()   { return runManager; }
+    public RunManager getRunManager()    { return runManager; }
 
     public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
 }
