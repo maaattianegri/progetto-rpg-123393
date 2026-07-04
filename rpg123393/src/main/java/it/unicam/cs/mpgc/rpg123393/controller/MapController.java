@@ -15,6 +15,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.effect.ColorAdjust;
@@ -29,7 +30,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -46,8 +46,14 @@ public class MapController {
     private static final double MIN_SCALE  = 0.40;
     private static final double MAX_SCALE  = 2.00;
 
+    // mapPane e' il Pane dichiarato nel FXML come content dello ScrollPane.
+    // canvas e' il Pane su cui disegniamo nodi e linee; viene wrappato in
+    // un Group (canvasWrapper) che viene impostato come content dello ScrollPane
+    // via codice. Il Group ridimensiona il suo bounding box seguendo
+    // setScaleX/Y del figlio, quindi lo ScrollPane calcola correttamente
+    // il range scrollabile dopo ogni zoom.
     @FXML private ScrollPane mapScroll;
-    @FXML private Pane       mapPane;
+    @FXML private Pane       mapPane;   // non usato come content - rimane per compatibilita' FXML
     @FXML private Label      progressLabel;
     @FXML private Label      playerHpLabel;
     @FXML private Label      playerGoldLabel;
@@ -56,10 +62,8 @@ public class MapController {
     @FXML private HBox       legendBox;
     @FXML private HBox       controlsLegendBox;
 
-    // zoomGroup ELIMINATO: la Scale viene applicata direttamente a mapPane.
-    // Cosi' lo ScrollPane misura il nodo giusto e il range scrollabile
-    // si aggiorna correttamente quando si cambia scala.
-    private Scale  zoomTransform;
+    private Pane   canvas;         // superficie di disegno
+    private Group  canvasWrapper;  // wrapper che lo ScrollPane misura
     private VBox   hoverPanel;
 
     private GameService gameService;
@@ -79,17 +83,25 @@ public class MapController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        // Applica la trasformazione di scala direttamente a mapPane.
-        // mapPane e' gia' il content dello ScrollPane (dichiarato nel FXML);
-        // applicare Scale su di esso fa si' che lo ScrollPane ricalcoli
-        // le dimensioni scalate e abiliti correttamente il pan.
-        zoomTransform = new Scale(1, 1, 0, 0);
-        mapPane.getTransforms().add(zoomTransform);
-        mapPane.setStyle("-fx-background-color: #0d0d1e;");
+        // canvas: il Pane su cui disegniamo. Ha background scuro e dimensioni
+        // fisiche che corrispondono all'area logica della mappa.
+        canvas = new Pane();
+        canvas.setStyle("-fx-background-color: #0d0d1e;");
 
+        // canvasWrapper: Group che wrappa canvas. Un Group calcola il suo
+        // layoutBounds come l'unione dei boundsInParent dei figli, includendo
+        // le trasformazioni (scaleX/Y). Cosi' lo ScrollPane vede le dimensioni
+        // reali dopo lo zoom e aggiorna correttamente hmin/hmax/vmin/vmax.
+        canvasWrapper = new Group(canvas);
+
+        // Sostituiamo il content dello ScrollPane (era mapPane dal FXML)
+        // con il nostro wrapper programmato.
+        mapScroll.setContent(canvasWrapper);
         mapScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         mapScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         mapScroll.setPannable(false);
+        mapScroll.setFitToHeight(false);
+        mapScroll.setFitToWidth(false);
 
         buildLayout();
         render();
@@ -144,8 +156,8 @@ public class MapController {
 
         double w = ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 4;
         double h = totalH + NODE_R * 4;
-        mapPane.setMinWidth(w);  mapPane.setPrefWidth(w);
-        mapPane.setMinHeight(h); mapPane.setPrefHeight(h);
+        canvas.setMinWidth(w);  canvas.setPrefWidth(w);
+        canvas.setMinHeight(h); canvas.setPrefHeight(h);
     }
 
     // -------------------------------------------------------
@@ -153,8 +165,7 @@ public class MapController {
     // -------------------------------------------------------
 
     private void render() {
-        // Rimuovi tutti i figli tranne la trasformazione (gestita separatamente)
-        mapPane.getChildren().clear();
+        canvas.getChildren().clear();
 
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
         Map<String, MapNode> byId = new HashMap<>();
@@ -180,14 +191,14 @@ public class MapController {
         }
 
         hoverPanel = buildHoverPanel();
-        mapPane.getChildren().add(hoverPanel);
+        canvas.getChildren().add(hoverPanel);
 
         for (MapNode n : all) {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
             boolean locked = n.isLockedFor(playerClass);
             boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
-            mapPane.getChildren().add(buildNodeGraphic(
+            canvas.getChildren().add(buildNodeGraphic(
                     n, pos[0], pos[1],
                     n.isCleared(),
                     n.getId().equals(currentId),
@@ -229,12 +240,13 @@ public class MapController {
         e.consume();
         double dx = e.getSceneX() - dragStartX;
         double dy = e.getSceneY() - dragStartY;
+
+        // Il bounding box del canvasWrapper include gia' lo zoom (setScaleX/Y su canvas).
+        // Usiamo i layoutBounds del wrapper che lo ScrollPane usa internamente.
+        Bounds contentBounds = canvasWrapper.getLayoutBounds();
         Bounds vp = mapScroll.getViewportBounds();
-        // Usa le dimensioni SCALATE del content per calcolare il range scrollabile
-        double contentW = mapPane.getPrefWidth()  * currentScale;
-        double contentH = mapPane.getPrefHeight() * currentScale;
-        double extraW = contentW - vp.getWidth();
-        double extraH = contentH - vp.getHeight();
+        double extraW = contentBounds.getWidth()  - vp.getWidth();
+        double extraH = contentBounds.getHeight() - vp.getHeight();
         if (extraW > 0) mapScroll.setHvalue(clamp(dragStartH - dx / extraW, 0, 1));
         if (extraH > 0) mapScroll.setVvalue(clamp(dragStartV - dy / extraH, 0, 1));
     }
@@ -245,36 +257,46 @@ public class MapController {
         double newScale = clamp(currentScale * factor, MIN_SCALE, MAX_SCALE);
         if (newScale == currentScale) return;
 
-        Bounds vpBounds = mapScroll.getViewportBounds();
-        double scrollX  = mapScroll.getHvalue() * Math.max(0, mapPane.getPrefWidth()  * currentScale - vpBounds.getWidth());
-        double scrollY  = mapScroll.getVvalue() * Math.max(0, mapPane.getPrefHeight() * currentScale - vpBounds.getHeight());
-        double cursorPaneX = (scrollX + e.getX()) / currentScale;
-        double cursorPaneY = (scrollY + e.getY()) / currentScale;
+        // Coordinate del cursore nel sistema di riferimento del canvas (pre-zoom)
+        Bounds vp = mapScroll.getViewportBounds();
+        double scrolledX = mapScroll.getHvalue() * Math.max(0, canvasWrapper.getLayoutBounds().getWidth()  - vp.getWidth());
+        double scrolledY = mapScroll.getVvalue() * Math.max(0, canvasWrapper.getLayoutBounds().getHeight() - vp.getHeight());
+        double cursorCanvasX = (scrolledX + e.getX()) / currentScale;
+        double cursorCanvasY = (scrolledY + e.getY()) / currentScale;
 
         currentScale = newScale;
-        zoomTransform.setX(currentScale);
-        zoomTransform.setY(currentScale);
-        // Pivot sul cursore: il punto sotto il cursore rimane fisso durante lo zoom
-        zoomTransform.setPivotX(cursorPaneX);
-        zoomTransform.setPivotY(cursorPaneY);
+        // setScaleX/Y su canvas: il Group wrapper aggiorna automaticamente
+        // il suo layoutBounds e lo ScrollPane ricalcola hmin/hmax/vmin/vmax.
+        canvas.setScaleX(currentScale);
+        canvas.setScaleY(currentScale);
+        // Riposiziona il pivot tramite translateX/Y per mantenere il punto
+        // sotto il cursore fisso durante lo zoom.
+        canvas.setTranslateX((1 - currentScale) * canvas.getPrefWidth()  / 2);
+        canvas.setTranslateY((1 - currentScale) * canvas.getPrefHeight() / 2);
 
-        double newContentW = mapPane.getPrefWidth()  * currentScale;
-        double newContentH = mapPane.getPrefHeight() * currentScale;
-        double newScrollX  = cursorPaneX * currentScale - e.getX();
-        double newScrollY  = cursorPaneY * currentScale - e.getY();
-        mapScroll.setHvalue(clamp(newScrollX / Math.max(1, newContentW - vpBounds.getWidth()),  0, 1));
-        mapScroll.setVvalue(clamp(newScrollY / Math.max(1, newContentH - vpBounds.getHeight()), 0, 1));
+        // Ricalcola Hvalue/Vvalue per mantenere il punto del cursore fermo.
+        Platform.runLater(() -> {
+            Bounds nb = canvasWrapper.getLayoutBounds();
+            Bounds nvp = mapScroll.getViewportBounds();
+            double newScrollX = cursorCanvasX * currentScale - e.getX();
+            double newScrollY = cursorCanvasY * currentScale - e.getY();
+            double extraW = nb.getWidth()  - nvp.getWidth();
+            double extraH = nb.getHeight() - nvp.getHeight();
+            if (extraW > 0) mapScroll.setHvalue(clamp(newScrollX / extraW, 0, 1));
+            if (extraH > 0) mapScroll.setVvalue(clamp(newScrollY / extraH, 0, 1));
+        });
     }
 
     private void animateToCurrentNode() {
         gameService.getCurrentNode().ifPresent(cur -> {
             double[] pos = positions.get(cur.getId());
             if (pos == null) return;
-            Bounds vp = mapScroll.getViewportBounds();
-            double cw = mapPane.getPrefWidth()  * currentScale;
-            double ch = mapPane.getPrefHeight() * currentScale;
-            double h = clamp((pos[0] * currentScale - vp.getWidth()  / 2) / Math.max(1, cw - vp.getWidth()),  0, 1);
-            double v = clamp((pos[1] * currentScale - vp.getHeight() / 2) / Math.max(1, ch - vp.getHeight()), 0, 1);
+            Bounds nb  = canvasWrapper.getLayoutBounds();
+            Bounds vp  = mapScroll.getViewportBounds();
+            double extraW = nb.getWidth()  - vp.getWidth();
+            double extraH = nb.getHeight() - vp.getHeight();
+            double h = extraW > 0 ? clamp((pos[0] * currentScale - vp.getWidth()  / 2) / extraW, 0, 1) : 0;
+            double v = extraH > 0 ? clamp((pos[1] * currentScale - vp.getHeight() / 2) / extraH, 0, 1) : 0;
             Timeline tl = new Timeline(
                     new KeyFrame(Duration.ZERO,
                             new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
@@ -307,7 +329,7 @@ public class MapController {
             line.getStrokeDashArray().addAll(6.0, 4.0);
             line.setOpacity(0.5);
         }
-        mapPane.getChildren().add(line);
+        canvas.getChildren().add(line);
     }
 
     // -------------------------------------------------------
@@ -341,10 +363,10 @@ public class MapController {
         descLbl.setWrapText(true); descLbl.setMaxWidth(176);
         hoverPanel.getChildren().addAll(iconLbl, nameLbl, typeLbl, descLbl);
 
-        double paneW = mapPane.getWidth() > 0 ? mapPane.getWidth() : mapPane.getPrefWidth();
+        double paneW = canvas.getPrefWidth();
         double px = cx + NODE_R + 10;
         double py = cy - NODE_R;
-        if (paneW > 0 && px + 210 > paneW / currentScale) px = cx - NODE_R - 220;
+        if (paneW > 0 && px + 210 > paneW) px = cx - NODE_R - 220;
         hoverPanel.setLayoutX(Math.max(0, px));
         hoverPanel.setLayoutY(Math.max(0, py));
         hoverPanel.setVisible(true); hoverPanel.setManaged(true); hoverPanel.toFront();
@@ -493,7 +515,7 @@ public class MapController {
         gameService.moveToNode(node.getId());
         EncounterType encounter = gameService.currentEncounter();
         try {
-            Stage stage = (Stage) mapPane.getScene().getWindow();
+            Stage stage = (Stage) mapScroll.getScene().getWindow();
             switch (encounter) {
                 case SHOP -> { gameService.resetUpgradeForNextShop();
                     FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
