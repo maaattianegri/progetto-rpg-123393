@@ -162,7 +162,10 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml");
             GameOverController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            // Passa anche className cosi' GameOverController puo' ricreare
+            // correttamente il GameService in caso di nuova partita.
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath,
+                    gameService.getClassName());
         } catch (IOException e) { e.printStackTrace(); }
     }
 

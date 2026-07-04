@@ -1,6 +1,5 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
-import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -26,13 +25,15 @@ public class GameOverController {
     private int    vigore;
     private int    arcano;
     private String imagePath;
+    private String className;  // necessario per ricreare il GameService correttamente in onRestart
 
     public void initData(GameService gameService, String playerName,
-                         int vigore, int arcano, String imagePath) {
+                         int vigore, int arcano, String imagePath, String className) {
         this.playerName = playerName;
         this.vigore     = vigore;
         this.arcano     = arcano;
         this.imagePath  = imagePath;
+        this.className  = className;
 
         var p = gameService.getPlayer();
         var e = gameService.getEnemy();
@@ -74,7 +75,11 @@ public class GameOverController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
             HelloController ctrl = loader.getController();
-            ctrl.initData(playerName, vigore, arcano, imagePath, new GameService());
+            // Usa l'overload con className: crea un GameService nuovo ma inizializzato
+            // correttamente con classe, stats e mazzo di partenza del personaggio.
+            // NON usare il terzo overload (GameService esistente) perche' passerebbe
+            // un GameService vuoto che causa carte/nemico placeholder.
+            ctrl.initData(playerName, vigore, arcano, imagePath, className);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
