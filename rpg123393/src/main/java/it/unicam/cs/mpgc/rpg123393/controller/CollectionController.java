@@ -37,16 +37,17 @@ public class CollectionController {
     private VBox         selectedTile  = null;
 
     private static final List<String> FILTERS =
-            List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
+            List.of("Tutte", "Starter", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
-    private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.of(
-            "Guerriero",  "#e74c3c",
-            "Paladino",   "#f1c40f",
-            "Mago",       "#9b59b6",
-            "Dracomante", "#e67e22",
-            "Assassino",  "#27ae60",
-            "Neutro",     "#c77dff",
-            "Tutte",      "#e0c97f"
+    private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.ofEntries(
+            java.util.Map.entry("Tutte",      "#e0c97f"),
+            java.util.Map.entry("Starter",    "#9aaaba"),
+            java.util.Map.entry("Guerriero",  "#e74c3c"),
+            java.util.Map.entry("Paladino",   "#f1c40f"),
+            java.util.Map.entry("Mago",       "#9b59b6"),
+            java.util.Map.entry("Dracomante", "#e67e22"),
+            java.util.Map.entry("Assassino",  "#27ae60"),
+            java.util.Map.entry("Neutro",     "#c77dff")
     );
 
     @FXML
@@ -95,12 +96,11 @@ public class CollectionController {
         cardsFlow.getChildren().clear();
         selectedTile = null;
 
-        // Neutro mostra SOLO le carte neutrali (Pozione Rapida, ecc.)
-        // Le Plus di ogni classe appartengono al filtro della propria classe
         List<ICard> pool = switch (filter) {
-            case "Tutte"  -> CardPool.getAllCards();
-            case "Neutro" -> new ArrayList<>(CardPool.getNeutralPool());
-            default       -> CardPool.getClassPool(filter);
+            case "Tutte"   -> CardPool.getAllCards();
+            case "Starter" -> CardPool.getStarterPool();
+            case "Neutro"  -> new ArrayList<>(CardPool.getNeutralPool());
+            default        -> CardPool.getClassPool(filter);
         };
 
         List<String> seen    = new ArrayList<>();
