@@ -17,7 +17,6 @@ public class GameOverController {
     @FXML private Label enemyStatLabel;
     @FXML private Label levelStatLabel;
 
-    // --- statistiche run completa ---
     @FXML private Label nodesStatLabel;
     @FXML private Label goldStatLabel;
     @FXML private Label cardsStatLabel;
@@ -44,16 +43,13 @@ public class GameOverController {
         enemyStatLabel.setText(e.getName());
         levelStatLabel.setText("Lv. " + gameService.getPlayerLevel());
 
-        // Statistiche run
         long nodesCleared = gameService.getMapService().getMap().getAllNodes().stream()
                 .filter(n -> n.isCleared()).count();
-        long eliteCleared = gameService.getMapService().getMap().getAllNodes().stream()
-                .filter(n -> n.isCleared() && n.getType() == NodeType.ELITE).count();
 
-        safeSet(nodesStatLabel,   "Nodi completati: " + nodesCleared);
-        safeSet(goldStatLabel,    "\uD83E\uDE99 Oro accumulato: " + gameService.getTotalGoldEarned());
-        safeSet(cardsStatLabel,   "\uD83C\uDCCF Carte nel mazzo: " + gameService.getPlayer().getDeck().size());
-        safeSet(upgradesStatLabel,"\u2B50 Potenziamenti usati: " + gameService.getTotalUpgradesUsed());
+        safeSet(nodesStatLabel,    "Nodi completati: " + nodesCleared);
+        safeSet(goldStatLabel,     "\uD83E\uDE99 Oro accumulato: " + gameService.getTotalGoldEarned());
+        safeSet(cardsStatLabel,    "\uD83C\uDCCF Carte nel mazzo: " + gameService.getDeck().size());
+        safeSet(upgradesStatLabel, "\u2B50 Potenziamenti usati: " + gameService.getTotalUpgradesUsed());
     }
 
     private void safeSet(Label lbl, String text) {

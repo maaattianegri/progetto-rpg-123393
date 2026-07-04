@@ -1,7 +1,6 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.EncounterType;
-import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
@@ -22,7 +21,6 @@ public class VictoryController {
     @FXML private Label levelStatLabel;
     @FXML private Label xpProgressLabel;
 
-    // --- statistiche run (visibili solo quando wasLastBoss) ---
     @FXML private Label nodesStatLabel;
     @FXML private Label goldStatLabel;
     @FXML private Label cardsStatLabel;
@@ -45,15 +43,12 @@ public class VictoryController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        // 1. Cattura stato PRIMA di muovere il cursore
         this.completedType = gs.currentEncounter();
         this.wasLastBoss   = gs.isLastBoss();
         this.goldDrop      = gs.collectGoldDrop();
 
-        // 2. Avanza sulla mappa
         gs.advanceEncounter();
 
-        // 3. UI base
         var p = gs.getPlayer();
         xpLabel.setText("+" + xpGained + " XP");
         hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
@@ -68,24 +63,21 @@ public class VictoryController {
             levelUpBadge.setVisible(true);
             levelUpBadge.setManaged(true);
         }
-        int xpReq = gs.getXpRequired();
-        xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + xpReq);
+        xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + gs.getXpRequired());
 
-        // 4. Statistiche run complete (mostrate sempre, utili dopo ogni boss)
         if (wasLastBoss) {
             long nodesCleared = gs.getMapService().getMap().getAllNodes().stream()
                     .filter(n -> n.isCleared()).count();
-            safeSet(nodesStatLabel,   "\uD83D\uDDFA Nodi completati: " + nodesCleared
+            safeSet(nodesStatLabel,    "\uD83D\uDDFA Nodi completati: " + nodesCleared
                     + "/" + gs.getMapService().getMap().getAllNodes().size());
-            safeSet(goldStatLabel,    "\uD83E\uDE99 Oro totale guadagnato: " + gs.getTotalGoldEarned());
-            safeSet(cardsStatLabel,   "\uD83C\uDCCF Carte nel mazzo: " + p.getDeck().size());
-            safeSet(upgradesStatLabel,"\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
+            safeSet(goldStatLabel,     "\uD83E\uDE99 Oro totale guadagnato: " + gs.getTotalGoldEarned());
+            safeSet(cardsStatLabel,    "\uD83C\uDCCF Carte nel mazzo: " + gs.getDeck().size());
+            safeSet(upgradesStatLabel, "\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
             showRunStats(true);
         } else {
             showRunStats(false);
         }
 
-        // 5. Salvataggio automatico
         try {
             new JsonSaveRepository().save(gs.toGameState());
         } catch (IOException e) {
@@ -94,10 +86,10 @@ public class VictoryController {
     }
 
     private void showRunStats(boolean visible) {
-        safeVisible(nodesStatLabel,   visible);
-        safeVisible(goldStatLabel,    visible);
-        safeVisible(cardsStatLabel,   visible);
-        safeVisible(upgradesStatLabel,visible);
+        safeVisible(nodesStatLabel,    visible);
+        safeVisible(goldStatLabel,     visible);
+        safeVisible(cardsStatLabel,    visible);
+        safeVisible(upgradesStatLabel, visible);
     }
 
     private void safeSet(Label lbl, String text) {
