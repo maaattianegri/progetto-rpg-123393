@@ -47,13 +47,8 @@ public class MapController {
     private static final double MAX_SCALE  = 2.00;
     private static final double MARGIN     = 1.15;
 
-    // Soglie distanza BFS per il fog of war ibrido:
-    // - dist <= NEAR_DIST  : visibile al 100%, dettagli completi
-    // - dist <= MID_DIST   : opacita' ridotta, icona '?' (tipo nascosto), nome nascosto
-    // - dist >  MID_DIST   : quasi invisibile, solo sagoma grigia
-    // I nodi con isCleared=true (gia' visitati) bypassano sempre il fog.
-    private static final int    NEAR_DIST  = 1;
-    private static final int    MID_DIST   = 3;
+    private static final int    NEAR_DIST    = 1;
+    private static final int    MID_DIST     = 3;
     private static final double OPACITY_MID  = 0.45;
     private static final double OPACITY_FAR  = 0.15;
 
@@ -104,7 +99,14 @@ public class MapController {
         buildLayout();
         render();
         setupPanAndZoom();
-        Platform.runLater(this::animateToCurrentNode);
+
+        // Doppio Platform.runLater: il primo attende la fine del ciclo di layout
+        // corrente (in cui lo ScrollPane calcola il suo size), il secondo attende
+        // il ciclo successivo in cui i viewportBounds sono definitivamente stabili.
+        // Senza questo, al rientro da un'altra schermata (es. battaglia) i bounds
+        // possono essere ancora quelli della scena precedente e minScale risulta
+        // completamente sbagliato.
+        Platform.runLater(() -> Platform.runLater(this::applyInitialZoomAndCenter));
     }
 
     // -------------------------------------------------------
@@ -162,21 +164,12 @@ public class MapController {
     // BFS distanza dal nodo corrente
     // -------------------------------------------------------
 
-    /**
-     * Calcola la distanza BFS di ogni nodo rispetto al nodo corrente.
-     * I nodi non raggiungibili (grafo non connesso in avanti) ricevono
-     * distanza Integer.MAX_VALUE.
-     * La distanza e' calcolata sul grafo NON orientato (si considera anche
-     * il percorso a ritroso) cosi' i nodi gia' visitati dietro di noi
-     * restano 'vicini' e non spariscono nella nebbia.
-     */
     private void computeBfsDistances() {
         bfsDistance.clear();
         String currentId = gameService.getCurrentNode().map(MapNode::getId).orElse("");
         if (currentId.isEmpty()) return;
 
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
-        // Costruisci grafo non orientato
         Map<String, Set<String>> adj = new HashMap<>();
         for (MapNode n : all) {
             adj.computeIfAbsent(n.getId(), k -> new HashSet<>());
@@ -190,7 +183,7 @@ public class MapController {
         bfsDistance.put(currentId, 0);
         q.add(currentId);
         while (!q.isEmpty()) {
-            String id  = q.poll();
+            String id   = q.poll();
             int    dist = bfsDistance.get(id);
             for (String nb : adj.getOrDefault(id, Collections.emptySet())) {
                 if (!bfsDistance.containsKey(nb)) {
@@ -228,8 +221,8 @@ public class MapController {
             for (String sid : n.getNextNodeIds()) {
                 double[] to = positions.get(sid);
                 if (to == null) continue;
-                int distSrc  = bfsDistance.getOrDefault(n.getId(),   Integer.MAX_VALUE);
-                int distDest = bfsDistance.getOrDefault(sid, Integer.MAX_VALUE);
+                int distSrc  = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
+                int distDest = bfsDistance.getOrDefault(sid,       Integer.MAX_VALUE);
                 drawConnection(from, to, n, byId.get(sid), currentId, distSrc, distDest);
             }
         }
@@ -324,40 +317,57 @@ public class MapController {
         });
     }
 
-    private void animateToCurrentNode() {
+    /**
+     * Calcola minScale dai viewportBounds effettivi e applica lo zoom iniziale.
+     * Chiamato via doppio Platform.runLater per garantire che lo ScrollPane
+     * abbia completato almeno due cicli di layout e i bounds siano stabili.
+     */
+    private void applyInitialZoomAndCenter() {
         Bounds vp = mapScroll.getViewportBounds();
         double canvasW = canvas.getPrefWidth();
         double canvasH = canvas.getPrefHeight();
-        if (canvasW > 0 && canvasH > 0 && vp.getWidth() > 0 && vp.getHeight() > 0) {
-            double minByW = (vp.getWidth()  / canvasW) * MARGIN;
-            double minByH = (vp.getHeight() / canvasH) * MARGIN;
-            minScale = Math.min(Math.max(minByW, minByH), MAX_SCALE);
+
+        // Fallback: se i bounds non sono ancora validi (raro ma possibile su
+        // sistemi lenti), aspetta un altro frame con un breve delay.
+        if (vp.getWidth() <= 1 || vp.getHeight() <= 1 || canvasW <= 0 || canvasH <= 0) {
+            new Timeline(new KeyFrame(Duration.millis(80),
+                    e -> applyInitialZoomAndCenter())).play();
+            return;
         }
+
+        double minByW = (vp.getWidth()  / canvasW) * MARGIN;
+        double minByH = (vp.getHeight() / canvasH) * MARGIN;
+        minScale = Math.min(Math.max(minByW, minByH), MAX_SCALE);
 
         currentScale = clamp(minScale * 1.3, minScale, MAX_SCALE);
         canvas.setScaleX(currentScale);
         canvas.setScaleY(currentScale);
-        canvas.setTranslateX((1 - currentScale) * canvas.getPrefWidth()  / 2);
-        canvas.setTranslateY((1 - currentScale) * canvas.getPrefHeight() / 2);
+        canvas.setTranslateX((1 - currentScale) * canvasW / 2);
+        canvas.setTranslateY((1 - currentScale) * canvasH / 2);
 
+        // Centra sul nodo corrente con animazione.
         gameService.getCurrentNode().ifPresent(cur -> {
             double[] pos = positions.get(cur.getId());
             if (pos == null) return;
-            Bounds nb  = canvasWrapper.getLayoutBounds();
-            Bounds nvp = mapScroll.getViewportBounds();
-            double extraW = nb.getWidth()  - nvp.getWidth();
-            double extraH = nb.getHeight() - nvp.getHeight();
-            double h = extraW > 0 ? clamp((pos[0] * currentScale - nvp.getWidth()  / 2) / extraW, 0, 1) : 0.5;
-            double v = extraH > 0 ? clamp((pos[1] * currentScale - nvp.getHeight() / 2) / extraH, 0, 1) : 0.5;
-            Timeline tl = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                            new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
-                            new KeyValue(mapScroll.vvalueProperty(), mapScroll.getVvalue())),
-                    new KeyFrame(Duration.millis(520),
-                            new KeyValue(mapScroll.hvalueProperty(), h),
-                            new KeyValue(mapScroll.vvalueProperty(), v))
-            );
-            tl.play();
+            // Dopo aver applicato la scala, i bounds del wrapper sono aggiornati
+            // al prossimo pulse: usiamo un ulteriore runLater per leggerli.
+            Platform.runLater(() -> {
+                Bounds nb  = canvasWrapper.getLayoutBounds();
+                Bounds nvp = mapScroll.getViewportBounds();
+                double extraW = nb.getWidth()  - nvp.getWidth();
+                double extraH = nb.getHeight() - nvp.getHeight();
+                double h = extraW > 0 ? clamp((pos[0] * currentScale - nvp.getWidth()  / 2) / extraW, 0, 1) : 0.5;
+                double v = extraH > 0 ? clamp((pos[1] * currentScale - nvp.getHeight() / 2) / extraH, 0, 1) : 0.5;
+                Timeline tl = new Timeline(
+                        new KeyFrame(Duration.ZERO,
+                                new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
+                                new KeyValue(mapScroll.vvalueProperty(), mapScroll.getVvalue())),
+                        new KeyFrame(Duration.millis(520),
+                                new KeyValue(mapScroll.hvalueProperty(), h),
+                                new KeyValue(mapScroll.vvalueProperty(), v))
+                );
+                tl.play();
+            });
         });
     }
 
@@ -365,17 +375,10 @@ public class MapController {
     // Connessioni
     // -------------------------------------------------------
 
-    /**
-     * Le connessioni seguono la stessa logica fog dei nodi:
-     * - entrambi i nodi near/cleared  -> linea normale
-     * - almeno un nodo mid            -> linea a meta' opacita'
-     * - almeno un nodo far            -> linea quasi invisibile
-     */
     private void drawConnection(double[] from, double[] to, MapNode src, MapNode dest,
                                 String currentId, int distSrc, int distDest) {
         if (dest == null) return;
 
-        // Opacita' della linea basata sul nodo piu' lontano dei due estremi
         int maxDist = Math.max(
                 src.isCleared()  ? 0 : distSrc,
                 dest.isCleared() ? 0 : distDest
@@ -420,8 +423,6 @@ public class MapController {
     }
 
     private void showHoverPanel(MapNode node, double cx, double cy, boolean locked, int dist) {
-        // Per i nodi nella nebbia non mostriamo l'hover panel con i dettagli.
-        // I nodi cleared sono sempre rivelati indipendentemente dalla distanza.
         if (!node.isCleared() && dist > NEAR_DIST) return;
 
         hoverPanel.getChildren().clear();
@@ -461,17 +462,10 @@ public class MapController {
                                        boolean isCleared, boolean isCurrent,
                                        boolean isReachable, boolean isLocked,
                                        boolean isNewlyReachable, int dist) {
-        // --- FOG OF WAR ---
-        // I nodi cleared (gia' visitati) sono sempre completamente rivelati:
-        // l'esplorazione passata e' permanente.
-        // Il nodo corrente e quelli a distanza <= NEAR_DIST sono visibili al 100%.
-        // Oltre NEAR_DIST e fino a MID_DIST: tipo nascosto ('?'), nome nascosto, blur lieve.
-        // Oltre MID_DIST: solo sagoma grigia, quasi invisibile.
         boolean revealed = isCleared || dist <= NEAR_DIST;
         boolean midFog   = !revealed && dist <= MID_DIST;
         boolean farFog   = !revealed && dist >  MID_DIST;
 
-        // Nei nodi in fog usiamo colore e icona neutri
         String color = revealed
                 ? (isLocked ? "#4b5563" : nodeColor(node.getType()))
                 : "#3a3a5a";
@@ -495,12 +489,10 @@ public class MapController {
 
         Circle bg = new Circle(NODE_R);
         if (farFog) {
-            // Nodo lontano: solo sagoma grigia scura
             bg.setFill(Color.web("#111128"));
             bg.setStroke(Color.web("#1e1e38"));
             bg.setStrokeWidth(1.0);
         } else if (midFog) {
-            // Nodo a media distanza: sagoma con bordo appena visibile
             bg.setFill(Color.web("#14142a"));
             bg.setStroke(Color.web("#2e2e50"));
             bg.setStrokeWidth(1.5);
@@ -523,7 +515,6 @@ public class MapController {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#2a2a4a")); bg.setStrokeWidth(1.5);
         }
 
-        // Icona: '?' per fog, normale altrimenti
         String iconFontSize = (isCleared && revealed) ? "16" : "22";
         String iconColor    = farFog || midFog ? "#252540"
                             : isCleared         ? "#4ade80"
@@ -531,7 +522,6 @@ public class MapController {
         Label iconLabel = new Label(revealed && isCleared ? "\u2714" : icon);
         iconLabel.setStyle("-fx-font-size:" + iconFontSize + "px;-fx-text-fill:" + iconColor + ";");
 
-        // Nome: nascosto in fog, visibile se revealed
         Label nameLabel = new Label(revealed ? node.getName() : "");
         if (revealed) {
             String nameColor = isCurrent        ? color
@@ -553,11 +543,9 @@ public class MapController {
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
-        // Opacita' e blur per fog
-        if      (farFog)  { sp.setOpacity(OPACITY_FAR);  sp.setEffect(new GaussianBlur(4)); }
-        else if (midFog)  { sp.setOpacity(OPACITY_MID); }
+        if      (farFog) { sp.setOpacity(OPACITY_FAR); sp.setEffect(new GaussianBlur(4)); }
+        else if (midFog) { sp.setOpacity(OPACITY_MID); }
 
-        // Animazione reveal per nodi di classe sbloccata
         if (isSecretUnlocked && isNewlyReachable) {
             sp.setOpacity(0);
             sp.setScaleX(0.7); sp.setScaleY(0.7);
@@ -571,7 +559,6 @@ public class MapController {
             seq.play();
         }
 
-        // Interazioni: hover panel solo per nodi rivelati, click solo per raggiungibili
         sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked, dist));
         sp.setOnMouseExited(e  -> hideHoverPanel());
         if (isReachable && revealed) {
