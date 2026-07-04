@@ -39,7 +39,6 @@ public class CollectionController {
     private static final List<String> FILTERS =
             List.of("Tutte", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
-    /** Colori canonici — fonte unica di verità, allineata a class-select-view.fxml e CardStyleHelper. */
     private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.of(
             "Guerriero",  "#e74c3c",
             "Paladino",   "#f1c40f",
@@ -96,10 +95,11 @@ public class CollectionController {
         cardsFlow.getChildren().clear();
         selectedTile = null;
 
+        // Neutro mostra SOLO le carte neutrali (Pozione Rapida, ecc.)
+        // Le Plus di ogni classe appartengono al filtro della propria classe
         List<ICard> pool = switch (filter) {
             case "Tutte"  -> CardPool.getAllCards();
-            case "Neutro" -> { List<ICard> n = new ArrayList<>(CardPool.getNeutralPool());
-                              n.addAll(CardPool.getUpgradedPool()); yield n; }
+            case "Neutro" -> new ArrayList<>(CardPool.getNeutralPool());
             default       -> CardPool.getClassPool(filter);
         };
 
@@ -189,7 +189,7 @@ public class CollectionController {
             case "#9b59b6" -> "🔮 Mago";
             case "#e67e22" -> "🐉 Dracomante";
             case "#27ae60" -> "☠ Assassino";
-            case "#c77dff" -> "✦ Neutrale";
+            case "#c77dff" -> "❆ Neutrale";
             default        -> "";
         };
         detailClass.setText(cls);
