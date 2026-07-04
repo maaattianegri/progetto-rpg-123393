@@ -9,122 +9,147 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Gestisce la generazione e la navigazione della mappa a nodi.
+ * Struttura mappa — trunk corto + bivio precoce verso 4 percorsi finali.
  *
- * Fase 2 — mappa a percorsi multipli:
- * Alcuni nodi hanno più successori, il player sceglie il percorso dalla mappa.
+ * TRUNK
+ *   n00 BATTLE (Ingresso) → n01 BATTLE (Pattuglia) → [BIVIO]
  *
- * Struttura:
+ * RAMO A — Normale (6 nodi + boss finale)
+ *   nA1 BATTLE → nA2 SHOP → nA3 ELITE → nA4 REST → nA5 BATTLE → nA6 ELITE → BOSS_A (Negromante)
  *
- *   n00 (BATTLE) -> n01 (BATTLE) -> n02 (BATTLE) -+-> n03a (ELITE)
- *                                                  +-> n03b (REST)
- *                                                  +-> n03c (EVENT)
- *                                                  |
- *                                       n03a/b/c --+--> n04 (SHOP)
- *                                                       |
- *                                                  n05 (ELITE) -> n06 (ELITE)
- *                                                       |
- *                                                  n07 (SHOP) -+-> n08a (ELITE)
- *                                                              +-> n08b (REST)
- *                                                              +-> n08c (EVENT)  <-- nuovo
- *                                                              |
- *                                          n08a/b/c ----------+--> n09 (SHOP)
- *                                                                  |
- *                                                            n10 (BOSS) -> n11 (BOSS)
+ * RAMO B — Eroico (5 nodi + doppio boss)
+ *   nB1 ELITE → nB2 BATTLE → nB3 SHOP → nB4 ELITE → nB5 ELITE → BOSS_B1 (Vampiro Lord) → BOSS_B2 (Drago Antico)
+ *
+ * RAMO C — Oscuro (2 nodi condivisi poi si biforca)
+ *   nC1 EVENT (condizionale: Dracomante|Assassino) → nC2 ELITE → [BIVIO C]
+ *         ├─ RAMO C1 (Proibito):  nC3 EVENT → BOSS_C1 (Cuore dell'Abisso)
+ *         └─ RAMO C2 (Abissale):  nC4 BATTLE → nC5 ELITE → BOSS_C2 (Re Ombra)
  */
 public class MapService {
 
     private final GameMap map;
 
     public MapService() {
-        this.map = buildBranchingMap();
+        this.map = buildMap();
     }
 
-    // -------------------------------------------------------
-    // Generazione mappa (Fase 2 — bivi reali)
-    // -------------------------------------------------------
+    private GameMap buildMap() {
+        GameMap gm = new GameMap();
 
-    private GameMap buildBranchingMap() {
-        GameMap gameMap = new GameMap();
+        // --- TRUNK (2 nodi) ---
+        MapNode n00 = node("n00", "Ingresso del Dungeon",
+                "Le torce tremolano. Qualcosa si muove nel buio.", NodeType.BATTLE);
+        MapNode n01 = node("n01", "Pattuglia Goblin",
+                "Una pattuglia di Goblin ti intercetta.", NodeType.BATTLE);
 
-        // --- Corridoio iniziale (lineare) ---
-        MapNode n00 = new MapNode("n00", "Ingresso",          "Inizio della run.",                   NodeType.BATTLE);
-        MapNode n01 = new MapNode("n01", "Goblin",            "Un Goblin ti sbarra la strada.",       NodeType.BATTLE);
-        MapNode n02 = new MapNode("n02", "Ratto Gigante",     "Un Ratto Gigante ti attacca.",         NodeType.BATTLE);
+        // --- RAMO A: Normale ---
+        MapNode nA1 = node("nA1", "Corridoio Infestato",
+                "Scheletri ambulanti pattugliano il corridoio.", NodeType.BATTLE);
+        MapNode nA2 = node("nA2", "Mercante Errante",
+                "Un mercante ha allestito il suo banchetto.", NodeType.SHOP);
+        MapNode nA3 = node("nA3", "Orco Berserker",
+                "L'Orco ruggisce e si avventa su di te.", NodeType.ELITE);
+        MapNode nA4 = node("nA4", "Fal\u00f2 Antico",
+                "Le fiamme danzano sul pietrisco consumato dal tempo.", NodeType.REST);
+        MapNode nA5 = node("nA5", "Guardiani della Soglia",
+                "Due soldati non-morti proteggono il passaggio.", NodeType.BATTLE);
+        MapNode nA6 = node("nA6", "Guardia del Negromante",
+                "Un campione non-morto sbarra la porta del boss.", NodeType.ELITE);
+        MapNode nAB = node("nAB", "Negromante",
+                "Il Negromante evoca legioni di non-morti. Nessuno ha mai visto il suo volto.", NodeType.BOSS);
 
-        // --- Primo bivio (3 scelte dopo n02) ---
-        MapNode n03a = new MapNode("n03a", "Orco Berserker",  "L'Orco Berserker ruggisce.",           NodeType.ELITE);
-        MapNode n03b = new MapNode("n03b", "Fal\u00f2",            "Un fuoco crepitante ti aspetta.",      NodeType.REST);
-        MapNode n03c = new MapNode("n03c", "Presenza Oscura", "Qualcosa nell'ombra ti osserva.",     NodeType.EVENT);
+        // --- RAMO B: Eroico ---
+        MapNode nB1 = node("nB1", "Sala del Sangue",
+                "I muri trasudano un'oscurit\u00e0 antica.", NodeType.ELITE);
+        MapNode nB2 = node("nB2", "Cripta dei Caduti",
+                "I guerrieri qui sepolti si rifiutano di restare morti.", NodeType.BATTLE);
+        MapNode nB3 = node("nB3", "Mercante Oscuro",
+                "Vende oggetti proibiti a chi sopravvive fin qui.", NodeType.SHOP);
+        MapNode nB4 = node("nB4", "Cavaliere Vampiro",
+                "Un cavaliere caduto al servizio del buio.", NodeType.ELITE);
+        MapNode nB5 = node("nB5", "Sentinella Cremisi",
+                "L'ultima protezione prima del trono.", NodeType.ELITE);
+        MapNode nBB1 = node("nBB1", "Vampiro Lord",
+                "Il Signore della Notte ti attende sul suo trono di ossa.", NodeType.BOSS);
+        MapNode nBB2 = node("nBB2", "Drago Antico",
+                "Il Drago Antico scuote la terra con ogni passo.", NodeType.BOSS);
 
-        // --- Convergenza al primo shop ---
-        MapNode n04  = new MapNode("n04",  "Mercante",         "Un mercante ti offre i suoi prodotti.", NodeType.SHOP);
+        // --- RAMO C: Oscuro (nC1 condizionale) ---
+        MapNode nC1 = node("nC1", "Cripta Proibita",
+                "Solo chi conosce l'oscurit\u00e0 pu\u00f2 entrare.", NodeType.EVENT, "Dracomante|Assassino");
+        MapNode nC2 = node("nC2", "Sentinella Abissale",
+                "Una creatura di pura tenebra ti sfida.", NodeType.ELITE);
 
-        // --- Tratto centrale (lineare) ---
-        MapNode n05  = new MapNode("n05",  "Scheletro Arcano", "Lo Scheletro Arcano ti fissa.",        NodeType.ELITE);
-        MapNode n06  = new MapNode("n06",  "Troll Rigenerante","Il Troll si rigenera!",               NodeType.ELITE);
-        MapNode n07  = new MapNode("n07",  "Mercante",         "Il mercante ha nuova merce.",           NodeType.SHOP);
+        // Ramo C1 — corto
+        MapNode nC3 = node("nC3", "Rituale Proibito",
+                "Un potere senza nome palpita oltre il velo del reale.", NodeType.EVENT);
+        MapNode nCB1 = node("nCB1", "Cuore dell'Abisso",
+                "L'entit\u00e0 primordiale si risveglia.", NodeType.BOSS);
 
-        // --- Secondo bivio (3 scelte dopo n07) ---
-        MapNode n08a = new MapNode("n08a", "Banshee",          "La Banshee urla nel buio.",            NodeType.ELITE);
-        MapNode n08b = new MapNode("n08b", "Rifugio",          "Un angolo tranquillo per riposare.",   NodeType.REST);
-        MapNode n08c = new MapNode("n08c", "Voce nell'Ombra",  "Una voce ti sussurra dal buio.",       NodeType.EVENT);
-
-        // --- Convergenza al terzo shop ---
-        MapNode n09  = new MapNode("n09",  "Mercante",         "Ultima chance prima del boss.",        NodeType.SHOP);
-
-        // --- Boss finali ---
-        MapNode n10  = new MapNode("n10",  "Negromante",       "Il Negromante evoca non-morti.",       NodeType.BOSS);
-        MapNode n11  = new MapNode("n11",  "Drago Antico",     "Il Drago Antico scuote la terra.",     NodeType.BOSS);
+        // Ramo C2 — lungo
+        MapNode nC4 = node("nC4", "Torre degli Echi",
+                "Le urla di chi ha fallito risuonano tra le mura.", NodeType.BATTLE);
+        MapNode nC5 = node("nC5", "Custode delle Ombre",
+                "Il guardiano del Re Ombra non concede passaggio.", NodeType.ELITE);
+        MapNode nCB2 = node("nCB2", "Re Ombra",
+                "Il signore segreto del dungeon emerge dall'oscurit\u00e0.", NodeType.BOSS);
 
         // ---- Connessioni ----
 
-        // Corridoio iniziale
+        // Trunk
         n00.addNextNode("n01");
-        n01.addNextNode("n02");
+        // Bivio principale dopo n01
+        n01.addNextNode("nA1");
+        n01.addNextNode("nB1");
+        n01.addNextNode("nC1");
 
-        // Primo bivio
-        n02.addNextNode("n03a");
-        n02.addNextNode("n03b");
-        n02.addNextNode("n03c");
+        // Ramo A
+        nA1.addNextNode("nA2");
+        nA2.addNextNode("nA3");
+        nA3.addNextNode("nA4");
+        nA4.addNextNode("nA5");
+        nA5.addNextNode("nA6");
+        nA6.addNextNode("nAB");
 
-        // Convergenza al primo shop
-        n03a.addNextNode("n04");
-        n03b.addNextNode("n04");
-        n03c.addNextNode("n04");
+        // Ramo B
+        nB1.addNextNode("nB2");
+        nB2.addNextNode("nB3");
+        nB3.addNextNode("nB4");
+        nB4.addNextNode("nB5");
+        nB5.addNextNode("nBB1");
+        nBB1.addNextNode("nBB2");
 
-        // Tratto centrale
-        n04.addNextNode("n05");
-        n05.addNextNode("n06");
-        n06.addNextNode("n07");
+        // Ramo C — tronco comune
+        nC1.addNextNode("nC2");
+        // Bivio secondario
+        nC2.addNextNode("nC3");
+        nC2.addNextNode("nC4");
+        // C1
+        nC3.addNextNode("nCB1");
+        // C2
+        nC4.addNextNode("nC5");
+        nC5.addNextNode("nCB2");
 
-        // Secondo bivio (ora 3 opzioni)
-        n07.addNextNode("n08a");
-        n07.addNextNode("n08b");
-        n07.addNextNode("n08c");
-
-        // Convergenza al terzo shop
-        n08a.addNextNode("n09");
-        n08b.addNextNode("n09");
-        n08c.addNextNode("n09");
-
-        // Boss
-        n09.addNextNode("n10");
-        n10.addNextNode("n11");
-        // n11 non ha successori — fine della run
-
-        // ---- Aggiungi tutti i nodi ----
-        for (MapNode n : List.of(n00, n01, n02, n03a, n03b, n03c,
-                                  n04, n05, n06, n07, n08a, n08b, n08c,
-                                  n09, n10, n11)) {
-            gameMap.addNode(n);
+        // Aggiunta alla mappa
+        for (MapNode n : List.of(
+                n00, n01,
+                nA1, nA2, nA3, nA4, nA5, nA6, nAB,
+                nB1, nB2, nB3, nB4, nB5, nBB1, nBB2,
+                nC1, nC2, nC3, nCB1, nC4, nC5, nCB2)) {
+            gm.addNode(n);
         }
 
-        // Posiziona il giocatore al nodo iniziale
-        gameMap.setCurrentNodeId("n00");
+        gm.setCurrentNodeId("n00");
         n00.setVisited(true);
+        return gm;
+    }
 
-        return gameMap;
+    private static MapNode node(String id, String name, String desc, NodeType type) {
+        return new MapNode(id, name, desc, type);
+    }
+
+    private static MapNode node(String id, String name, String desc, NodeType type, String requiredClass) {
+        return new MapNode(id, name, desc, type, requiredClass);
     }
 
     // -------------------------------------------------------
@@ -133,39 +158,22 @@ public class MapService {
 
     public GameMap getMap() { return map; }
 
-    /**
-     * Tipo di incontro del nodo corrente.
-     */
     public EncounterType currentEncounterType() {
-        return map.getCurrentNode()
-                .map(MapNode::toEncounterType)
-                .orElse(EncounterType.NORMAL);
+        return map.getCurrentNode().map(MapNode::toEncounterType).orElse(EncounterType.NORMAL);
     }
 
-    /**
-     * Marca il nodo corrente come cleared (incontro completato).
-     * NON sposta il cursore: la navigazione al nodo successivo è sempre
-     * delegata all'utente tramite click sulla mappa (moveToNode).
-     */
     public Optional<MapNode> advance() {
         map.clearCurrentNode();
         return Optional.empty();
     }
 
-    /**
-     * Sposta il giocatore verso un nodo specifico scelto dalla mappa.
-     *
-     * @return true se lo spostamento è valido (il nodo è tra i successori del corrente).
-     */
     public boolean moveToNode(String nodeId) {
         map.clearCurrentNode();
         return map.moveTo(nodeId);
     }
 
     public boolean isCurrentNodeBoss() {
-        return map.getCurrentNode()
-                .map(n -> n.getType() == NodeType.BOSS)
-                .orElse(false);
+        return map.getCurrentNode().map(n -> n.getType() == NodeType.BOSS).orElse(false);
     }
 
     public boolean isCurrentNodeLastBoss() {
@@ -174,32 +182,23 @@ public class MapService {
                 .orElse(false);
     }
 
-    /**
-     * Numero di shop completati. Usato da ShopPool per scalare i prezzi.
-     */
     public int completedShopCount() {
         return (int) map.getAllNodes().stream()
-                .filter(n -> n.getType() == NodeType.SHOP && n.isCleared())
-                .count();
+                .filter(n -> n.getType() == NodeType.SHOP && n.isCleared()).count();
     }
 
     public int shopRound() {
         return Math.max(1, completedShopCount() + 1);
     }
 
-    /** Ripristina la mappa da uno stato salvato. */
     public void restoreMap(String currentNodeId, List<String> clearedNodeIds) {
         if (currentNodeId != null) {
             map.setCurrentNodeId(currentNodeId);
             map.getNodeById(currentNodeId).ifPresent(n -> n.setVisited(true));
         }
         if (clearedNodeIds != null) {
-            for (String id : clearedNodeIds) {
-                map.getNodeById(id).ifPresent(n -> {
-                    n.setVisited(true);
-                    n.setCleared(true);
-                });
-            }
+            for (String id : clearedNodeIds)
+                map.getNodeById(id).ifPresent(n -> { n.setVisited(true); n.setCleared(true); });
         }
     }
 }

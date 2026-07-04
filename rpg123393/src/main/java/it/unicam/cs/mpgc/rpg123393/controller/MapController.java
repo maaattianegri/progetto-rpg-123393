@@ -4,12 +4,24 @@ import it.unicam.cs.mpgc.rpg123393.model.EncounterType;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -26,22 +38,32 @@ import java.util.*;
 
 public class MapController {
 
-    // Layout constants
-    private static final double COL_WIDTH  = 160.0;
-    private static final double ROW_HEIGHT = 120.0;
+    private static final double COL_WIDTH  = 180.0;
+    private static final double ROW_HEIGHT = 140.0;
     private static final double NODE_R     = 40.0;
-    private static final double ORIGIN_X   = 90.0;
-    private static final double ORIGIN_Y   = 60.0;
+    private static final double ORIGIN_X   = 120.0;
+    private static final double ORIGIN_Y   = 90.0;
+    private static final double MAX_SCALE  = 2.00;
+    // MIN_SCALE non e' piu' statico: viene calcolato dinamicamente in
+    // animateToCurrentNode() dopo che il layout e' noto, come:
+    //   max(vpW / canvasW, vpH / canvasH) * MARGIN
+    // cosi' la mappa non entra mai completamente nel viewport e il
+    // pan e' sempre possibile indipendentemente dalla dimensione della finestra.
+    private static final double MARGIN     = 1.15; // la mappa occupa almeno il 115% del lato piu' corto
 
-    @FXML private Pane  mapPane;
-    @FXML private Label progressLabel;
-    @FXML private Label playerHpLabel;
-    @FXML private Label playerGoldLabel;
-    @FXML private Label playerLevelLabel;
-    @FXML private Label selectedNodeLabel;
-    @FXML private HBox  legendBox;
+    @FXML private ScrollPane mapScroll;
+    @FXML private Pane       mapPane;
+    @FXML private Label      progressLabel;
+    @FXML private Label      playerHpLabel;
+    @FXML private Label      playerGoldLabel;
+    @FXML private Label      playerLevelLabel;
+    @FXML private Label      selectedNodeLabel;
+    @FXML private HBox       legendBox;
+    @FXML private HBox       controlsLegendBox;
 
-    private VBox hoverPanel;
+    private Pane   canvas;
+    private Group  canvasWrapper;
+    private VBox   hoverPanel;
 
     private GameService gameService;
     private String      playerName;
@@ -49,21 +71,37 @@ public class MapController {
     private int         arcano;
     private String      imagePath;
 
-    /** nodeId -> [cx, cy] calcolate dal layout BFS multi-ramo */
     private final Map<String, double[]> positions = new HashMap<>();
+    private double currentScale = 1.0;
+    private double minScale     = 0.40; // aggiornato dinamicamente
+    private double dragStartX, dragStartY, dragStartH, dragStartV;
 
-    public void initData(GameService gs, String playerName, int vigore, int arcano, String imagePath) {
+    public void initData(GameService gs, String name, int vigore, int arcano, String imagePath) {
         this.gameService = gs;
-        this.playerName  = playerName;
+        this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
+
+        canvas = new Pane();
+        canvas.setStyle("-fx-background-color: #0d0d1e;");
+        canvasWrapper = new Group(canvas);
+
+        mapScroll.setContent(canvasWrapper);
+        mapScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        mapScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        mapScroll.setPannable(false);
+        mapScroll.setFitToHeight(false);
+        mapScroll.setFitToWidth(false);
+
         buildLayout();
         render();
+        setupPanAndZoom();
+        Platform.runLater(this::animateToCurrentNode);
     }
 
     // -------------------------------------------------------
-    // Layout BFS multi-ramo
+    // Layout BFS
     // -------------------------------------------------------
 
     private void buildLayout() {
@@ -72,19 +110,13 @@ public class MapController {
         Map<String, MapNode> byId = new HashMap<>();
         for (MapNode n : all) byId.put(n.getId(), n);
 
-        // Trova la radice (nodo senza genitori)
         Set<String> hasParent = new HashSet<>();
-        for (MapNode n : all)
-            for (String sid : n.getNextNodeIds()) hasParent.add(sid);
-        MapNode root = all.stream()
-                .filter(n -> !hasParent.contains(n.getId()))
-                .findFirst().orElse(all.get(0));
+        for (MapNode n : all) for (String sid : n.getNextNodeIds()) hasParent.add(sid);
+        MapNode root = all.stream().filter(n -> !hasParent.contains(n.getId())).findFirst().orElse(all.get(0));
 
-        // BFS: assegna colonna minima (distanza dalla radice)
         Map<String, Integer> colMap = new LinkedHashMap<>();
         Queue<MapNode> queue = new LinkedList<>();
-        queue.add(root);
-        colMap.put(root.getId(), 0);
+        queue.add(root); colMap.put(root.getId(), 0);
         while (!queue.isEmpty()) {
             MapNode cur = queue.poll();
             int col = colMap.get(cur.getId());
@@ -96,44 +128,27 @@ public class MapController {
             }
         }
 
-        // Raggruppa nodi per colonna nell'ordine BFS
         Map<Integer, List<String>> colNodes = new LinkedHashMap<>();
-        colMap.forEach((id, col) ->
-            colNodes.computeIfAbsent(col, k -> new ArrayList<>()).add(id));
+        colMap.forEach((id, col) -> colNodes.computeIfAbsent(col, k -> new ArrayList<>()).add(id));
 
-        int maxCol = colMap.values().stream().mapToInt(Integer::intValue).max().orElse(0);
-        int maxRows = getMaxNodesInAnyCol(colNodes);
-
-        // Altezza totale basata sul numero massimo di nodi in una colonna.
-        // Usiamo almeno 3 righe come floor per evitare layout troppo compresso.
+        int maxCol  = colMap.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+        int maxRows = colNodes.values().stream().mapToInt(List::size).max().orElse(1);
         double totalH = ORIGIN_Y * 2 + (Math.max(maxRows, 3) - 1) * ROW_HEIGHT;
 
         for (Map.Entry<Integer, List<String>> entry : colNodes.entrySet()) {
             int col = entry.getKey();
             List<String> ids = entry.getValue();
-            int count = ids.size();
             double cx = ORIGIN_X + col * COL_WIDTH;
-
-            // Distribuisci verticalmente, centrati rispetto a totalH
-            double blockHeight = (count - 1) * ROW_HEIGHT;
-            double startY = totalH / 2.0 - blockHeight / 2.0;
-
-            for (int i = 0; i < count; i++) {
-                double cy = startY + i * ROW_HEIGHT;
-                positions.put(ids.get(i), new double[]{cx, cy});
-            }
+            double blockH = (ids.size() - 1) * ROW_HEIGHT;
+            double startY = totalH / 2.0 - blockH / 2.0;
+            for (int i = 0; i < ids.size(); i++)
+                positions.put(ids.get(i), new double[]{cx, startY + i * ROW_HEIGHT});
         }
 
-        // FIX: setMinWidth/MinHeight garantisce che il Pane non clippi i nodi
-        // anche con mappe ampie. Il padding laterale di NODE_R*3 dà spazio
-        // sufficiente per l'hover panel senza uscire dal viewport.
-        mapPane.setMinWidth(ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 3);
-        mapPane.setMinHeight(totalH + NODE_R * 3);
-    }
-
-    private int getMaxNodesInAnyCol(Map<Integer, List<String>> colNodes) {
-        return colNodes.values().stream()
-                .mapToInt(List::size).max().orElse(1);
+        double w = ORIGIN_X * 2 + maxCol * COL_WIDTH + NODE_R * 4;
+        double h = totalH + NODE_R * 4;
+        canvas.setMinWidth(w);  canvas.setPrefWidth(w);
+        canvas.setMinHeight(h); canvas.setPrefHeight(h);
     }
 
     // -------------------------------------------------------
@@ -141,82 +156,193 @@ public class MapController {
     // -------------------------------------------------------
 
     private void render() {
-        mapPane.getChildren().clear();
+        canvas.getChildren().clear();
 
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
         Map<String, MapNode> byId = new HashMap<>();
         for (MapNode n : all) byId.put(n.getId(), n);
 
-        Optional<MapNode> curOpt  = gameService.getCurrentNode();
-        String currentId          = curOpt.map(MapNode::getId).orElse("");
-        List<MapNode> reachable   = gameService.getReachableNodes();
-        Set<String> reachableIds  = new HashSet<>();
-        reachable.forEach(n -> reachableIds.add(n.getId()));
+        String currentId = gameService.getCurrentNode().map(MapNode::getId).orElse("");
+        Set<String> reachableIds = new HashSet<>();
+        gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
+        String playerClass = gameService.getClassName();
 
-        // 1. Connessioni
+        Set<String> currentNodeNextIds = gameService.getCurrentNode()
+                .map(n -> new HashSet<>(n.getNextNodeIds()))
+                .orElse(new HashSet<>());
+
         for (MapNode n : all) {
             double[] from = positions.get(n.getId());
             if (from == null) continue;
             for (String sid : n.getNextNodeIds()) {
-                MapNode dest = byId.get(sid);
-                if (dest == null) continue;
                 double[] to = positions.get(sid);
                 if (to == null) continue;
-                drawConnection(from, to, n, dest, currentId);
+                drawConnection(from, to, n, byId.get(sid), currentId);
             }
         }
 
-        // 2. Hover panel (aggiunto prima dei nodi così sta sotto)
         hoverPanel = buildHoverPanel();
-        mapPane.getChildren().add(hoverPanel);
+        canvas.getChildren().add(hoverPanel);
 
-        // 3. Nodi
         for (MapNode n : all) {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
-            mapPane.getChildren().add(buildNodeGraphic(
-                n, pos[0], pos[1],
-                n.isCleared(),
-                n.getId().equals(currentId),
-                reachableIds.contains(n.getId())
+            boolean locked = n.isLockedFor(playerClass);
+            boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
+            canvas.getChildren().add(buildNodeGraphic(
+                    n, pos[0], pos[1],
+                    n.isCleared(),
+                    n.getId().equals(currentId),
+                    reachableIds.contains(n.getId()) && !locked,
+                    locked,
+                    isNewlyReachable
             ));
         }
 
-        // 4. Header stats
         var p = gameService.getPlayer();
         playerHpLabel.setText("\u2764 " + p.getCurrentHp() + "/" + p.getMaxHp());
-        playerGoldLabel.setText("\uD83E\uDE99 " + gameService.getGold());
+        playerGoldLabel.setText("\ud83e\ude99 " + gameService.getGold());
         playerLevelLabel.setText("Lv. " + gameService.getPlayerLevel());
         progressLabel.setText(gameService.getEncounterIndex() + " / " + gameService.getEncounterTotal() + " nodi");
-
+        selectedNodeLabel.setText("Trascina per muoverti \u2022 Rotella per zoomare \u2022 Clicca un nodo raggiungibile per avanzare");
         buildLegend();
+        buildControlsLegend();
+    }
+
+    // -------------------------------------------------------
+    // Pan & Zoom
+    // -------------------------------------------------------
+
+    private void setupPanAndZoom() {
+        mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
+        mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
+        mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
+    }
+
+    private void handleMousePressed(MouseEvent e) {
+        dragStartX = e.getSceneX();
+        dragStartY = e.getSceneY();
+        dragStartH = mapScroll.getHvalue();
+        dragStartV = mapScroll.getVvalue();
+        e.consume();
+    }
+
+    private void handleMouseDragged(MouseEvent e) {
+        e.consume();
+        double dx = e.getSceneX() - dragStartX;
+        double dy = e.getSceneY() - dragStartY;
+        Bounds cb = canvasWrapper.getLayoutBounds();
+        Bounds vp = mapScroll.getViewportBounds();
+        double extraW = cb.getWidth()  - vp.getWidth();
+        double extraH = cb.getHeight() - vp.getHeight();
+        if (extraW > 0) mapScroll.setHvalue(clamp(dragStartH - dx / extraW, 0, 1));
+        if (extraH > 0) mapScroll.setVvalue(clamp(dragStartV - dy / extraH, 0, 1));
+    }
+
+    private void handleScroll(ScrollEvent e) {
+        e.consume();
+        double factor   = e.getDeltaY() > 0 ? 1.10 : 0.90;
+        // Usa minScale dinamico: impedisce di zoomare cosi' indietro da
+        // far entrare tutta la mappa nel viewport.
+        double newScale = clamp(currentScale * factor, minScale, MAX_SCALE);
+        if (newScale == currentScale) return;
+
+        Bounds vp = mapScroll.getViewportBounds();
+        double scrolledX = mapScroll.getHvalue() * Math.max(0, canvasWrapper.getLayoutBounds().getWidth()  - vp.getWidth());
+        double scrolledY = mapScroll.getVvalue() * Math.max(0, canvasWrapper.getLayoutBounds().getHeight() - vp.getHeight());
+        double cursorCanvasX = (scrolledX + e.getX()) / currentScale;
+        double cursorCanvasY = (scrolledY + e.getY()) / currentScale;
+
+        currentScale = newScale;
+        canvas.setScaleX(currentScale);
+        canvas.setScaleY(currentScale);
+        canvas.setTranslateX((1 - currentScale) * canvas.getPrefWidth()  / 2);
+        canvas.setTranslateY((1 - currentScale) * canvas.getPrefHeight() / 2);
+
+        Platform.runLater(() -> {
+            Bounds nb  = canvasWrapper.getLayoutBounds();
+            Bounds nvp = mapScroll.getViewportBounds();
+            double newScrollX = cursorCanvasX * currentScale - e.getX();
+            double newScrollY = cursorCanvasY * currentScale - e.getY();
+            double extraW = nb.getWidth()  - nvp.getWidth();
+            double extraH = nb.getHeight() - nvp.getHeight();
+            if (extraW > 0) mapScroll.setHvalue(clamp(newScrollX / extraW, 0, 1));
+            if (extraH > 0) mapScroll.setVvalue(clamp(newScrollY / extraH, 0, 1));
+        });
+    }
+
+    private void animateToCurrentNode() {
+        // Questo metodo viene chiamato con Platform.runLater, quindi il layout
+        // e' gia' noto e i viewportBounds sono affidabili.
+
+        // 1. Calcola minScale dinamico: il canvas deve sempre essere piu' grande
+        //    del viewport in almeno una dimensione, cosi' il pan e' sempre possibile.
+        Bounds vp = mapScroll.getViewportBounds();
+        double canvasW = canvas.getPrefWidth();
+        double canvasH = canvas.getPrefHeight();
+        if (canvasW > 0 && canvasH > 0 && vp.getWidth() > 0 && vp.getHeight() > 0) {
+            // Lo scale minimo garantisce che canvas * minScale > viewport in almeno un asse.
+            // MARGIN > 1 assicura un piccolo eccesso cosi' extraW/H e' sempre > 0.
+            double minByW = (vp.getWidth()  / canvasW) * MARGIN;
+            double minByH = (vp.getHeight() / canvasH) * MARGIN;
+            // Prendiamo il massimo: vogliamo che la mappa ecceda il viewport
+            // sia in larghezza CHE in altezza, cosi' si puo' sempre scorrere
+            // in entrambe le direzioni.
+            minScale = Math.max(minByW, minByH);
+            // Clamp: non ha senso avere minScale > MAX_SCALE
+            minScale = Math.min(minScale, MAX_SCALE);
+        }
+
+        // 2. Parte con uno zoom leggermente superiore al minimo (visivamente piacevole).
+        currentScale = clamp(minScale * 1.3, minScale, MAX_SCALE);
+        canvas.setScaleX(currentScale);
+        canvas.setScaleY(currentScale);
+        canvas.setTranslateX((1 - currentScale) * canvasW / 2);
+        canvas.setTranslateY((1 - currentScale) * canvasH / 2);
+
+        // 3. Centra sul nodo corrente.
+        gameService.getCurrentNode().ifPresent(cur -> {
+            double[] pos = positions.get(cur.getId());
+            if (pos == null) return;
+            Bounds nb = canvasWrapper.getLayoutBounds();
+            Bounds nvp = mapScroll.getViewportBounds();
+            double extraW = nb.getWidth()  - nvp.getWidth();
+            double extraH = nb.getHeight() - nvp.getHeight();
+            double h = extraW > 0 ? clamp((pos[0] * currentScale - nvp.getWidth()  / 2) / extraW, 0, 1) : 0.5;
+            double v = extraH > 0 ? clamp((pos[1] * currentScale - nvp.getHeight() / 2) / extraH, 0, 1) : 0.5;
+            Timeline tl = new Timeline(
+                    new KeyFrame(Duration.ZERO,
+                            new KeyValue(mapScroll.hvalueProperty(), mapScroll.getHvalue()),
+                            new KeyValue(mapScroll.vvalueProperty(), mapScroll.getVvalue())),
+                    new KeyFrame(Duration.millis(520),
+                            new KeyValue(mapScroll.hvalueProperty(), h),
+                            new KeyValue(mapScroll.vvalueProperty(), v))
+            );
+            tl.play();
+        });
     }
 
     // -------------------------------------------------------
     // Connessioni
     // -------------------------------------------------------
 
-    private void drawConnection(double[] from, double[] to,
-                                 MapNode src, MapNode dest, String currentId) {
+    private void drawConnection(double[] from, double[] to, MapNode src, MapNode dest, String currentId) {
+        if (dest == null) return;
         boolean active = src.isCleared() || src.getId().equals(currentId);
         Line line = new Line(from[0], from[1], to[0], to[1]);
         line.setStrokeLineCap(StrokeLineCap.ROUND);
         if (active) {
-            Color cSrc  = Color.web(nodeColor(src.getType()));
-            Color cDest = Color.web(nodeColor(dest.getType()));
-            double r = (cSrc.getRed()   + cDest.getRed())   / 2;
-            double g = (cSrc.getGreen() + cDest.getGreen()) / 2;
-            double b = (cSrc.getBlue()  + cDest.getBlue())  / 2;
-            line.setStroke(Color.color(r, g, b));
-            line.setStrokeWidth(3.0);
-            line.setOpacity(0.85);
+            Color cs = Color.web(nodeColor(src.getType()));
+            Color cd = Color.web(nodeColor(dest.getType()));
+            line.setStroke(Color.color((cs.getRed()+cd.getRed())/2,(cs.getGreen()+cd.getGreen())/2,(cs.getBlue()+cd.getBlue())/2));
+            line.setStrokeWidth(3.0); line.setOpacity(0.85);
         } else {
             line.setStroke(Color.web("#2a2a4a"));
             line.setStrokeWidth(1.5);
             line.getStrokeDashArray().addAll(6.0, 4.0);
             line.setOpacity(0.5);
         }
-        mapPane.getChildren().add(line);
+        canvas.getChildren().add(line);
     }
 
     // -------------------------------------------------------
@@ -224,61 +350,43 @@ public class MapController {
     // -------------------------------------------------------
 
     private VBox buildHoverPanel() {
-        VBox panel = new VBox(6);
-        panel.setAlignment(Pos.CENTER_LEFT);
-        panel.setStyle(
-            "-fx-background-color: #12122a;"
-            + "-fx-background-radius: 12;"
-            + "-fx-border-color: #4c1d95;"
-            + "-fx-border-radius: 12;"
-            + "-fx-border-width: 1.5;"
-            + "-fx-padding: 14 18;"
-            + "-fx-effect: dropshadow(gaussian, #000, 16, 0.4, 0, 4);"
-        );
-        panel.setPrefWidth(200);
-        panel.setVisible(false);
-        panel.setManaged(false);
-        return panel;
+        VBox p = new VBox(6);
+        p.setAlignment(Pos.CENTER_LEFT);
+        p.setStyle("-fx-background-color:#12122a;-fx-background-radius:12;-fx-border-color:#4c1d95;"
+                + "-fx-border-radius:12;-fx-border-width:1.5;-fx-padding:14 18;"
+                + "-fx-effect:dropshadow(gaussian,#000,16,0.4,0,4);");
+        p.setPrefWidth(200); p.setVisible(false); p.setManaged(false);
+        return p;
     }
 
-    private void showHoverPanel(MapNode node, double cx, double cy) {
+    private void showHoverPanel(MapNode node, double cx, double cy, boolean locked) {
         hoverPanel.getChildren().clear();
-        String color = nodeColor(node.getType());
-
-        Label iconLbl = new Label(nodeIcon(node.getType()));
-        iconLbl.setStyle("-fx-font-size: 28px;");
-
+        String color = locked ? "#6b7280" : nodeColor(node.getType());
+        Label iconLbl = new Label(locked ? "\ud83d\udd12" : nodeIcon(node.getType()));
+        iconLbl.setStyle("-fx-font-size:28px;");
         Label nameLbl = new Label(node.getName());
-        nameLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
-
-        Label typeLbl = new Label(node.getType().name());
-        typeLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #9ca3af; -fx-font-weight: bold;"
-                + "-fx-background-color: #1e1e3a; -fx-background-radius: 6; -fx-padding: 2 8;");
-
-        Label descLbl = new Label(node.getDescription());
-        descLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #d1d5db;");
-        descLbl.setWrapText(true);
-        descLbl.setMaxWidth(176);
-
+        nameLbl.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:" + color + ";");
+        Label typeLbl = new Label(locked ? "BLOCCATO" : node.getType().name());
+        typeLbl.setStyle("-fx-font-size:10px;-fx-text-fill:#9ca3af;-fx-font-weight:bold;"
+                + "-fx-background-color:#1e1e3a;-fx-background-radius:6;-fx-padding:2 8;");
+        Label descLbl = new Label(locked
+                ? "Richiesto: " + node.getRequiredClass().replace("|", " o ")
+                : node.getDescription());
+        descLbl.setStyle("-fx-font-size:12px;-fx-text-fill:#d1d5db;");
+        descLbl.setWrapText(true); descLbl.setMaxWidth(176);
         hoverPanel.getChildren().addAll(iconLbl, nameLbl, typeLbl, descLbl);
 
-        // FIX: usa mapPane.getPrefWidth() come fallback quando getWidth() è ancora 0
-        // (primo hover prima che JavaFX completi il layout pass)
-        double paneW = mapPane.getWidth() > 0 ? mapPane.getWidth() : mapPane.getPrefWidth();
+        double paneW = canvas.getPrefWidth();
         double px = cx + NODE_R + 10;
         double py = cy - NODE_R;
-        if (paneW > 0 && px + 210 > paneW)
-            px = cx - NODE_R - 220;
+        if (paneW > 0 && px + 210 > paneW) px = cx - NODE_R - 220;
         hoverPanel.setLayoutX(Math.max(0, px));
         hoverPanel.setLayoutY(Math.max(0, py));
-        hoverPanel.setVisible(true);
-        hoverPanel.setManaged(true);
-        hoverPanel.toFront();
+        hoverPanel.setVisible(true); hoverPanel.setManaged(true); hoverPanel.toFront();
     }
 
     private void hideHoverPanel() {
-        hoverPanel.setVisible(false);
-        hoverPanel.setManaged(false);
+        hoverPanel.setVisible(false); hoverPanel.setManaged(false);
     }
 
     // -------------------------------------------------------
@@ -286,9 +394,13 @@ public class MapController {
     // -------------------------------------------------------
 
     private StackPane buildNodeGraphic(MapNode node, double cx, double cy,
-                                        boolean isCleared, boolean isCurrent, boolean isReachable) {
-        String color = nodeColor(node.getType());
-        String icon  = nodeIcon(node.getType());
+                                       boolean isCleared, boolean isCurrent,
+                                       boolean isReachable, boolean isLocked,
+                                       boolean isNewlyReachable) {
+        String color = isLocked ? "#4b5563" : nodeColor(node.getType());
+        String icon  = isLocked ? "\ud83d\udd12" : nodeIcon(node.getType());
+
+        boolean isSecretUnlocked = node.getRequiredClass() != null && !isLocked;
 
         Circle pulseRing = null;
         if (isCurrent) {
@@ -299,91 +411,112 @@ public class MapController {
             ScaleTransition pulse = new ScaleTransition(Duration.millis(900), pulseRing);
             pulse.setFromX(0.85); pulse.setFromY(0.85);
             pulse.setToX(1.15);   pulse.setToY(1.15);
-            pulse.setAutoReverse(true);
-            pulse.setCycleCount(ScaleTransition.INDEFINITE);
-            pulse.play();
+            pulse.setAutoReverse(true); pulse.setCycleCount(ScaleTransition.INDEFINITE); pulse.play();
         }
 
         Circle bg = new Circle(NODE_R);
         if (isCurrent) {
-            bg.setFill(Color.web(color, 0.35));
-            bg.setStroke(Color.web(color));
-            bg.setStrokeWidth(3.5);
-            bg.setEffect(new DropShadow(22, Color.web(color)));
+            bg.setFill(Color.web(color, 0.35)); bg.setStroke(Color.web(color));
+            bg.setStrokeWidth(3.5); bg.setEffect(new DropShadow(22, Color.web(color)));
         } else if (isCleared) {
-            bg.setFill(Color.web("#1a2e1a"));
-            bg.setStroke(Color.web("#4ade80", 0.7));
-            bg.setStrokeWidth(2);
-        } else if (isReachable) {
-            bg.setFill(Color.web(color, 0.2));
-            bg.setStroke(Color.web(color));
+            bg.setFill(Color.web("#1a2e1a")); bg.setStroke(Color.web("#4ade80", 0.7)); bg.setStrokeWidth(2);
+        } else if (isLocked) {
+            bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#4b5563")); bg.setStrokeWidth(1.5);
+            ColorAdjust ca = new ColorAdjust(); ca.setSaturation(-0.8); bg.setEffect(ca);
+        } else if (isSecretUnlocked && isNewlyReachable) {
+            bg.setFill(Color.web(color, 0.25)); bg.setStroke(Color.web("#fbbf24"));
             bg.setStrokeWidth(2.5);
-            bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
+            bg.setEffect(new DropShadow(20, Color.web("#fbbf24", 0.8)));
+        } else if (isReachable) {
+            bg.setFill(Color.web(color, 0.2)); bg.setStroke(Color.web(color));
+            bg.setStrokeWidth(2.5); bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
         } else {
-            bg.setFill(Color.web("#1a1a2e"));
-            bg.setStroke(Color.web("#2a2a4a"));
-            bg.setStrokeWidth(1.5);
+            bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#2a2a4a")); bg.setStrokeWidth(1.5);
         }
 
         Label iconLabel = new Label(isCleared ? "\u2714" : icon);
-        iconLabel.setStyle("-fx-font-size: " + (isCleared ? "16px" : "22px") + ";"
-                + "-fx-text-fill: " + (isCleared ? "#4ade80" : "white") + ";");
+        iconLabel.setStyle("-fx-font-size:" + (isCleared ? "16" : "22") + "px;"
+                + "-fx-text-fill:" + (isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white") + ";");
+
+        String nameColor = isCurrent        ? color
+                         : isCleared        ? "#4ade80"
+                         : isLocked         ? "#4b5563"
+                         : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
+                         : isReachable      ? "white"
+                         : "#4a4a6a";
+        boolean nameBold = isCurrent || (isSecretUnlocked && isNewlyReachable);
 
         Label nameLabel = new Label(node.getName());
-        nameLabel.setStyle("-fx-font-size: 9px; -fx-text-fill: "
-                + (isCurrent ? color : isCleared ? "#4ade80" : isReachable ? "white" : "#4a4a6a")
-                + "; -fx-font-weight: " + (isCurrent ? "bold" : "normal") + ";");
-        nameLabel.setMaxWidth(NODE_R * 2 + 10);
-        nameLabel.setWrapText(true);
-        nameLabel.setAlignment(Pos.CENTER);
+        nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:" + nameColor
+                + ";-fx-font-weight:" + (nameBold ? "bold" : "normal") + ";");
+        nameLabel.setMaxWidth(NODE_R * 2 + 10); nameLabel.setWrapText(true); nameLabel.setAlignment(Pos.CENTER);
 
         VBox nodeBox = new VBox(2, iconLabel, nameLabel);
-        nodeBox.setAlignment(Pos.CENTER);
-        nodeBox.setMaxWidth(NODE_R * 2);
+        nodeBox.setAlignment(Pos.CENTER); nodeBox.setMaxWidth(NODE_R * 2);
 
-        StackPane sp;
-        if (pulseRing != null) {
-            sp = new StackPane(pulseRing, bg, nodeBox);
-        } else {
-            sp = new StackPane(bg, nodeBox);
-        }
-        double spSize = (pulseRing != null) ? (NODE_R + 8) * 2 : NODE_R * 2;
-        sp.setLayoutX(cx - spSize / 2);
-        sp.setLayoutY(cy - spSize / 2);
-        sp.setPrefSize(spSize, spSize);
+        StackPane sp = pulseRing != null ? new StackPane(pulseRing, bg, nodeBox) : new StackPane(bg, nodeBox);
+        double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
+        sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
-        if (isReachable || isCurrent) {
-            sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy));
-            sp.setOnMouseExited(e  -> hideHoverPanel());
+        if (isSecretUnlocked && isNewlyReachable) {
+            sp.setOpacity(0);
+            sp.setScaleX(0.7); sp.setScaleY(0.7);
+            FadeTransition ft = new FadeTransition(Duration.millis(600), sp);
+            ft.setFromValue(0); ft.setToValue(1);
+            ScaleTransition st = new ScaleTransition(Duration.millis(600), sp);
+            st.setFromX(0.7); st.setFromY(0.7); st.setToX(1.0); st.setToY(1.0);
+            SequentialTransition seq = new SequentialTransition(
+                    new javafx.animation.PauseTransition(Duration.millis(150)),
+                    new javafx.animation.ParallelTransition(ft, st));
+            seq.play();
         }
+
+        sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked));
+        sp.setOnMouseExited(e  -> hideHoverPanel());
         if (isReachable) {
-            sp.setStyle("-fx-cursor: hand;");
+            sp.setStyle("-fx-cursor:hand;");
             sp.setOnMouseClicked(e -> onNodeSelected(node));
         }
-
         return sp;
     }
 
     // -------------------------------------------------------
-    // Legenda
+    // Legende
     // -------------------------------------------------------
 
     private void buildLegend() {
         legendBox.getChildren().clear();
         String[][] items = {
-            {"\u2714", "#4ade80", "Completato"},
-            {"\u25CF", "#c4b5fd", "Posizione attuale"},
-            {"\u25CB", "white",   "Raggiungibile"},
-            {"\u25CB", "#2a2a4a", "Bloccato"},
+                {"\u2714",  "#4ade80", "Completato"},
+                {"\u25cf",  "#c4b5fd", "Posizione attuale"},
+                {"\u25cb",  "white",   "Raggiungibile"},
+                {"\u2726",  "#fbbf24", "Sbloccato dalla tua classe"},
+                {"\u25cb",  "#2a2a4a", "Non ancora accessibile"},
+                {"\ud83d\udd12", "#6b7280", "Solo certa classe"}
         };
         for (String[] it : items) {
-            Label dot = new Label(it[0]);
-            dot.setStyle("-fx-font-size: 14px; -fx-text-fill: " + it[1] + ";");
-            Label lbl = new Label(it[2]);
-            lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #9ca3af;");
-            HBox entry = new HBox(5, dot, lbl);
-            entry.setAlignment(Pos.CENTER_LEFT);
+            Label dot = new Label(it[0]); dot.setStyle("-fx-font-size:14px;-fx-text-fill:" + it[1] + ";");
+            Label lbl = new Label(it[2]); lbl.setStyle("-fx-font-size:11px;-fx-text-fill:#9ca3af;");
+            HBox entry = new HBox(5, dot, lbl); entry.setAlignment(Pos.CENTER_LEFT);
             legendBox.getChildren().add(entry);
+        }
+    }
+
+    private void buildControlsLegend() {
+        controlsLegendBox.getChildren().clear();
+        String[][] items = {
+                {"Click + drag", "Muoviti nella mappa (orizzontale e verticale)"},
+                {"Scroll \u2191",     "Aumenta zoom"},
+                {"Scroll \u2193",     "Riduci zoom"},
+                {"Click nodo",   "Avanza al nodo raggiungibile"}
+        };
+        for (String[] it : items) {
+            Label key  = new Label(it[0]);
+            key.setStyle("-fx-font-size:11px;-fx-text-fill:#e5e7eb;-fx-font-weight:bold;"
+                    + "-fx-background-color:#1e1e3a;-fx-background-radius:6;-fx-padding:4 8;");
+            Label desc = new Label(it[1]); desc.setStyle("-fx-font-size:11px;-fx-text-fill:#9ca3af;");
+            HBox entry = new HBox(6, key, desc); entry.setAlignment(Pos.CENTER_LEFT);
+            controlsLegendBox.getChildren().add(entry);
         }
     }
 
@@ -395,37 +528,19 @@ public class MapController {
         gameService.moveToNode(node.getId());
         EncounterType encounter = gameService.currentEncounter();
         try {
-            Stage stage = (Stage) mapPane.getScene().getWindow();
+            Stage stage = (Stage) mapScroll.getScene().getWindow();
             switch (encounter) {
-                case SHOP -> {
-                    gameService.resetUpgradeForNextShop();
-                    FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
-                    loader.<ShopController>getController()
-                          .initData(gameService, playerName, vigore, arcano, imagePath);
-                }
-                case REST -> {
-                    FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/rest-view.fxml");
-                    loader.<RestController>getController()
-                          .initData(gameService, playerName, vigore, arcano, imagePath);
-                }
-                case EVENT -> {
-                    FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/event-view.fxml");
-                    loader.<EventController>getController()
-                          .initData(gameService, playerName, vigore, arcano, imagePath);
-                }
-                default -> {
-                    FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-                    loader.<HelloController>getController()
-                          .initData(playerName, vigore, arcano, imagePath, gameService);
-                }
+                case SHOP -> { gameService.resetUpgradeForNextShop();
+                    FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
+                    l.<ShopController>getController().initData(gameService, playerName, vigore, arcano, imagePath); }
+                case REST -> { FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/rest-view.fxml");
+                    l.<RestController>getController().initData(gameService, playerName, vigore, arcano, imagePath); }
+                case EVENT -> { FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/event-view.fxml");
+                    l.<EventController>getController().initData(gameService, playerName, vigore, arcano, imagePath); }
+                default -> { FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
+                    l.<HelloController>getController().initData(playerName, vigore, arcano, imagePath, gameService); }
             }
-        } catch (IOException ex) {
-            throw new RuntimeException("Errore navigazione mappa", ex);
-        }
+        } catch (IOException ex) { throw new RuntimeException("Errore navigazione mappa", ex); }
     }
 
     // -------------------------------------------------------
@@ -435,11 +550,11 @@ public class MapController {
     private static String nodeIcon(NodeType type) {
         return switch (type) {
             case BATTLE -> "\u2694";
-            case ELITE  -> "\uD83D\uDC80";
-            case BOSS   -> "\uD83D\uDC09";
-            case SHOP   -> "\uD83D\uDED2";
-            case REST   -> "\uD83D\uDD25";
-            case EVENT  -> "\u2753";
+            case ELITE  -> "\ud83d\udc80";
+            case BOSS   -> "\ud83d\udc09";
+            case SHOP   -> "\ud83d\uded2";
+            case REST   -> "\ud83d\udd25";
+            case EVENT  -> "?";
         };
     }
 
@@ -453,4 +568,6 @@ public class MapController {
             case EVENT  -> "#c084fc";
         };
     }
+
+    private static double clamp(double v, double min, double max) { return Math.max(min, Math.min(max, v)); }
 }

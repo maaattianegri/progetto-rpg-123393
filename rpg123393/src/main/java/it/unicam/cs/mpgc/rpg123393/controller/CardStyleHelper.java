@@ -32,8 +32,10 @@ public class CardStyleHelper {
                  "Tempesta Arcana", "Dardo di Ghiaccio",
                  "Scudo di Mana", "Nova di Fuoco"          -> "#9b59b6";
             // 🟠 Dracomante
-            case "Artiglio del Drago", "Soffio del Drago",
-                 "Armatura di Scaglie", "Zanna di Drago"   -> "#e67e22";
+            case "Zanna di Drago",   "Zanna di Drago+",
+                 "Artiglio del Drago", "Artiglio del Drago+",
+                 "Soffio del Drago",  "Soffio del Drago+",
+                 "Armatura di Scaglie", "Armatura di Scaglie+" -> "#e67e22";
             // 🟢 Assassino
             case "Lama Avvelenata", "Lama Avvelenata+",
                  "Passo nell'Ombra", "Colpo Letale",
@@ -88,10 +90,14 @@ public class CardStyleHelper {
             case "Scudo di Mana"            -> "🛡 +10 scudo + ✨ 1 mana  |  2 mana";
             case "Nova di Fuoco"            -> "🔮 18 danni  |  3 mana";
             // ── 🟠 Dracomante ──
-            case "Artiglio del Drago"       -> "🐉 6 danni + 🛡 4 scudo  |  2 mana";
-            case "Soffio del Drago"         -> "🐉 9 danni + ☠ 3 veleno  |  2 mana";
-            case "Armatura di Scaglie"      -> "🛡 +8 scudo + ❤ 4 cura  |  2 mana";
             case "Zanna di Drago"           -> "🐉 4 danni + 🛡 2 scudo  |  1 mana";
+            case "Zanna di Drago+"          -> "🐉 6 danni + 🛡 4 scudo  |  1 mana";
+            case "Artiglio del Drago"       -> "🐉 6 danni + 🛡 4 scudo  |  2 mana";
+            case "Artiglio del Drago+"      -> "🐉 9 danni + 🛡 6 scudo  |  2 mana";
+            case "Soffio del Drago"         -> "🐉 9 danni + ☠ 3 veleno  |  2 mana";
+            case "Soffio del Drago+"        -> "🐉 12 danni + ☠ 5 veleno  |  2 mana";
+            case "Armatura di Scaglie"      -> "🛡 +8 scudo + ❤ 4 cura  |  2 mana";
+            case "Armatura di Scaglie+"     -> "🛡 +12 scudo + ❤ 6 cura  |  2 mana";
             // ── 🟢 Assassino ──
             case "Lama Avvelenata"          -> "⚔ 3 danni + ☠ 3 veleno  |  1 mana";
             case "Lama Avvelenata+"         -> "⚔ 3 danni + ☠ 5 veleno  |  1 mana";

@@ -90,18 +90,26 @@ public class CardPool {
                 new DefendPlusCard(),
                 new FireballPlusCard(),
                 new DevastatingStrikePlusCard(),
-                new PoisonBladePlusCard()
+                new PoisonBladePlusCard(),
+                new DragonFangPlusCard(),
+                new DragonClawPlusCard(),
+                new DragonBreathPlusCard(),
+                new ScaleArmorPlusCard()
         );
     }
 
     public static ICard getUpgradedCard(String name) {
         return switch (name) {
-            case "Colpo di Spada"   -> new StrikePlusCard();
-            case "Scudo di Legno"   -> new DefendPlusCard();
-            case "Palla di Fuoco"   -> new FireballPlusCard();
-            case "Colpo Devastante" -> new DevastatingStrikePlusCard();
-            case "Lama Avvelenata"  -> new PoisonBladePlusCard();
-            default                 -> null;
+            case "Colpo di Spada"       -> new StrikePlusCard();
+            case "Scudo di Legno"       -> new DefendPlusCard();
+            case "Palla di Fuoco"       -> new FireballPlusCard();
+            case "Colpo Devastante"     -> new DevastatingStrikePlusCard();
+            case "Lama Avvelenata"      -> new PoisonBladePlusCard();
+            case "Zanna di Drago"       -> new DragonFangPlusCard();
+            case "Artiglio del Drago"   -> new DragonClawPlusCard();
+            case "Soffio del Drago"     -> new DragonBreathPlusCard();
+            case "Armatura di Scaglie"  -> new ScaleArmorPlusCard();
+            default                     -> null;
         };
     }
 
