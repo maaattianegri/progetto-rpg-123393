@@ -4,9 +4,11 @@ import it.unicam.cs.mpgc.rpg123393.model.EncounterType;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
+import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -81,10 +83,8 @@ public class MapController {
         zoomGroup.getTransforms().add(zoomTransform);
         mapPane.getChildren().add(zoomGroup);
 
-        // Disabilita scrollbar native: gestiamo tutto manualmente
         mapScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         mapScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        // Blocca il pan nativo del ScrollPane
         mapScroll.setPannable(false);
 
         buildLayout();
@@ -201,9 +201,10 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
-        mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
-        mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
+        // FIX: listener su mapPane (non mapScroll) per evitare interferenze con lo skin del ScrollPane
+        mapPane.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
+        mapPane.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
+        mapScroll.addEventFilter(ScrollEvent.SCROLL,      this::handleScroll);
     }
 
     private void handleMousePressed(MouseEvent e) {
@@ -214,7 +215,6 @@ public class MapController {
     }
 
     private void handleMouseDragged(MouseEvent e) {
-        // Consuma l'evento per evitare interferenze con il ScrollPane nativo
         e.consume();
         double dx = e.getSceneX() - dragStartX;
         double dy = e.getSceneY() - dragStartY;
@@ -351,6 +351,9 @@ public class MapController {
         String color = isLocked ? "#4b5563" : nodeColor(node.getType());
         String icon  = isLocked ? "🔒" : nodeIcon(node.getType());
 
+        // Nodo segreto sbloccato dalla classe corrente
+        boolean isSecretUnlocked = node.getRequiredClass() != null && !isLocked;
+
         Circle pulseRing = null;
         if (isCurrent) {
             pulseRing = new Circle(NODE_R + 8);
@@ -372,6 +375,12 @@ public class MapController {
         } else if (isLocked) {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#4b5563")); bg.setStrokeWidth(1.5);
             ColorAdjust ca = new ColorAdjust(); ca.setSaturation(-0.8); bg.setEffect(ca);
+        } else if (isSecretUnlocked) {
+            // Glow dorato permanente per nodi segreti sbloccati
+            bg.setFill(Color.web(color, 0.25)); bg.setStroke(Color.web("#fbbf24"));
+            bg.setStrokeWidth(2.5);
+            DropShadow goldGlow = new DropShadow(20, Color.web("#fbbf24", 0.8));
+            bg.setEffect(goldGlow);
         } else if (isReachable) {
             bg.setFill(Color.web(color, 0.2)); bg.setStroke(Color.web(color));
             bg.setStrokeWidth(2.5); bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
@@ -385,8 +394,8 @@ public class MapController {
 
         Label nameLabel = new Label(node.getName());
         nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:"
-                + (isCurrent ? color : isCleared ? "#4ade80" : isLocked ? "#4b5563" : isReachable ? "white" : "#4a4a6a")
-                + ";-fx-font-weight:" + (isCurrent ? "bold" : "normal") + ";");
+                + (isCurrent ? color : isCleared ? "#4ade80" : isLocked ? "#4b5563" : isSecretUnlocked ? "#fbbf24" : isReachable ? "white" : "#4a4a6a")
+                + ";-fx-font-weight:" + (isCurrent || isSecretUnlocked ? "bold" : "normal") + ";");
         nameLabel.setMaxWidth(NODE_R * 2 + 10); nameLabel.setWrapText(true); nameLabel.setAlignment(Pos.CENTER);
 
         VBox nodeBox = new VBox(2, iconLabel, nameLabel);
@@ -395,6 +404,22 @@ public class MapController {
         StackPane sp = pulseRing != null ? new StackPane(pulseRing, bg, nodeBox) : new StackPane(bg, nodeBox);
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
+
+        // Animazione intro per nodi segreti sbloccati
+        if (isSecretUnlocked) {
+            sp.setOpacity(0);
+            sp.setScaleX(0.7); sp.setScaleY(0.7);
+            FadeTransition ft = new FadeTransition(Duration.millis(600), sp);
+            ft.setFromValue(0); ft.setToValue(1);
+            ScaleTransition st = new ScaleTransition(Duration.millis(600), sp);
+            st.setFromX(0.7); st.setFromY(0.7);
+            st.setToX(1.0);   st.setToY(1.0);
+            SequentialTransition seq = new SequentialTransition(
+                    new javafx.animation.PauseTransition(Duration.millis(150)),
+                    new javafx.animation.ParallelTransition(ft, st)
+            );
+            seq.play();
+        }
 
         sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked));
         sp.setOnMouseExited(e  -> hideHoverPanel());
@@ -415,7 +440,8 @@ public class MapController {
                 {"✔",   "#4ade80", "Completato"},
                 {"●",   "#c4b5fd", "Posizione attuale"},
                 {"○",   "white",   "Raggiungibile"},
-                {"○",   "#2a2a4a", "Bloccato"},
+                {"✦",   "#fbbf24", "Sbloccato dalla tua classe"},
+                {"○",   "#2a2a4a", "Non ancora accessibile"},
                 {"🔒",  "#6b7280", "Solo certa classe"}
         };
         for (String[] it : items) {
