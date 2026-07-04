@@ -5,7 +5,12 @@ import java.util.List;
 
 /**
  * Rappresenta un singolo nodo della mappa.
- * POJO serializzabile via JSON (compatibile con JsonSaveRepository).
+ * POJO serializzabile via JSON.
+ *
+ * Il campo requiredClass (null = aperto a tutti) limita l'accesso
+ * a una specifica classe del player. Il MapController usa questo
+ * campo per mostrare il nodo come bloccato (icona 🔒, colore desaturato)
+ * e non cliccabile se la classe non corrisponde.
  */
 public class MapNode {
 
@@ -15,8 +20,9 @@ public class MapNode {
     private NodeType type;
     private boolean  visited;
     private boolean  cleared;
+    /** null = accessibile a tutti; altrimenti nome esatto della classe richiesta. */
+    private String   requiredClass;
 
-    /** ID dei nodi raggiungibili da questo nodo. */
     private List<String> nextNodeIds = new ArrayList<>();
 
     public MapNode() {}
@@ -26,8 +32,11 @@ public class MapNode {
         this.name        = name;
         this.description = description;
         this.type        = type;
-        this.visited     = false;
-        this.cleared     = false;
+    }
+
+    public MapNode(String id, String name, String description, NodeType type, String requiredClass) {
+        this(id, name, description, type);
+        this.requiredClass = requiredClass;
     }
 
     public String   getId()                          { return id; }
@@ -42,14 +51,19 @@ public class MapNode {
     public void     setVisited(boolean visited)      { this.visited = visited; }
     public boolean  isCleared()                      { return cleared; }
     public void     setCleared(boolean cleared)      { this.cleared = cleared; }
+    public String   getRequiredClass()               { return requiredClass; }
+    public void     setRequiredClass(String rc)      { this.requiredClass = rc; }
     public List<String> getNextNodeIds()             { return nextNodeIds; }
     public void     setNextNodeIds(List<String> ids) { this.nextNodeIds = ids != null ? ids : new ArrayList<>(); }
+
+    public boolean isLockedFor(String playerClass) {
+        return requiredClass != null && !requiredClass.equals(playerClass);
+    }
 
     public void addNextNode(String nodeId) {
         if (!nextNodeIds.contains(nodeId)) nextNodeIds.add(nodeId);
     }
 
-    /** Mappa NodeType -> EncounterType per compatibilità con la logica battaglia esistente. */
     public EncounterType toEncounterType() {
         return switch (type) {
             case BATTLE -> EncounterType.NORMAL;
