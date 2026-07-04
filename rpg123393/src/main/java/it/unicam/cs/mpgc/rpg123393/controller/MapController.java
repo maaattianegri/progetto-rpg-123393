@@ -56,9 +56,9 @@ public class MapController {
     @FXML private HBox       legendBox;
     @FXML private HBox       controlsLegendBox;
 
-    // Pane invece di Group: ha un bounding box fisico e cattura mouse events
-    // su tutta la sua area, non solo sopra i figli concreti.
-    private Pane   zoomGroup;
+    // zoomGroup ELIMINATO: la Scale viene applicata direttamente a mapPane.
+    // Cosi' lo ScrollPane misura il nodo giusto e il range scrollabile
+    // si aggiorna correttamente quando si cambia scala.
     private Scale  zoomTransform;
     private VBox   hoverPanel;
 
@@ -79,13 +79,13 @@ public class MapController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        // Pane come contenitore zoomabile: cattura eventi su tutta la sua superficie,
-        // anche sulle aree vuote tra i nodi della mappa.
-        zoomGroup = new Pane();
-        zoomGroup.setStyle("-fx-background-color: #0d0d1e;");
+        // Applica la trasformazione di scala direttamente a mapPane.
+        // mapPane e' gia' il content dello ScrollPane (dichiarato nel FXML);
+        // applicare Scale su di esso fa si' che lo ScrollPane ricalcoli
+        // le dimensioni scalate e abiliti correttamente il pan.
         zoomTransform = new Scale(1, 1, 0, 0);
-        zoomGroup.getTransforms().add(zoomTransform);
-        mapPane.getChildren().add(zoomGroup);
+        mapPane.getTransforms().add(zoomTransform);
+        mapPane.setStyle("-fx-background-color: #0d0d1e;");
 
         mapScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         mapScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -146,9 +146,6 @@ public class MapController {
         double h = totalH + NODE_R * 4;
         mapPane.setMinWidth(w);  mapPane.setPrefWidth(w);
         mapPane.setMinHeight(h); mapPane.setPrefHeight(h);
-        // Sincronizza le dimensioni del Pane interno con quelle logiche della mappa
-        zoomGroup.setMinWidth(w);  zoomGroup.setPrefWidth(w);
-        zoomGroup.setMinHeight(h); zoomGroup.setPrefHeight(h);
     }
 
     // -------------------------------------------------------
@@ -156,7 +153,8 @@ public class MapController {
     // -------------------------------------------------------
 
     private void render() {
-        zoomGroup.getChildren().clear();
+        // Rimuovi tutti i figli tranne la trasformazione (gestita separatamente)
+        mapPane.getChildren().clear();
 
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
         Map<String, MapNode> byId = new HashMap<>();
@@ -167,7 +165,6 @@ public class MapController {
         gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
         String playerClass = gameService.getClassName();
 
-        // Figli diretti del nodo corrente → usati per isNewlyReachable
         Set<String> currentNodeNextIds = gameService.getCurrentNode()
                 .map(n -> new HashSet<>(n.getNextNodeIds()))
                 .orElse(new HashSet<>());
@@ -183,14 +180,14 @@ public class MapController {
         }
 
         hoverPanel = buildHoverPanel();
-        zoomGroup.getChildren().add(hoverPanel);
+        mapPane.getChildren().add(hoverPanel);
 
         for (MapNode n : all) {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
             boolean locked = n.isLockedFor(playerClass);
             boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
-            zoomGroup.getChildren().add(buildNodeGraphic(
+            mapPane.getChildren().add(buildNodeGraphic(
                     n, pos[0], pos[1],
                     n.isCleared(),
                     n.getId().equals(currentId),
@@ -215,15 +212,12 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        // addEventFilter su mapScroll intercetta nella fase di cattura.
-        // Ora funziona su tutta l'area perché zoomGroup è un Pane (non un Group).
         mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
         mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
         mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
     }
 
     private void handleMousePressed(MouseEvent e) {
-        // Fissa l'origine del drag: NON viene aggiornata durante MOUSE_DRAGGED
         dragStartX = e.getSceneX();
         dragStartY = e.getSceneY();
         dragStartH = mapScroll.getHvalue();
@@ -233,10 +227,10 @@ public class MapController {
 
     private void handleMouseDragged(MouseEvent e) {
         e.consume();
-        // Delta sempre relativo all'origine del PRESS originale
         double dx = e.getSceneX() - dragStartX;
         double dy = e.getSceneY() - dragStartY;
         Bounds vp = mapScroll.getViewportBounds();
+        // Usa le dimensioni SCALATE del content per calcolare il range scrollabile
         double contentW = mapPane.getPrefWidth()  * currentScale;
         double contentH = mapPane.getPrefHeight() * currentScale;
         double extraW = contentW - vp.getWidth();
@@ -260,6 +254,7 @@ public class MapController {
         currentScale = newScale;
         zoomTransform.setX(currentScale);
         zoomTransform.setY(currentScale);
+        // Pivot sul cursore: il punto sotto il cursore rimane fisso durante lo zoom
         zoomTransform.setPivotX(cursorPaneX);
         zoomTransform.setPivotY(cursorPaneY);
 
@@ -312,7 +307,7 @@ public class MapController {
             line.getStrokeDashArray().addAll(6.0, 4.0);
             line.setOpacity(0.5);
         }
-        zoomGroup.getChildren().add(line);
+        mapPane.getChildren().add(line);
     }
 
     // -------------------------------------------------------
@@ -370,7 +365,6 @@ public class MapController {
         String color = isLocked ? "#4b5563" : nodeColor(node.getType());
         String icon  = isLocked ? "\ud83d\udd12" : nodeIcon(node.getType());
 
-        // Segreto sbloccato: ha requiredClass ma NON è locked (la classe corrente può accedervi)
         boolean isSecretUnlocked = node.getRequiredClass() != null && !isLocked;
 
         Circle pulseRing = null;
@@ -395,7 +389,6 @@ public class MapController {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#4b5563")); bg.setStrokeWidth(1.5);
             ColorAdjust ca = new ColorAdjust(); ca.setSaturation(-0.8); bg.setEffect(ca);
         } else if (isSecretUnlocked && isNewlyReachable) {
-            // Glow dorato: SOLO quando il nodo è figlio diretto del nodo corrente
             bg.setFill(Color.web(color, 0.25)); bg.setStroke(Color.web("#fbbf24"));
             bg.setStrokeWidth(2.5);
             bg.setEffect(new DropShadow(20, Color.web("#fbbf24", 0.8)));
@@ -403,7 +396,6 @@ public class MapController {
             bg.setFill(Color.web(color, 0.2)); bg.setStroke(Color.web(color));
             bg.setStrokeWidth(2.5); bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
         } else {
-            // Nodo segreto non ancora raggiungibile: stesso stile dei nodi normali inaccessibili
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#2a2a4a")); bg.setStrokeWidth(1.5);
         }
 
@@ -411,7 +403,6 @@ public class MapController {
         iconLabel.setStyle("-fx-font-size:" + (isCleared ? "16" : "22") + "px;"
                 + "-fx-text-fill:" + (isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white") + ";");
 
-        // Colore nome: dorato solo se segreto E già raggiungibile ora
         String nameColor = isCurrent        ? color
                          : isCleared        ? "#4ade80"
                          : isLocked         ? "#4b5563"
@@ -432,7 +423,6 @@ public class MapController {
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
-        // Animazione intro: solo se segreto E figlio diretto del nodo corrente
         if (isSecretUnlocked && isNewlyReachable) {
             sp.setOpacity(0);
             sp.setScaleX(0.7); sp.setScaleY(0.7);
@@ -462,12 +452,12 @@ public class MapController {
     private void buildLegend() {
         legendBox.getChildren().clear();
         String[][] items = {
-                {"\u2714",   "#4ade80", "Completato"},
-                {"\u25cf",   "#c4b5fd", "Posizione attuale"},
-                {"\u25cb",   "white",   "Raggiungibile"},
-                {"\u2726",   "#fbbf24", "Sbloccato dalla tua classe"},
-                {"\u25cb",   "#2a2a4a", "Non ancora accessibile"},
-                {"\ud83d\udd12",  "#6b7280", "Solo certa classe"}
+                {"\u2714",  "#4ade80", "Completato"},
+                {"\u25cf",  "#c4b5fd", "Posizione attuale"},
+                {"\u25cb",  "white",   "Raggiungibile"},
+                {"\u2726",  "#fbbf24", "Sbloccato dalla tua classe"},
+                {"\u25cb",  "#2a2a4a", "Non ancora accessibile"},
+                {"\ud83d\udd12", "#6b7280", "Solo certa classe"}
         };
         for (String[] it : items) {
             Label dot = new Label(it[0]); dot.setStyle("-fx-font-size:14px;-fx-text-fill:" + it[1] + ";");
