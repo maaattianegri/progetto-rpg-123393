@@ -2,6 +2,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
+import javafx.animation.*;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
@@ -13,6 +14,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -115,10 +117,20 @@ public class HelloController {
             log("[!] Mana insufficiente per questa carta!");
             return;
         }
-        log(gameService.playCard(index));
-        button.setDisable(true);
-        updateUI();
-        if (gameService.isBattleOver()) handleBattleEnd();
+        // Animazione play: slide su + fade out, poi esegue la logica
+        if (button.getGraphic() instanceof VBox cardGraphic) {
+            animateCardPlay(cardGraphic, button, () -> {
+                log(gameService.playCard(index));
+                button.setDisable(true);
+                updateUI();
+                if (gameService.isBattleOver()) handleBattleEnd();
+            });
+        } else {
+            log(gameService.playCard(index));
+            button.setDisable(true);
+            updateUI();
+            if (gameService.isBattleOver()) handleBattleEnd();
+        }
     }
 
     @FXML
@@ -162,11 +174,73 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml");
             GameOverController ctrl = loader.getController();
-            // Passa anche className cosi' GameOverController puo' ricreare
-            // correttamente il GameService in caso di nuova partita.
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath,
                     gameService.getClassName());
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    // -------------------------------------------------------
+    // Animazioni carte
+    // -------------------------------------------------------
+
+    /**
+     * Aggancia hover (scale + salita) e rimozione hover al VBox grafico della carta.
+     * Chiamato ogni volta che le carte vengono ridisegnate in refreshCardButtons().
+     */
+    private void attachHoverAnimation(VBox cardGraphic) {
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), cardGraphic);
+        scaleIn.setToX(1.15); scaleIn.setToY(1.15);
+
+        TranslateTransition moveUp = new TranslateTransition(Duration.millis(150), cardGraphic);
+        moveUp.setToY(-16);
+
+        ParallelTransition hoverIn = new ParallelTransition(scaleIn, moveUp);
+
+        ScaleTransition scaleOut = new ScaleTransition(Duration.millis(120), cardGraphic);
+        scaleOut.setToX(1.0); scaleOut.setToY(1.0);
+
+        TranslateTransition moveDown = new TranslateTransition(Duration.millis(120), cardGraphic);
+        moveDown.setToY(0);
+
+        ParallelTransition hoverOut = new ParallelTransition(scaleOut, moveDown);
+
+        cardGraphic.setOnMouseEntered(e -> {
+            hoverOut.stop();
+            cardGraphic.toFront();
+            hoverIn.playFromStart();
+        });
+        cardGraphic.setOnMouseExited(e -> {
+            hoverIn.stop();
+            hoverOut.playFromStart();
+        });
+    }
+
+    /**
+     * Animazione play: la carta vola verso l'alto e svanisce (200ms),
+     * poi esegue la callback con la logica di gioco.
+     */
+    private void animateCardPlay(VBox cardGraphic, Button button, Runnable onComplete) {
+        // Resetta la posizione hover prima di animare
+        cardGraphic.setScaleX(1.0); cardGraphic.setScaleY(1.0);
+
+        TranslateTransition fly = new TranslateTransition(Duration.millis(200), cardGraphic);
+        fly.setByY(-80);
+
+        FadeTransition fade = new FadeTransition(Duration.millis(200), cardGraphic);
+        fade.setFromValue(1.0); fade.setToValue(0.0);
+
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(200), cardGraphic);
+        shrink.setToX(0.85); shrink.setToY(0.85);
+
+        ParallelTransition playAnim = new ParallelTransition(fly, fade, shrink);
+        playAnim.setOnFinished(e -> {
+            // Ripristina stato visivo prima che refreshCardButtons() ridisegni
+            cardGraphic.setTranslateY(0);
+            cardGraphic.setOpacity(1.0);
+            cardGraphic.setScaleX(1.0); cardGraphic.setScaleY(1.0);
+            onComplete.run();
+        });
+        playAnim.play();
     }
 
     // -------------------------------------------------------
@@ -200,7 +274,9 @@ public class HelloController {
         ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
         for (int i = 0; i < buttons.length; i++) {
-            buttons[i].setGraphic(buildCardGraphic(hand[i]));
+            VBox cardGraphic = buildCardGraphic(hand[i]);
+            attachHoverAnimation(cardGraphic);
+            buttons[i].setGraphic(cardGraphic);
             buttons[i].setText("");
             buttons[i].setDisable(false);
         }
