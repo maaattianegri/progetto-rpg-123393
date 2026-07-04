@@ -11,19 +11,20 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 public class GameService {
 
-    /** Modalit\u00e0 debug: true \u2192 tutte le carte sbloccate in collezione dall'inizio.
-     *  TODO: impostare a false prima della consegna finale. */
     private static final boolean DEBUG_UNLOCK_ALL = true;
 
     private final BattleService battleService = new BattleService();
     private final LevelService  levelService  = new LevelService();
     private final EnemyFactory  enemyFactory  = new EnemyFactory();
-    private final RunManager    runManager    = new RunManager();
-    private final Random        random        = new Random();
+
+    private final RunManager runManager = new RunManager();
+    private final MapService mapService = new MapService();
+    private final Random random = new Random();
 
     private GameCharacter player;
     private GameCharacter enemy;
@@ -41,6 +42,12 @@ public class GameService {
     private List<Relic>   relics        = new ArrayList<>();
 
     private int gold = RunManager.startingGold();
+
+    /**
+     * true se la Fucina dell'Eroe e' gia' stata usata durante la visita
+     * allo shop corrente. Viene azzerato all'ingresso di ogni nuovo nodo SHOP.
+     */
+    private boolean upgradeUsedThisShop = false;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -95,20 +102,72 @@ public class GameService {
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
 
     // -------------------------------------------------------
-    // Run
+    // Navigazione mappa
     // -------------------------------------------------------
 
-    public EncounterType currentEncounter() { return runManager.current(); }
-    public EncounterType advanceEncounter() { return runManager.advance(); }
-    public int  getEncounterIndex()  { return runManager.getIndex(); }
-    public int  getEncounterTotal()  { return runManager.getTotal(); }
-    public boolean isLastBoss()      { return runManager.isLastBoss(); }
-    public int  getShopRound()       { return runManager.shopRound(); }
+    public EncounterType currentEncounter() {
+        return mapService.currentEncounterType();
+    }
+
+    public EncounterType advanceEncounter() {
+        Optional<MapNode> next = mapService.advance();
+        return next.map(MapNode::toEncounterType).orElse(EncounterType.NORMAL);
+    }
+
+    public boolean moveToNode(String nodeId) {
+        return mapService.moveToNode(nodeId);
+    }
+
+    public List<MapNode> getReachableNodes() {
+        return mapService.getMap().getReachableNodes();
+    }
+
+    public Optional<MapNode> getCurrentNode() {
+        return mapService.getMap().getCurrentNode();
+    }
+
+    public int getEncounterIndex() {
+        return mapService.getMap().getAllNodes().stream()
+                .filter(n -> n.isCleared() || n.isVisited())
+                .mapToInt(n -> 1)
+                .sum();
+    }
+
+    public int getEncounterTotal() {
+        return mapService.getMap().getAllNodes().size();
+    }
+
+    public boolean isLastBoss() {
+        return mapService.isCurrentNodeLastBoss();
+    }
+
+    public int getShopRound() {
+        return mapService.shopRound();
+    }
 
     public int collectGoldDrop() {
-        int drop = RunManager.goldDrop(runManager.current());
+        int drop = RunManager.goldDrop(mapService.currentEncounterType());
         gold += drop;
         return drop;
+    }
+
+    // -------------------------------------------------------
+    // Upgrade flag (Fucina dell'Eroe)
+    // -------------------------------------------------------
+
+    /** Chiamato da MapController quando si entra in un nodo SHOP. */
+    public void resetUpgradeForNextShop() {
+        upgradeUsedThisShop = false;
+    }
+
+    /** Chiamato da UpgradeController dopo aver effettivamente potenziato una carta. */
+    public void markUpgradeUsed() {
+        upgradeUsedThisShop = true;
+    }
+
+    /** Usato da ShopPool per decidere se includere la Fucina nella lista items. */
+    public boolean isUpgradeAvailable() {
+        return !upgradeUsedThisShop;
     }
 
     // -------------------------------------------------------
@@ -116,7 +175,7 @@ public class GameService {
     // -------------------------------------------------------
 
     public void startBattle() {
-        EncounterType type = runManager.current();
+        EncounterType type = mapService.currentEncounterType();
         enemy = enemyFactory.createForEncounter(type, playerLevel);
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
@@ -171,19 +230,35 @@ public class GameService {
     // -------------------------------------------------------
 
     public List<ShopItem> generateShopItems() {
-        return ShopPool.generateShopItems(className, runManager.shopRound());
+        return ShopPool.generateShopItems(className, mapService.shopRound(), isUpgradeAvailable());
     }
 
     public boolean buyItem(ShopItem item) {
         if (gold < item.getPrice()) return false;
-        gold -= item.getPrice();
+        if (item.getType() != ShopItem.ItemType.UPGRADE) {
+            gold -= item.getPrice();
+        }
         switch (item.getType()) {
             case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* costo gi\u00e0 scalato; potenziamento in upgradeCard */ }
+            case UPGRADE    -> { /* oro scalato in UpgradeController dopo la scelta */ }
         }
         return true;
+    }
+
+    public boolean spendGold(int amount) {
+        if (gold < amount) return false;
+        gold -= amount;
+        return true;
+    }
+
+    public int getUpgradePrice() {
+        return switch (mapService.shopRound()) {
+            case 1  -> 40;
+            case 2  -> 55;
+            default -> 70;
+        };
     }
 
     private void applyConsumable(String code) {
@@ -200,6 +275,11 @@ public class GameService {
 
     public static String upgradedName(String name) {
         return name.endsWith("+") ? name : name + "+";
+    }
+
+    public static String getUpgradedCardName(String name) {
+        if (name == null || name.endsWith("+")) return null;
+        return CardPool.getUpgradedCard(name) != null ? name + "+" : null;
     }
 
     public boolean upgradeCard(int deckIndex) {
@@ -245,6 +325,13 @@ public class GameService {
         List<String> deckNames = new ArrayList<>();
         for (ICard card : deck) deckNames.add(card.getName());
         s.setDeckCardNames(deckNames);
+        mapService.getMap().getCurrentNode()
+                .ifPresent(n -> s.setCurrentNodeId(n.getId()));
+        List<String> cleared = mapService.getMap().getAllNodes().stream()
+                .filter(MapNode::isCleared)
+                .map(MapNode::getId)
+                .collect(java.util.stream.Collectors.toList());
+        s.setClearedNodeIds(cleared);
         return s;
     }
 
@@ -261,7 +348,6 @@ public class GameService {
                 state.getPlayerName(), state.getPlayerMaxHp(), state.getPlayerMaxMana());
         player.setCurrentHp(state.getPlayerCurrentHp());
         player.setCurrentMana(state.getPlayerCurrentMana());
-
         List<String> savedDeck = state.getDeckCardNames();
         if (savedDeck != null && !savedDeck.isEmpty()) {
             deck.clear();
@@ -273,6 +359,7 @@ public class GameService {
         } else {
             buildStarterDeck(this.className);
         }
+        mapService.restoreMap(state.getCurrentNodeId(), state.getClearedNodeIds());
     }
 
     // -------------------------------------------------------
@@ -296,6 +383,10 @@ public class GameService {
     public void setClassName(String c)  { this.className = c; }
     public void setImagePath(String p)  { this.imagePath = p; }
     public void addGold(int amount)     { this.gold += amount; }
+    public MapService getMapService()   { return mapService; }
+
+    @Deprecated
     public RunManager getRunManager()   { return runManager; }
+
     public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
 }

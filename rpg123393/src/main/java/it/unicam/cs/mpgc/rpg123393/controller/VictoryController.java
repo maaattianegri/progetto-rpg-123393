@@ -21,13 +21,22 @@ public class VictoryController {
     @FXML private Label levelStatLabel;
     @FXML private Label xpProgressLabel;
 
-    private GameService gameService;
-    private String      playerName;
-    private int         vigore;
-    private int         arcano;
-    private String      imagePath;
-    private int         goldDrop;
-    private boolean     isBoss;
+    private GameService   gameService;
+    private String        playerName;
+    private int           vigore;
+    private int           arcano;
+    private String        imagePath;
+    private int           goldDrop;
+    /**
+     * Tipo dell'incontro appena completato.
+     * Catturato PRIMA di advanceEncounter() — che sposta il cursore mappa.
+     */
+    private EncounterType completedType;
+    /**
+     * Flag: la vittoria era sull'ultimo boss (nessun successore).
+     * Calcolato prima di avanzare, quando il cursore è ancora sull'ultimo nodo.
+     */
+    private boolean       wasLastBoss;
 
     public void initData(GameService gs, int xpGained, List<String> levelUpMsgs,
                          String playerName, int vigore, int arcano, String imagePath) {
@@ -37,13 +46,16 @@ public class VictoryController {
         this.arcano      = arcano;
         this.imagePath   = imagePath;
 
-        // Determina tipo incontro appena completato, poi avanza
-        EncounterType type = gs.advanceEncounter();
-        this.isBoss     = (type == EncounterType.BOSS);
-        this.goldDrop   = gs.collectGoldDrop();
+        // 1. Cattura stato PRIMA di muovere il cursore
+        this.completedType = gs.currentEncounter();
+        this.wasLastBoss   = gs.isLastBoss();
+        this.goldDrop      = gs.collectGoldDrop();
 
+        // 2. Avanza sulla mappa UNA sola volta (marca il nodo come cleared)
+        gs.advanceEncounter();
+
+        // 3. Aggiorna UI
         var p = gs.getPlayer();
-
         xpLabel.setText("+" + xpGained + " XP");
         hpStatLabel.setText(p.getCurrentHp() + "/" + p.getMaxHp());
         enemyStatLabel.setText(gs.getEnemy().getName());
@@ -54,12 +66,13 @@ public class VictoryController {
 
         if (!levelUpMsgs.isEmpty()) {
             levelUpBadge.setText("LEVEL UP!");
-            levelUpBadge.setVisible(true); levelUpBadge.setManaged(true);
+            levelUpBadge.setVisible(true);
+            levelUpBadge.setManaged(true);
         }
         int xpReq = gs.getXpRequired();
         xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + xpReq);
 
-        // Salvataggio automatico dopo ogni vittoria
+        // 4. Salvataggio automatico dopo ogni vittoria
         try {
             new JsonSaveRepository().save(gs.toGameState());
         } catch (IOException e) {
@@ -71,27 +84,26 @@ public class VictoryController {
     private void onNextBattle() {
         try {
             Stage stage = (Stage) xpLabel.getScene().getWindow();
-            EncounterType next = gameService.currentEncounter();
 
-            if (next == EncounterType.SHOP) {
-                // Naviga allo shop
-                FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
-                ShopController ctrl = loader.getController();
-                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
-            } else if (isBoss) {
-                // Dopo un boss: scelta carta gratis
+            // Vittoria sull'ultimo boss: torna al menu principale
+            if (completedType == EncounterType.BOSS && wasLastBoss) {
+                SceneNavigator.navigateTo(stage,
+                        "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+                return;
+            }
+
+            // Boss intermedio: scelta carta gratis, poi la card-reward porta alla mappa
+            if (completedType == EncounterType.BOSS) {
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/card-reward-view.fxml");
                 CardRewardController ctrl = loader.getController();
                 ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
-            } else {
-                // Normale/Elite: vai direttamente alla prossima battaglia
-                FXMLLoader loader = SceneNavigator.navigateTo(
-                        stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-                HelloController ctrl = loader.getController();
-                ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
+                return;
             }
+
+            // Tutte le altre vittorie: mostra la mappa
+            navigateToMap(stage);
+
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -102,5 +114,12 @@ public class VictoryController {
             SceneNavigator.navigateTo(stage,
                     "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    private void navigateToMap(Stage stage) throws IOException {
+        FXMLLoader loader = SceneNavigator.navigateTo(
+                stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+        MapController ctrl = loader.getController();
+        ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
     }
 }

@@ -1,12 +1,12 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
-import it.unicam.cs.mpgc.rpg123393.model.CardPool;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.ShopItem;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
@@ -26,72 +26,189 @@ public class UpgradeController {
     private int            vigore;
     private int            arcano;
     private String         imagePath;
-    private List<ShopItem> shopItems; // lista dello shop da preservare al ritorno
+    private List<ShopItem> shopItems;
+    private boolean        fromRest;
+    private int            upgradePrice;
+    private boolean        upgradeDone = false;
 
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath,
                          List<ShopItem> shopItems) {
-        this.gameService = gs;
-        this.playerName  = playerName;
-        this.vigore      = vigore;
-        this.arcano      = arcano;
-        this.imagePath   = imagePath;
-        this.shopItems   = shopItems;
-        buildDeck();
+        this.gameService  = gs;
+        this.playerName   = playerName;
+        this.vigore       = vigore;
+        this.arcano       = arcano;
+        this.imagePath    = imagePath;
+        this.shopItems    = shopItems;
+        this.fromRest     = false;
+        this.upgradePrice = gs.getUpgradePrice();
+        buildDeckList();
     }
 
-    private void buildDeck() {
+    public void initDataWithPrice(GameService gs, String playerName,
+                                   int vigore, int arcano, String imagePath,
+                                   List<ShopItem> shopItems, int forcedPrice) {
+        this.gameService  = gs;
+        this.playerName   = playerName;
+        this.vigore       = vigore;
+        this.arcano       = arcano;
+        this.imagePath    = imagePath;
+        this.shopItems    = shopItems;
+        this.fromRest     = false;
+        this.upgradePrice = forcedPrice;
+        buildDeckList();
+    }
+
+    public void initDataFromRest(GameService gs, String playerName,
+                                  int vigore, int arcano, String imagePath) {
+        this.gameService  = gs;
+        this.playerName   = playerName;
+        this.vigore       = vigore;
+        this.arcano       = arcano;
+        this.imagePath    = imagePath;
+        this.shopItems    = null;
+        this.fromRest     = true;
+        this.upgradePrice = gs.getUpgradePrice();
+        buildDeckList();
+    }
+
+    private void buildDeckList() {
         deckFlow.getChildren().clear();
+
+        if (infoLabel != null) {
+            String priceInfo = upgradePrice > 0
+                    ? "Costo potenziamento: " + upgradePrice + " \uD83E\uDE99   |   Oro disponibile: " + gameService.getGold() + " \uD83E\uDE99"
+                    : "Potenziamento gratuito   |   Oro disponibile: " + gameService.getGold() + " \uD83E\uDE99";
+            if (upgradeDone) priceInfo = "\u2705 Potenziamento eseguito! Puoi tornare allo shop.";
+            infoLabel.setText(priceInfo);
+        }
+
         List<ICard> deck = gameService.getDeck();
         for (int i = 0; i < deck.size(); i++) {
-            ICard card = deck.get(i);
-            boolean canUpgrade = CardPool.getUpgradedCard(card.getName()) != null;
-            deckFlow.getChildren().add(buildTile(card, i, canUpgrade));
+            final int idx = i;
+            deckFlow.getChildren().add(buildCardTile(deck.get(i), idx));
         }
     }
 
-    private VBox buildTile(ICard card, int index, boolean canUpgrade) {
-        String color = CardStyleHelper.borderColor(card.getName());
+    private VBox buildCardTile(ICard card, int idx) {
+        boolean alreadyUpgraded = card.getName().endsWith("+");
+        boolean canUpgrade      = !alreadyUpgraded
+                && GameService.getUpgradedCardName(card.getName()) != null;
+
+        String color = alreadyUpgraded ? "#4ade80"
+                     : canUpgrade      ? CardStyleHelper.borderColor(card.getName())
+                                       : "#4a4a6a";
+
+        String tagText = alreadyUpgraded ? "\u2705 GI\u00C0 POTENZIATA"
+                       : canUpgrade      ? "POTENZIAMENTO"
+                                        : "NON POTENZIABILE";
+
+        Label tagLabel = new Label(tagText);
+        tagLabel.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
+                + "-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 3 10;"
+                + "-fx-background-radius: 10;");
 
         Label nameLabel = new Label(card.getName());
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;");
-        nameLabel.setWrapText(true); nameLabel.setMaxWidth(140);
+        nameLabel.setStyle("-fx-text-fill: " + (alreadyUpgraded ? "#4ade80" : "white")
+                + "; -fx-font-size: 15px; -fx-font-weight: bold;");
+        nameLabel.setWrapText(true);
+        nameLabel.setMaxWidth(180);
+        nameLabel.setAlignment(Pos.CENTER);
 
-        Label descLabel = new Label(CardStyleHelper.description(card.getName()));
-        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
-        descLabel.setWrapText(true); descLabel.setMaxWidth(140);
+        String upgradedName = alreadyUpgraded ? card.getName()
+                            : GameService.upgradedName(card.getName());
+        Label arrowLabel = new Label(alreadyUpgraded ? "\u2714 Potenziata!"
+                                                     : "\u2192  " + upgradedName);
+        arrowLabel.setStyle("-fx-text-fill: " + (alreadyUpgraded ? "#4ade80" : "#e0c97f")
+                + "; -fx-font-size: 13px;");
+        arrowLabel.setWrapText(true);
+        arrowLabel.setMaxWidth(180);
+        arrowLabel.setAlignment(Pos.CENTER);
 
-        Button upgradeBtn = new Button(canUpgrade ? "Potenzia ↑" : "Max");
-        upgradeBtn.setDisable(!canUpgrade);
-        upgradeBtn.setStyle("-fx-background-color: " + (canUpgrade ? "#e67e22" : "#3a3a5a") + ";"
-                + "-fx-text-fill: " + (canUpgrade ? "#1a1a2e" : "#6a6a9a") + ";"
-                + "-fx-font-weight: bold; -fx-padding: 8 16; -fx-background-radius: 6; -fx-cursor: hand;");
-        upgradeBtn.setOnAction(e -> {
-            if (gameService.upgradeCard(index)) {
-                infoLabel.setText(card.getName() + " → " + GameService.upgradedName(card.getName()) + " ✓");
-                goBackToShop();
-            }
-        });
+        boolean btnEnabled = canUpgrade && !upgradeDone
+                && (upgradePrice <= 0 || gameService.getGold() >= upgradePrice);
 
-        VBox box = new VBox(8, nameLabel, descLabel, upgradeBtn);
+        Button upgradeBtn = new Button(
+                alreadyUpgraded ? "Gi\u00e0 potenziata" :
+                upgradeDone     ? "Hai gi\u00e0 potenziato" :
+                !canUpgrade     ? "Non potenziabile" : "Potenzia");
+        upgradeBtn.setDisable(!btnEnabled);
+        upgradeBtn.setStyle("-fx-background-color: " + (btnEnabled ? color : "#3a3a5a") + ";"
+                + "-fx-text-fill: " + (btnEnabled ? "#1a1a2e" : "#6a6a9a") + ";"
+                + "-fx-font-weight: bold;"
+                + "-fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: "
+                + (btnEnabled ? "hand" : "default") + ";");
+        if (btnEnabled) upgradeBtn.setOnAction(e -> upgradeCard(idx));
+
+        VBox box = new VBox(10, tagLabel, nameLabel, arrowLabel, upgradeBtn);
         box.setAlignment(Pos.CENTER);
-        box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 10;"
-                + "-fx-border-color: " + color + "; -fx-border-radius: 10; -fx-border-width: 2;"
-                + "-fx-padding: 14; -fx-pref-width: 155; -fx-pref-height: 170;");
+        box.setStyle("-fx-background-color: " + (alreadyUpgraded ? "#1a2e1a" : "#1e1e3a")
+                + "; -fx-background-radius: 14;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
+                + "-fx-padding: 24; -fx-pref-width: 210; -fx-pref-height: 300;"
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.15, 0, 0);");
         return box;
     }
 
-    private void goBackToShop() {
+    private void upgradeCard(int index) {
+        if (upgradePrice > 0 && gameService.getGold() < upgradePrice) {
+            showAlert(Alert.AlertType.WARNING,
+                    "Oro insufficiente!",
+                    "Ti mancano " + (upgradePrice - gameService.getGold())
+                            + " \uD83E\uDE99 per potenziare questa carta. (Costo: " + upgradePrice + " \uD83E\uDE99)");
+            return;
+        }
+
+        boolean ok = gameService.upgradeCard(index);
+        if (!ok) {
+            showAlert(Alert.AlertType.WARNING,
+                    "Potenziamento non riuscito",
+                    "Questa carta non pu\u00F2 essere potenziata ulteriormente.");
+            return;
+        }
+
+        if (upgradePrice > 0) {
+            gameService.spendGold(upgradePrice);
+        }
+
+        // Notifica GameService: la fucina e' stata usata in questo shop
+        gameService.markUpgradeUsed();
+
+        upgradeDone = true;
+        buildDeckList();
+    }
+
+    private void showAlert(Alert.AlertType type, String header, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle("Fucina");
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    private void navigateBack() {
         try {
             Stage stage = (Stage) deckFlow.getScene().getWindow();
-            FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
-            ShopController ctrl = loader.getController();
-            // riusa la lista esistente: niente rigenera
-            ctrl.initDataKeepItems(gameService, playerName, vigore, arcano, imagePath, shopItems);
-        } catch (IOException e) { e.printStackTrace(); }
+            if (fromRest) {
+                FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+                MapController ctrl = loader.getController();
+                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            } else {
+                FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
+                ShopController ctrl = loader.getController();
+                // Lo shop viene riaperto: generateShopItems() leggera' isUpgradeAvailable()
+                // dal GameService e non includira' la Fucina se markUpgradeUsed() e' stato chiamato.
+                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Errore navigazione dopo upgrade", e);
+        }
     }
 
     @FXML
-    private void onCancel() { goBackToShop(); }
+    private void onCancel() {
+        navigateBack();
+    }
 }

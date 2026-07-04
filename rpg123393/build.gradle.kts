@@ -42,6 +42,8 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+    // Necessario con Gradle 8 + JUnit 5.12: allinea le versioni del launcher
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.1")
 }
 
 application {

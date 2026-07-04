@@ -79,18 +79,19 @@ public class CardRewardController {
     private void pickCard(ICard card) {
         gameService.addCardToDeck(card);
         gameService.unlockCard(card.getName());
-        navigateToBattle();
+        navigateToMap();
     }
 
-    @FXML private void onSkip() { navigateToBattle(); }
+    @FXML private void onSkip() { navigateToMap(); }
 
-    private void navigateToBattle() {
+    /** Dopo la scelta carta si torna sempre alla mappa. */
+    private void navigateToMap() {
         try {
             Stage stage = (Stage) cardsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-            HelloController ctrl = loader.getController();
-            ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+            MapController ctrl = loader.getController();
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) { e.printStackTrace(); }
     }
 }

@@ -27,7 +27,6 @@ public class ShopController {
     private int            arcano;
     private String         imagePath;
     private List<ShopItem> items;
-    private ShopItem       pendingUpgradeItem;
 
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath) {
@@ -36,23 +35,9 @@ public class ShopController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-        if (items == null) items = gs.generateShopItems();
-        refresh();
-    }
-
-    public void initDataKeepItems(GameService gs, String playerName,
-                                   int vigore, int arcano, String imagePath,
-                                   List<ShopItem> existingItems) {
-        this.gameService = gs;
-        this.playerName  = playerName;
-        this.vigore      = vigore;
-        this.arcano      = arcano;
-        this.imagePath   = imagePath;
-        this.items       = existingItems;
-        if (pendingUpgradeItem != null) {
-            items.remove(pendingUpgradeItem);
-            pendingUpgradeItem = null;
-        }
+        // Genera sempre una lista fresca: ShopPool escludera' la Fucina
+        // se gs.isUpgradeAvailable() == false (cioe' markUpgradeUsed() e' stato chiamato)
+        items = gs.generateShopItems();
         refresh();
     }
 
@@ -64,7 +49,6 @@ public class ShopController {
 
     private String itemColor(ShopItem item) {
         return switch (item.getType()) {
-            // Per le carte usiamo il colore canonico di classe tramite CardStyleHelper
             case CARD -> {
                 Object payload = item.getPayload();
                 if (payload instanceof ICard card)
@@ -79,7 +63,6 @@ public class ShopController {
 
     private VBox buildItemTile(ShopItem item) {
         String color = itemColor(item);
-
         String typeTag = switch (item.getType()) {
             case CARD       -> "CARTA";
             case RELIC      -> "RELIQUIA";
@@ -103,8 +86,8 @@ public class ShopController {
         Label priceLabel = new Label("\uD83E\uDE99 " + item.getPrice() + " oro");
         priceLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        Button buyBtn = new Button("Acquista");
         boolean canAfford = gameService.getGold() >= item.getPrice();
+        Button buyBtn = new Button("Acquista");
         buyBtn.setDisable(!canAfford);
         buyBtn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
                 + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
@@ -130,22 +113,26 @@ public class ShopController {
             return;
         }
         if (item.getType() == ShopItem.ItemType.UPGRADE) {
-            pendingUpgradeItem = item;
-            openUpgradeView(item);
+            openUpgradeView();
         } else {
             items.remove(item);
             refresh();
         }
     }
 
-    private void openUpgradeView(ShopItem upgradeItem) {
+    private void openUpgradeView() {
         try {
             Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath, items);
-        } catch (IOException e) { e.printStackTrace(); }
+            if (ctrl == null) throw new IllegalStateException(
+                    "UpgradeController non inizializzato: controllare fx:controller in upgrade-view.fxml");
+            ctrl.initDataWithPrice(gameService, playerName, vigore, arcano, imagePath,
+                    items, gameService.getUpgradePrice());
+        } catch (IOException e) {
+            throw new RuntimeException("Impossibile aprire upgrade-view.fxml", e);
+        }
     }
 
     @FXML
@@ -153,9 +140,13 @@ public class ShopController {
         try {
             Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
-            HelloController ctrl = loader.getController();
-            ctrl.initData(playerName, vigore, arcano, imagePath, gameService);
-        } catch (IOException e) { e.printStackTrace(); }
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+            MapController ctrl = loader.getController();
+            if (ctrl == null) throw new IllegalStateException(
+                    "MapController non inizializzato: controllare fx:controller in map-view.fxml");
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+        } catch (IOException e) {
+            throw new RuntimeException("Impossibile aprire map-view.fxml", e);
+        }
     }
 }
