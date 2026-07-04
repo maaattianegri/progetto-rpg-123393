@@ -208,22 +208,25 @@ public class MapController {
     // -------------------------------------------------------
 
     private void setupPanAndZoom() {
-        // FIX drag: addEventFilter su mapScroll intercetta nella fase di cattura,
-        // prima che lo skin interno del ScrollPane o i nodi figli possano consumare l'evento
+        // addEventFilter intercetta nella fase di cattura, prima che i nodi figli possano consumare l'evento
         mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
         mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
         mapScroll.addEventFilter(ScrollEvent.SCROLL,        this::handleScroll);
     }
 
     private void handleMousePressed(MouseEvent e) {
+        // Fissa l'origine del drag: questi valori NON vengono mai aggiornati durante il DRAGGED
         dragStartX = e.getSceneX();
         dragStartY = e.getSceneY();
         dragStartH = mapScroll.getHvalue();
         dragStartV = mapScroll.getVvalue();
+        e.consume();
     }
 
     private void handleMouseDragged(MouseEvent e) {
         e.consume();
+        // Il delta è SEMPRE relativo all'origine del PRESS, non all'evento precedente.
+        // Aggiornare dragStart* qui azzererebbe il delta ad ogni frame e bloccherebbe il pan.
         double dx = e.getSceneX() - dragStartX;
         double dy = e.getSceneY() - dragStartY;
         Bounds vp = mapScroll.getViewportBounds();
@@ -233,11 +236,6 @@ public class MapController {
         double extraH = contentH - vp.getHeight();
         if (extraW > 0) mapScroll.setHvalue(clamp(dragStartH - dx / extraW, 0, 1));
         if (extraH > 0) mapScroll.setVvalue(clamp(dragStartV - dy / extraH, 0, 1));
-        // Aggiornamento frame-by-frame: delta sempre relativo all'ultimo evento
-        dragStartX = e.getSceneX();
-        dragStartY = e.getSceneY();
-        dragStartH = mapScroll.getHvalue();
-        dragStartV = mapScroll.getVvalue();
     }
 
     private void handleScroll(ScrollEvent e) {
