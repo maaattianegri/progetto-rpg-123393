@@ -5,6 +5,7 @@ import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -14,13 +15,14 @@ import java.util.List;
 
 public class VictoryController {
 
-    @FXML private Label summaryLabel;
-    @FXML private Label xpLabel;
-    @FXML private Label levelUpBadge;
-    @FXML private Label hpStatLabel;
-    @FXML private Label enemyStatLabel;
-    @FXML private Label levelStatLabel;
-    @FXML private Label xpProgressLabel;
+    @FXML private Label  summaryLabel;
+    @FXML private Label  xpLabel;
+    @FXML private Label  levelUpBadge;
+    @FXML private Label  hpStatLabel;
+    @FXML private Label  enemyStatLabel;
+    @FXML private Label  levelStatLabel;
+    @FXML private Label  xpProgressLabel;
+    @FXML private Button nextButton;
 
     @FXML private VBox  runStatsPanel;
     @FXML private Label nodesStatLabel;
@@ -67,7 +69,15 @@ public class VictoryController {
         xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + gs.getXpRequired());
 
         if (wasLastBoss) {
-            // Run completata: mostra statistiche e CANCELLA il save
+            // Cambia testo bottone per l'ultimo boss
+            nextButton.setText("\u2727  Vedi il Riepilogo Finale");
+            nextButton.setStyle(
+                    "-fx-background-color: #ffd700; -fx-text-fill: #0d0d1a;"
+                    + "-fx-font-size: 16px; -fx-font-weight: bold;"
+                    + "-fx-padding: 14 32; -fx-background-radius: 10; -fx-cursor: hand;"
+                    + "-fx-effect: dropshadow(gaussian, #ffd700, 14, 0.5, 0, 0);");
+
+            // Mostra statistiche run
             long total   = gs.getMapService().getMap().getAllNodes().size();
             long cleared = gs.getMapService().getMap().getAllNodes().stream()
                     .filter(n -> n.isCleared()).count();
@@ -77,7 +87,7 @@ public class VictoryController {
             upgradesStatLabel.setText("\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
             runStatsPanel.setVisible(true);
             runStatsPanel.setManaged(true);
-            // Cancella il save: la run è finita, non deve essere ripresa
+            // Cancella il save: la run è finita
             new JsonSaveRepository().deleteSave();
         } else {
             // Run in corso: salva normalmente
