@@ -31,13 +31,21 @@ public class CardPool {
             );
             case "Paladino" -> List.of(
                     new HolyShieldCard(),
+                    new HolyShieldPlusCard(),
                     new DivineLightCard(),
+                    new DivineLightPlusCard(),
                     new RetributionCard(),
+                    new RetributionPlusCard(),
                     new ConsecrationCard(),
+                    new ConsecrationPlusCard(),
                     new IronVowCard(),
+                    new IronVowPlusCard(),
                     new SmiteCard(),
+                    new SmitePlusCard(),
                     new BlessingCard(),
-                    new HammerOfJusticeCard()
+                    new BlessingPlusCard(),
+                    new HammerOfJusticeCard(),
+                    new HammerOfJusticePlusCard()
             );
             case "Mago" -> List.of(
                     new ArcaneStormCard(),
@@ -68,6 +76,8 @@ public class CardPool {
 
     public static List<ICard> getRewardOptions(String className) {
         List<ICard> pool = new ArrayList<>(getClassPool(className));
+        // Escludi le carte Plus dai reward (si ottengono solo tramite Fucina)
+        pool.removeIf(c -> c.getName().endsWith("+"));
         pool.addAll(getNeutralPool());
         Collections.shuffle(pool);
         return pool.subList(0, Math.min(3, pool.size()));
@@ -80,11 +90,13 @@ public class CardPool {
         for (String cls : List.of("Guerriero", "Paladino", "Mago", "Dracomante", "Assassino"))
             all.addAll(getClassPool(cls));
         all.addAll(getNeutralPool());
-        all.addAll(getUpgradedPool());
+        // Aggiungi le Plus delle altre classi non ancora in getClassPool
+        all.addAll(getUpgradedStarterAndOtherPool());
         return all;
     }
 
-    public static List<ICard> getUpgradedPool() {
+    /** Pool delle carte Plus NON-Paladino (Starter + altre classi). */
+    public static List<ICard> getUpgradedStarterAndOtherPool() {
         return List.of(
                 new StrikePlusCard(),
                 new DefendPlusCard(),
@@ -94,17 +106,23 @@ public class CardPool {
                 new DragonFangPlusCard(),
                 new DragonClawPlusCard(),
                 new DragonBreathPlusCard(),
-                new ScaleArmorPlusCard(),
-                // Paladino
-                new HolyShieldPlusCard(),
-                new DivineLightPlusCard(),
-                new RetributionPlusCard(),
-                new ConsecrationPlusCard(),
-                new IronVowPlusCard(),
-                new SmitePlusCard(),
-                new BlessingPlusCard(),
-                new HammerOfJusticePlusCard()
+                new ScaleArmorPlusCard()
         );
+    }
+
+    /** Ritorna TUTTE le carte potenziabili (usato da getUpgradedCard e da Fucina). */
+    public static List<ICard> getUpgradedPool() {
+        List<ICard> all = new ArrayList<>(getUpgradedStarterAndOtherPool());
+        // Le Plus Paladino sono già in getClassPool("Paladino")
+        all.add(new HolyShieldPlusCard());
+        all.add(new DivineLightPlusCard());
+        all.add(new RetributionPlusCard());
+        all.add(new ConsecrationPlusCard());
+        all.add(new IronVowPlusCard());
+        all.add(new SmitePlusCard());
+        all.add(new BlessingPlusCard());
+        all.add(new HammerOfJusticePlusCard());
+        return all;
     }
 
     public static ICard getUpgradedCard(String name) {
@@ -135,13 +153,14 @@ public class CardPool {
      * Restituisce una nuova istanza della carta con il nome specificato,
      * cercando in tutto il pool (starter + classi + neutral + upgraded).
      * Usato da GameService.restoreFromState() per ripristinare il deck da save.
-     *
-     * @param name il valore restituito da ICard.getName()
-     * @return una nuova istanza della carta, o null se il nome non è riconosciuto
      */
     public static ICard getCardByName(String name) {
         if (name == null) return null;
         for (ICard card : getAllCards()) {
+            if (name.equals(card.getName())) return card;
+        }
+        // Cerca anche nelle Plus delle altre classi (non in getAllCards per evitare duplicati)
+        for (ICard card : getUpgradedPool()) {
             if (name.equals(card.getName())) return card;
         }
         return null;
