@@ -12,7 +12,7 @@ import java.util.Optional;
  * Struttura mappa — trunk corto + bivio precoce verso 4 percorsi finali.
  *
  * TRUNK
- *   n00 BATTLE (Ingresso) → n01 BATTLE (Pattuglia) → [BIVIO]
+ *   n00 BATTLE (Ingresso) → n01 BATTLE (Corridoio Oscuro) → [BIVIO]
  *
  * RAMO A — Normale (6 nodi + boss finale)
  *   nA1 BATTLE → nA2 SHOP → nA3 ELITE → nA4 REST → nA5 BATTLE → nA6 ELITE → BOSS_A (Negromante)
@@ -39,8 +39,8 @@ public class MapService {
         // --- TRUNK (2 nodi) ---
         MapNode n00 = node("n00", "Ingresso del Dungeon",
                 "Le torce tremolano. Qualcosa si muove nel buio.", NodeType.BATTLE);
-        MapNode n01 = node("n01", "Pattuglia Goblin",
-                "Una pattuglia di Goblin ti intercetta.", NodeType.BATTLE);
+        MapNode n01 = node("n01", "Corridoio Oscuro",
+                "Ombre si agitano tra le pareti umide del corridoio.", NodeType.BATTLE);
 
         // --- RAMO A: Normale ---
         MapNode nA1 = node("nA1", "Corridoio Infestato",
