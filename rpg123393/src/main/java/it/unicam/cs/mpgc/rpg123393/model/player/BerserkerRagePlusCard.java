@@ -9,7 +9,8 @@ public class BerserkerRagePlusCard implements ICard {
     @Override public int    getManaCost() { return 2; }
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
-        boolean lowHp = user.getHp() < (user.getMaxHp() / 2.0);
-        target.takeDamage(lowHp ? 15 : 9);
+        int dmg = 9;
+        if (user.getCurrentHp() < user.getMaxHp() / 2) dmg += 6;
+        target.takeDamage(dmg);
     }
 }
