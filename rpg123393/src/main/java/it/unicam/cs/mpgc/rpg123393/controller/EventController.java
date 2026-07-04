@@ -17,7 +17,7 @@ import java.util.List;
  * Controller del nodo EVENT.
  *
  * Mostra un evento casuale estratto da EventPool.
- * Ogni scelta ha un effetto meccanico sul player.
+ * Ogni scelta ha un effetto meccanico tramite GameService.
  * Dopo la scelta appare il bottone "Continua" che porta alla mappa.
  */
 public class EventController {
@@ -76,13 +76,13 @@ public class EventController {
     }
 
     private void applyChoice(GameEvent.EventChoice choice) {
-        // Applica l'effetto meccanico
-        choice.applyEffect(gameService.getPlayer());
+        // Applica l'effetto meccanico tramite GameService
+        choice.applyEffect(gameService);
 
         // Mostra l'esito
         outcomeLabel.setText(choice.getOutcomeDescription());
 
-        // Disabilita tutti i bottoni
+        // Disabilita tutti i bottoni scelta
         choicesBox.getChildren().forEach(n -> n.setDisable(true));
 
         // Mostra il bottone continua
