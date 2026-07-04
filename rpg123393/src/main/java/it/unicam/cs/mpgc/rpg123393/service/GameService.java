@@ -16,8 +16,6 @@ import java.util.Random;
 
 public class GameService {
 
-    /** Modalità debug: true → tutte le carte sbloccate in collezione dall'inizio.
-     *  TODO: impostare a false prima della consegna finale. */
     private static final boolean DEBUG_UNLOCK_ALL = true;
 
     private final BattleService battleService = new BattleService();
@@ -44,6 +42,12 @@ public class GameService {
     private List<Relic>   relics        = new ArrayList<>();
 
     private int gold = RunManager.startingGold();
+
+    /**
+     * true se la Fucina dell'Eroe e' gia' stata usata durante la visita
+     * allo shop corrente. Viene azzerato all'ingresso di ogni nuovo nodo SHOP.
+     */
+    private boolean upgradeUsedThisShop = false;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -148,6 +152,25 @@ public class GameService {
     }
 
     // -------------------------------------------------------
+    // Upgrade flag (Fucina dell'Eroe)
+    // -------------------------------------------------------
+
+    /** Chiamato da MapController quando si entra in un nodo SHOP. */
+    public void resetUpgradeForNextShop() {
+        upgradeUsedThisShop = false;
+    }
+
+    /** Chiamato da UpgradeController dopo aver effettivamente potenziato una carta. */
+    public void markUpgradeUsed() {
+        upgradeUsedThisShop = true;
+    }
+
+    /** Usato da ShopPool per decidere se includere la Fucina nella lista items. */
+    public boolean isUpgradeAvailable() {
+        return !upgradeUsedThisShop;
+    }
+
+    // -------------------------------------------------------
     // Battaglia
     // -------------------------------------------------------
 
@@ -207,13 +230,11 @@ public class GameService {
     // -------------------------------------------------------
 
     public List<ShopItem> generateShopItems() {
-        return ShopPool.generateShopItems(className, mapService.shopRound());
+        return ShopPool.generateShopItems(className, mapService.shopRound(), isUpgradeAvailable());
     }
 
     public boolean buyItem(ShopItem item) {
         if (gold < item.getPrice()) return false;
-        // Per UPGRADE l'oro NON viene scalato qui: viene scalato in UpgradeController
-        // solo dopo che l'utente ha effettivamente scelto la carta da potenziare.
         if (item.getType() != ShopItem.ItemType.UPGRADE) {
             gold -= item.getPrice();
         }
@@ -226,19 +247,12 @@ public class GameService {
         return true;
     }
 
-    /**
-     * Scala l'oro direttamente (usato da UpgradeController per il costo della fucina).
-     * @return false se il gold è insufficiente, true altrimenti.
-     */
     public boolean spendGold(int amount) {
         if (gold < amount) return false;
         gold -= amount;
         return true;
     }
 
-    /**
-     * Ritorna il prezzo corrente della Fucina dell'Eroe per il round di shop attuale.
-     */
     public int getUpgradePrice() {
         return switch (mapService.shopRound()) {
             case 1  -> 40;
@@ -263,10 +277,6 @@ public class GameService {
         return name.endsWith("+") ? name : name + "+";
     }
 
-    /**
-     * Ritorna il nome della versione potenziata della carta, o null se non è potenziabile.
-     * Usato da UpgradeController per decidere se mostrare il bottone abilitato.
-     */
     public static String getUpgradedCardName(String name) {
         if (name == null || name.endsWith("+")) return null;
         return CardPool.getUpgradedCard(name) != null ? name + "+" : null;

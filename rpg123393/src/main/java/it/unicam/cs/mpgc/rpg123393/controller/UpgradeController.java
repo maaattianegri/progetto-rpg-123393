@@ -29,8 +29,6 @@ public class UpgradeController {
     private List<ShopItem> shopItems;
     private boolean        fromRest;
     private int            upgradePrice;
-
-    /** true dopo che un upgrade e' stato eseguito in questa sessione della fucina. */
     private boolean        upgradeDone = false;
 
     public void initData(GameService gs, String playerName,
@@ -96,8 +94,6 @@ public class UpgradeController {
         boolean alreadyUpgraded = card.getName().endsWith("+");
         boolean canUpgrade      = !alreadyUpgraded
                 && GameService.getUpgradedCardName(card.getName()) != null;
-
-        boolean blocked = upgradeDone || (!canUpgrade && !alreadyUpgraded);
 
         String color = alreadyUpgraded ? "#4ade80"
                      : canUpgrade      ? CardStyleHelper.borderColor(card.getName())
@@ -175,6 +171,9 @@ public class UpgradeController {
             gameService.spendGold(upgradePrice);
         }
 
+        // Notifica GameService: la fucina e' stata usata in questo shop
+        gameService.markUpgradeUsed();
+
         upgradeDone = true;
         buildDeckList();
     }
@@ -187,11 +186,6 @@ public class UpgradeController {
         alert.showAndWait();
     }
 
-    /**
-     * Torna allo shop o alla mappa, passando il flag upgradeDone:
-     * - upgradeDone=true  -> ShopController rimuove la tile UPGRADE dalla lista
-     * - upgradeDone=false -> la tile rimane (utente ha premuto Annulla senza fare nulla)
-     */
     private void navigateBack() {
         try {
             Stage stage = (Stage) deckFlow.getScene().getWindow();
@@ -204,8 +198,9 @@ public class UpgradeController {
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/shop-view.fxml");
                 ShopController ctrl = loader.getController();
-                ctrl.initDataKeepItems(gameService, playerName, vigore, arcano,
-                        imagePath, shopItems, upgradeDone);
+                // Lo shop viene riaperto: generateShopItems() leggera' isUpgradeAvailable()
+                // dal GameService e non includira' la Fucina se markUpgradeUsed() e' stato chiamato.
+                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
             }
         } catch (IOException e) {
             throw new RuntimeException("Errore navigazione dopo upgrade", e);

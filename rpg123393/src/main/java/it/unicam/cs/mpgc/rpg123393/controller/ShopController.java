@@ -27,7 +27,6 @@ public class ShopController {
     private int            arcano;
     private String         imagePath;
     private List<ShopItem> items;
-    private ShopItem       pendingUpgradeItem;
 
     public void initData(GameService gs, String playerName,
                          int vigore, int arcano, String imagePath) {
@@ -36,30 +35,9 @@ public class ShopController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-        if (items == null) items = gs.generateShopItems();
-        refresh();
-    }
-
-    /**
-     * Ritorna allo shop dalla fucina.
-     * @param upgradeWasExecuted true se l'utente ha effettivamente potenziato una carta;
-     *                           false se ha premuto Annulla senza fare nulla.
-     *                           La tile UPGRADE viene rimossa dallo shop solo nel primo caso.
-     */
-    public void initDataKeepItems(GameService gs, String playerName,
-                                   int vigore, int arcano, String imagePath,
-                                   List<ShopItem> existingItems,
-                                   boolean upgradeWasExecuted) {
-        this.gameService = gs;
-        this.playerName  = playerName;
-        this.vigore      = vigore;
-        this.arcano      = arcano;
-        this.imagePath   = imagePath;
-        this.items       = existingItems;
-        if (upgradeWasExecuted && pendingUpgradeItem != null) {
-            items.remove(pendingUpgradeItem);
-        }
-        pendingUpgradeItem = null;
+        // Genera sempre una lista fresca: ShopPool escludera' la Fucina
+        // se gs.isUpgradeAvailable() == false (cioe' markUpgradeUsed() e' stato chiamato)
+        items = gs.generateShopItems();
         refresh();
     }
 
@@ -135,7 +113,6 @@ public class ShopController {
             return;
         }
         if (item.getType() == ShopItem.ItemType.UPGRADE) {
-            pendingUpgradeItem = item;
             openUpgradeView();
         } else {
             items.remove(item);
