@@ -50,10 +50,6 @@ public class ClassSelectController {
         scaleOut.setToX(1.0);
         scaleOut.setToY(1.0);
 
-        // setPickOnBounds(false) permette al nodo scalato di uscire
-        // dal bounding box originale senza essere clippato dal parent
-        card.setPickOnBounds(false);
-
         card.setOnMouseEntered(e -> {
             scaleIn.playFromStart();
             card.setEffect(glow);
