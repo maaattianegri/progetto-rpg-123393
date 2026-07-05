@@ -37,12 +37,12 @@ public class CollectionController {
     private VBox         selectedTile  = null;
 
     private static final List<String> FILTERS =
-            List.of("Tutte", "Starter", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
+            List.of("Tutte", "Starter", "Cavaliere", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
 
     private static final java.util.Map<String, String> FILTER_COLORS = java.util.Map.ofEntries(
             java.util.Map.entry("Tutte",      "#e0c97f"),
             java.util.Map.entry("Starter",    "#9aaaba"),
-            java.util.Map.entry("Guerriero",  "#e74c3c"),
+            java.util.Map.entry("Cavaliere",  "#e74c3c"),
             java.util.Map.entry("Paladino",   "#f1c40f"),
             java.util.Map.entry("Mago",       "#9b59b6"),
             java.util.Map.entry("Dracomante", "#e67e22"),
@@ -184,7 +184,7 @@ public class CollectionController {
 
         String cls = switch (color) {
             case "#9aaaba" -> "★ Starter multiclasse";
-            case "#e74c3c" -> "⚔ Guerriero";
+            case "#e74c3c" -> "⚔ Cavaliere";
             case "#f1c40f" -> "🛡 Paladino";
             case "#9b59b6" -> "🔮 Mago";
             case "#e67e22" -> "🐉 Dracomante";
