@@ -37,6 +37,14 @@ public class GameState {
     /** ID di tutti i nodi già completati (cleared) nella run corrente. */
     private List<String> clearedNodeIds  = new ArrayList<>();
 
+    /**
+     * Flag easter egg Hollow Knight.
+     * True se il Cavaliere ha ottenuto il Cuore di Vuoto visitando il nodo VOID.
+     * Sblocca l'accesso al VOID_BOSS (Cavaliere Vacuo).
+     * Retrocompatibile: se assente nel JSON salvato, resta false.
+     */
+    private boolean voidHeartObtained = false;
+
     public GameState() {}
 
     public GameState(String playerName, int playerMaxHp, int playerCurrentHp,
@@ -87,6 +95,10 @@ public class GameState {
     public void         setCurrentNodeId(String v)        { this.currentNodeId = v; }
     public List<String> getClearedNodeIds()               { return clearedNodeIds; }
     public void         setClearedNodeIds(List<String> v) { this.clearedNodeIds = v != null ? v : new ArrayList<>(); }
+
+    // Easter egg Hollow Knight
+    public boolean isVoidHeartObtained()             { return voidHeartObtained; }
+    public void    setVoidHeartObtained(boolean v)   { this.voidHeartObtained = v; }
 
     /** Aggiunge una carta alla collezione se non già presente. */
     public void unlockCard(String cardName) {
