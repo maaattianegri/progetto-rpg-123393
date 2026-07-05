@@ -1,6 +1,8 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
+import it.unicam.cs.mpgc.rpg123393.model.MapNode;
+import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.animation.*;
 import javafx.fxml.FXML;
@@ -49,6 +51,10 @@ public class HelloController {
     private int         vigore;
     private int         arcano;
 
+    // -------------------------------------------------------
+    // Inizializzazione
+    // -------------------------------------------------------
+
     public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
         this.vigore      = vigore;
@@ -83,8 +89,35 @@ public class HelloController {
         this.imagePath   = imagePath;
         this.gameService = existingService;
         loadPlayerImage(imagePath);
-        log("Bentornato, " + name + "! Continua la tua avventura.");
-        startBattle();
+
+        // Determina il tipo di nemico in base al nodo corrente
+        NodeType nodeType = existingService.getCurrentNode()
+                .map(MapNode::getType)
+                .orElse(NodeType.BATTLE);
+
+        String reqClass = existingService.getCurrentNode()
+                .map(MapNode::getRequiredClass)
+                .orElse(null);
+
+        boolean isVoidBranch = (reqClass != null && reqClass.contains("Cavaliere"))
+                && (nodeType == NodeType.BATTLE || nodeType == NodeType.VOID || nodeType == NodeType.VOID_BOSS);
+
+        if (nodeType == NodeType.VOID_BOSS) {
+            // Boss segreto: Cavaliere Vacuo
+            gameService.startVoidBoss();
+            log("\u25fc  UN RIFLESSO EMERGE DALL'OSCURIT\u00c0...");
+            log("\ud83d\udfe3  Cavaliere Vacuo \u2014 Il tuo stesso riflesso. Senza esitazione.");
+        } else if (isVoidBranch) {
+            // Nodi BATTLE del ramo HK (nHK1, nHK2, nHK3)
+            gameService.startVoidBattle();
+            log("\u25fc  Il Vuoto si muove...");
+            log("Una creatura dell'Abisso ti sfida.");
+        } else {
+            log("Bentornato, " + name + "! Continua la tua avventura.");
+            gameService.startBattle();
+        }
+
+        startPlayerTurnUI();
     }
 
     // -------------------------------------------------------
@@ -95,10 +128,10 @@ public class HelloController {
         gameService.startBattle();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
-        startPlayerTurn();
+        startPlayerTurnUI();
     }
 
-    private void startPlayerTurn() {
+    private void startPlayerTurnUI() {
         gameService.startPlayerTurn();
         String pending = gameService.getPendingMessage();
         if (pending != null && !pending.isEmpty()) log(pending);
@@ -117,7 +150,6 @@ public class HelloController {
             log("[!] Mana insufficiente per questa carta!");
             return;
         }
-        // Animazione play: slide su + fade out, poi esegue la logica
         if (button.getGraphic() instanceof VBox cardGraphic) {
             animateCardPlay(cardGraphic, button, () -> {
                 log(gameService.playCard(index));
@@ -140,7 +172,7 @@ public class HelloController {
         log(gameService.doEnemyTurn());
         updateUI();
         if (gameService.isBattleOver()) handleBattleEnd();
-        else startPlayerTurn();
+        else startPlayerTurnUI();
     }
 
     private void handleBattleEnd() {
@@ -183,10 +215,6 @@ public class HelloController {
     // Animazioni carte
     // -------------------------------------------------------
 
-    /**
-     * Aggancia hover (scale + salita) e rimozione hover al VBox grafico della carta.
-     * Chiamato ogni volta che le carte vengono ridisegnate in refreshCardButtons().
-     */
     private void attachHoverAnimation(VBox cardGraphic) {
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), cardGraphic);
         scaleIn.setToX(1.15); scaleIn.setToY(1.15);
@@ -204,23 +232,11 @@ public class HelloController {
 
         ParallelTransition hoverOut = new ParallelTransition(scaleOut, moveDown);
 
-        cardGraphic.setOnMouseEntered(e -> {
-            hoverOut.stop();
-            cardGraphic.toFront();
-            hoverIn.playFromStart();
-        });
-        cardGraphic.setOnMouseExited(e -> {
-            hoverIn.stop();
-            hoverOut.playFromStart();
-        });
+        cardGraphic.setOnMouseEntered(e -> { hoverOut.stop(); cardGraphic.toFront(); hoverIn.playFromStart(); });
+        cardGraphic.setOnMouseExited( e -> { hoverIn.stop();  hoverOut.playFromStart(); });
     }
 
-    /**
-     * Animazione play: la carta vola verso l'alto e svanisce (200ms),
-     * poi esegue la callback con la logica di gioco.
-     */
     private void animateCardPlay(VBox cardGraphic, Button button, Runnable onComplete) {
-        // Resetta la posizione hover prima di animare
         cardGraphic.setScaleX(1.0); cardGraphic.setScaleY(1.0);
 
         TranslateTransition fly = new TranslateTransition(Duration.millis(200), cardGraphic);
@@ -234,7 +250,6 @@ public class HelloController {
 
         ParallelTransition playAnim = new ParallelTransition(fly, fade, shrink);
         playAnim.setOnFinished(e -> {
-            // Ripristina stato visivo prima che refreshCardButtons() ridisegni
             cardGraphic.setTranslateY(0);
             cardGraphic.setOpacity(1.0);
             cardGraphic.setScaleX(1.0); cardGraphic.setScaleY(1.0);
