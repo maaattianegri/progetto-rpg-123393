@@ -72,12 +72,14 @@ public class MapNode {
 
     public EncounterType toEncounterType() {
         return switch (type) {
-            case BATTLE -> EncounterType.NORMAL;
-            case ELITE  -> EncounterType.ELITE;
-            case BOSS   -> EncounterType.BOSS;
-            case SHOP   -> EncounterType.SHOP;
-            case REST   -> EncounterType.REST;
-            case EVENT  -> EncounterType.EVENT;
+            case BATTLE    -> EncounterType.NORMAL;
+            case ELITE     -> EncounterType.ELITE;
+            case BOSS      -> EncounterType.BOSS;
+            case SHOP      -> EncounterType.SHOP;
+            case REST      -> EncounterType.REST;
+            case EVENT     -> EncounterType.EVENT;
+            case VOID      -> EncounterType.REST;   // l'ingresso dell'Abisso funziona come REST
+            case VOID_BOSS -> EncounterType.BOSS;   // il boss segreto è un BOSS
         };
     }
 

@@ -44,17 +44,15 @@ public class GameService {
 
     private int gold = RunManager.startingGold();
 
-    /** Oro totale guadagnato durante la run (per le statistiche di fine run). */
     private int totalGoldEarned = 0;
-
-    /** Numero di potenziamenti eseguiti durante la run. */
     private int totalUpgradesUsed = 0;
+    private boolean upgradeUsedThisShop = false;
 
     /**
-     * true se la Fucina dell'Eroe e' gia' stata usata durante la visita
-     * allo shop corrente. Viene azzerato all'ingresso di ogni nuovo nodo SHOP.
+     * Easter egg Hollow Knight.
+     * True se il Cavaliere ha ottenuto il Cuore di Vuoto visitando il nodo VOID.
      */
-    private boolean upgradeUsedThisShop = false;
+    private boolean voidHeartObtained = false;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -75,7 +73,6 @@ public class GameService {
         } else {
             loadUnlockedCardsFromSave();
         }
-        // Resetta l'anti-ripetizione degli eventi per questa nuova run
         EventPool.resetForNewRun();
     }
 
@@ -87,12 +84,13 @@ public class GameService {
         deck.clear();
         if (className == null) className = "";
         switch (className) {
-            case "Guerriero"  -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
-            case "Mago"       -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
-            case "Dracomante" -> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
-            case "Paladino"   -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new ConsecrationCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
-            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); } // ridotto da 3x a 2x PoisonBlade, aggiunta DefendCard
-            default           -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
+            // Cavaliere = ex-Guerriero, stesso deck, accesso al ramo VOID
+            case "Cavaliere" -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
+            case "Mago"      -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
+            case "Dracomante"-> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
+            case "Paladino"  -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new ConsecrationCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
+            case "Assassino" -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); }
+            default          -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
         }
     }
 
@@ -109,6 +107,13 @@ public class GameService {
 
     public void addCardToDeck(ICard card) { deck.add(card); }
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
+
+    // -------------------------------------------------------
+    // Easter egg Hollow Knight
+    // -------------------------------------------------------
+
+    public boolean isVoidHeartObtained()  { return voidHeartObtained; }
+    public void    obtainVoidHeart()      { this.voidHeartObtained = true; }
 
     // -------------------------------------------------------
     // Navigazione mappa
@@ -138,8 +143,7 @@ public class GameService {
     public int getEncounterIndex() {
         return mapService.getMap().getAllNodes().stream()
                 .filter(n -> n.isCleared() || n.isVisited())
-                .mapToInt(n -> 1)
-                .sum();
+                .mapToInt(n -> 1).sum();
     }
 
     public int getEncounterTotal() {
@@ -162,24 +166,12 @@ public class GameService {
     }
 
     // -------------------------------------------------------
-    // Upgrade flag (Fucina dell'Eroe)
+    // Upgrade flag
     // -------------------------------------------------------
 
-    /** Chiamato da MapController quando si entra in un nodo SHOP. */
-    public void resetUpgradeForNextShop() {
-        upgradeUsedThisShop = false;
-    }
-
-    /** Chiamato da UpgradeController dopo aver effettivamente potenziato una carta. */
-    public void markUpgradeUsed() {
-        upgradeUsedThisShop = true;
-        totalUpgradesUsed++;
-    }
-
-    /** Usato da ShopPool per decidere se includere la Fucina nella lista items. */
-    public boolean isUpgradeAvailable() {
-        return !upgradeUsedThisShop;
-    }
+    public void resetUpgradeForNextShop() { upgradeUsedThisShop = false; }
+    public void markUpgradeUsed()         { upgradeUsedThisShop = true; totalUpgradesUsed++; }
+    public boolean isUpgradeAvailable()   { return !upgradeUsedThisShop; }
 
     // -------------------------------------------------------
     // Battaglia
@@ -188,6 +180,18 @@ public class GameService {
     public void startBattle() {
         EncounterType type = mapService.currentEncounterType();
         enemy = enemyFactory.createForEncounter(type, playerLevel);
+        for (Relic relic : relics) relic.onBattleStart(player);
+        startPlayerTurn();
+    }
+
+    public void startVoidBattle() {
+        enemy = enemyFactory.createVoidEnemy(playerLevel);
+        for (Relic relic : relics) relic.onBattleStart(player);
+        startPlayerTurn();
+    }
+
+    public void startVoidBoss() {
+        enemy = enemyFactory.createVoidBoss(playerLevel);
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
     }
@@ -246,14 +250,12 @@ public class GameService {
 
     public boolean buyItem(ShopItem item) {
         if (gold < item.getPrice()) return false;
-        if (item.getType() != ShopItem.ItemType.UPGRADE) {
-            gold -= item.getPrice();
-        }
+        if (item.getType() != ShopItem.ItemType.UPGRADE) gold -= item.getPrice();
         switch (item.getType()) {
             case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* oro scalato in UpgradeController dopo la scelta */ }
+            case UPGRADE    -> { }
         }
         return true;
     }
@@ -284,9 +286,7 @@ public class GameService {
     // Upgrade carte
     // -------------------------------------------------------
 
-    public static String upgradedName(String name) {
-        return name.endsWith("+") ? name : name + "+";
-    }
+    public static String upgradedName(String name) { return name.endsWith("+") ? name : name + "+"; }
 
     public static String getUpgradedCardName(String name) {
         if (name == null || name.endsWith("+")) return null;
@@ -340,13 +340,12 @@ public class GameService {
         List<String> deckNames = new ArrayList<>();
         for (ICard card : deck) deckNames.add(card.getName());
         s.setDeckCardNames(deckNames);
-        mapService.getMap().getCurrentNode()
-                .ifPresent(n -> s.setCurrentNodeId(n.getId()));
+        mapService.getMap().getCurrentNode().ifPresent(n -> s.setCurrentNodeId(n.getId()));
         List<String> cleared = mapService.getMap().getAllNodes().stream()
-                .filter(MapNode::isCleared)
-                .map(MapNode::getId)
+                .filter(MapNode::isCleared).map(MapNode::getId)
                 .collect(java.util.stream.Collectors.toList());
         s.setClearedNodeIds(cleared);
+        s.setVoidHeartObtained(this.voidHeartObtained);
         return s;
     }
 
@@ -357,6 +356,7 @@ public class GameService {
         this.imagePath   = state.getImagePath();
         this.playerLevel = state.getPlayerLevel();
         this.playerXp    = state.getPlayerXp();
+        this.voidHeartObtained = state.isVoidHeartObtained();
         if (state.getUnlockedCards() != null)
             this.unlockedCards = new ArrayList<>(state.getUnlockedCards());
         player = new GameCharacter(

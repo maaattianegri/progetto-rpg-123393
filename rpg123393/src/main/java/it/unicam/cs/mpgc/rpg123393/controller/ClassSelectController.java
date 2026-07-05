@@ -13,7 +13,8 @@ public class ClassSelectController {
 
     @FXML private TextField nameField;
 
-    @FXML private void selectWarrior(ActionEvent e)  { startGame(e, 8, 3, "/images/tank.jpg",  "Guerriero"); }
+    // Guerriero → Cavaliere (easter egg HK: accesso al ramo VOID)
+    @FXML private void selectWarrior(ActionEvent e)  { startGame(e, 8, 3, "/images/tank.jpg",  "Cavaliere"); }
     @FXML private void selectMage(ActionEvent e)     { startGame(e, 3, 8, "/images/mago.jpg",  "Mago"); }
     @FXML private void selectDragon(ActionEvent e)   { startGame(e, 6, 6, "/images/dragon.jpg","Dracomante"); }
     @FXML private void selectPaladin(ActionEvent e)  { startGame(e, 7, 5, "/images/tank.jpg",  "Paladino"); }
