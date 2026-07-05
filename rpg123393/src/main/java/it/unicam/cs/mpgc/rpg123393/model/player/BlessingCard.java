@@ -9,6 +9,7 @@ public class BlessingCard implements ICard {
     @Override public int    getManaCost()  { return 2; }
     @Override public String getImagePath() { return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
+        user.useMana(getManaCost());
         user.heal(8);
         user.addBlock(6);
     }
