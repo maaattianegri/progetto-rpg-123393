@@ -52,7 +52,6 @@ public class MapController {
     private static final double OPACITY_MID  = 0.45;
     private static final double OPACITY_FAR  = 0.15;
 
-    // Colore tema Hollow Knight — viola/nero
     private static final String VOID_COLOR      = "#9333ea";
     private static final String VOID_BOSS_COLOR = "#581c87";
 
@@ -107,10 +106,6 @@ public class MapController {
         Platform.runLater(() -> Platform.runLater(this::applyInitialZoomAndCenter));
     }
 
-    // -------------------------------------------------------
-    // Layout BFS
-    // -------------------------------------------------------
-
     private void buildLayout() {
         positions.clear();
         List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
@@ -158,10 +153,6 @@ public class MapController {
         canvas.setMinHeight(h); canvas.setPrefHeight(h);
     }
 
-    // -------------------------------------------------------
-    // BFS distanza dal nodo corrente
-    // -------------------------------------------------------
-
     private void computeBfsDistances() {
         bfsDistance.clear();
         String currentId = gameService.getCurrentNode().map(MapNode::getId).orElse("");
@@ -191,10 +182,6 @@ public class MapController {
             }
         }
     }
-
-    // -------------------------------------------------------
-    // Render
-    // -------------------------------------------------------
 
     private void render() {
         canvas.getChildren().clear();
@@ -232,20 +219,15 @@ public class MapController {
             double[] pos = positions.get(n.getId());
             if (pos == null) continue;
             boolean classLocked = n.isLockedFor(playerClass);
-            // nHKB (VOID_BOSS) è locked anche se non hai il Cuore di Vuoto
             boolean flagLocked  = n.getType() == NodeType.VOID_BOSS && !gameService.isVoidHeartObtained();
             boolean locked      = classLocked || flagLocked;
             boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
             int dist = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
             canvas.getChildren().add(buildNodeGraphic(
                     n, pos[0], pos[1],
-                    n.isCleared(),
-                    n.getId().equals(currentId),
+                    n.isCleared(), n.getId().equals(currentId),
                     reachableIds.contains(n.getId()) && !locked,
-                    locked,
-                    isNewlyReachable,
-                    dist
-            ));
+                    locked, isNewlyReachable, dist));
         }
 
         var p = gameService.getPlayer();
@@ -258,10 +240,6 @@ public class MapController {
         buildControlsLegend();
     }
 
-    // -------------------------------------------------------
-    // Pan & Zoom
-    // -------------------------------------------------------
-
     private void setupPanAndZoom() {
         mapScroll.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::handleMousePressed);
         mapScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::handleMouseDragged);
@@ -269,10 +247,8 @@ public class MapController {
     }
 
     private void handleMousePressed(MouseEvent e) {
-        dragStartX = e.getSceneX();
-        dragStartY = e.getSceneY();
-        dragStartH = mapScroll.getHvalue();
-        dragStartV = mapScroll.getVvalue();
+        dragStartX = e.getSceneX(); dragStartY = e.getSceneY();
+        dragStartH = mapScroll.getHvalue(); dragStartV = mapScroll.getVvalue();
         e.consume();
     }
 
@@ -301,8 +277,7 @@ public class MapController {
         double cursorCanvasY = (scrolledY + e.getY()) / currentScale;
 
         currentScale = newScale;
-        canvas.setScaleX(currentScale);
-        canvas.setScaleY(currentScale);
+        canvas.setScaleX(currentScale); canvas.setScaleY(currentScale);
         canvas.setTranslateX((1 - currentScale) * canvas.getPrefWidth()  / 2);
         canvas.setTranslateY((1 - currentScale) * canvas.getPrefHeight() / 2);
 
@@ -324,18 +299,15 @@ public class MapController {
         double canvasH = canvas.getPrefHeight();
 
         if (vp.getWidth() <= 1 || vp.getHeight() <= 1 || canvasW <= 0 || canvasH <= 0) {
-            new Timeline(new KeyFrame(Duration.millis(80),
-                    e -> applyInitialZoomAndCenter())).play();
+            new Timeline(new KeyFrame(Duration.millis(80), e -> applyInitialZoomAndCenter())).play();
             return;
         }
 
         double minByW = (vp.getWidth()  / canvasW) * MARGIN;
         double minByH = (vp.getHeight() / canvasH) * MARGIN;
         minScale = Math.min(Math.max(minByW, minByH), MAX_SCALE);
-
         currentScale = clamp(minScale * 1.3, minScale, MAX_SCALE);
-        canvas.setScaleX(currentScale);
-        canvas.setScaleY(currentScale);
+        canvas.setScaleX(currentScale); canvas.setScaleY(currentScale);
         canvas.setTranslateX((1 - currentScale) * canvasW / 2);
         canvas.setTranslateY((1 - currentScale) * canvasH / 2);
 
@@ -355,25 +327,18 @@ public class MapController {
                                 new KeyValue(mapScroll.vvalueProperty(), mapScroll.getVvalue())),
                         new KeyFrame(Duration.millis(520),
                                 new KeyValue(mapScroll.hvalueProperty(), h),
-                                new KeyValue(mapScroll.vvalueProperty(), v))
-                );
+                                new KeyValue(mapScroll.vvalueProperty(), v)));
                 tl.play();
             });
         });
     }
 
-    // -------------------------------------------------------
-    // Connessioni
-    // -------------------------------------------------------
-
     private void drawConnection(double[] from, double[] to, MapNode src, MapNode dest,
                                 String currentId, int distSrc, int distDest) {
         if (dest == null) return;
-
         int maxDist = Math.max(
                 src.isCleared()  ? 0 : distSrc,
-                dest.isCleared() ? 0 : distDest
-        );
+                dest.isCleared() ? 0 : distDest);
         double lineOpacity;
         if      (maxDist <= NEAR_DIST) lineOpacity = 0.85;
         else if (maxDist <= MID_DIST)  lineOpacity = OPACITY_MID;
@@ -381,23 +346,18 @@ public class MapController {
 
         boolean isVoidLink = src.getType() == NodeType.VOID || src.getType() == NodeType.VOID_BOSS
                 || dest.getType() == NodeType.VOID || dest.getType() == NodeType.VOID_BOSS;
-
         boolean active = src.isCleared() || src.getId().equals(currentId);
         Line line = new Line(from[0], from[1], to[0], to[1]);
         line.setStrokeLineCap(StrokeLineCap.ROUND);
         if (active && maxDist <= NEAR_DIST) {
             if (isVoidLink) {
-                // Connessioni del ramo VOID: viola puro
                 line.setStroke(Color.web(VOID_COLOR, 0.9));
                 line.setStrokeWidth(3.0);
                 line.getStrokeDashArray().addAll(8.0, 4.0);
             } else {
                 Color cs = Color.web(nodeColor(src.getType()));
                 Color cd = Color.web(nodeColor(dest.getType()));
-                line.setStroke(Color.color(
-                        (cs.getRed()  +cd.getRed())  /2,
-                        (cs.getGreen()+cd.getGreen())/2,
-                        (cs.getBlue() +cd.getBlue()) /2));
+                line.setStroke(Color.color((cs.getRed()+cd.getRed())/2,(cs.getGreen()+cd.getGreen())/2,(cs.getBlue()+cd.getBlue())/2));
                 line.setStrokeWidth(3.0);
             }
         } else {
@@ -408,10 +368,6 @@ public class MapController {
         line.setOpacity(lineOpacity);
         canvas.getChildren().add(line);
     }
-
-    // -------------------------------------------------------
-    // Hover panel
-    // -------------------------------------------------------
 
     private VBox buildHoverPanel() {
         VBox p = new VBox(6);
@@ -425,41 +381,31 @@ public class MapController {
 
     private void showHoverPanel(MapNode node, double cx, double cy, boolean locked, int dist) {
         if (!node.isCleared() && dist > NEAR_DIST) return;
-
         hoverPanel.getChildren().clear();
         String color = locked ? "#6b7280" : nodeColor(node.getType());
         Label iconLbl = new Label(locked ? "\ud83d\udd12" : nodeIcon(node.getType()));
         iconLbl.setStyle("-fx-font-size:28px;");
         Label nameLbl = new Label(node.getName());
         nameLbl.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:" + color + ";");
-
         String typeDisplay = locked ? "BLOCCATO" : node.getType().name();
-        // Etichetta speciale per nodi VOID
-        if (!locked && node.getType() == NodeType.VOID)
-            typeDisplay = "\u2736 ABISSO";
-        if (!locked && node.getType() == NodeType.VOID_BOSS)
-            typeDisplay = "\u2736 BOSS SEGRETO";
-
+        if (!locked && node.getType() == NodeType.VOID)      typeDisplay = "\u2736 ABISSO";
+        if (!locked && node.getType() == NodeType.VOID_BOSS) typeDisplay = "\u2736 BOSS SEGRETO";
         Label typeLbl = new Label(typeDisplay);
         String typeBg = (node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS) && !locked
-                ? "-fx-background-color:#3b0764;"
-                : "-fx-background-color:#1e1e3a;";
+                ? "-fx-background-color:#3b0764;" : "-fx-background-color:#1e1e3a;";
         typeLbl.setStyle("-fx-font-size:10px;-fx-text-fill:#9ca3af;-fx-font-weight:bold;"
                 + typeBg + "-fx-background-radius:6;-fx-padding:2 8;");
-
-        String lockedDesc = "";
+        String lockedDesc;
         if (locked && node.getType() == NodeType.VOID_BOSS)
             lockedDesc = "Richiede il Cuore di Vuoto";
         else if (locked && node.getRequiredClass() != null)
             lockedDesc = "Richiesto: " + node.getRequiredClass().replace("|", " o ");
         else
             lockedDesc = node.getDescription();
-
         Label descLbl = new Label(locked ? lockedDesc : node.getDescription());
         descLbl.setStyle("-fx-font-size:12px;-fx-text-fill:#d1d5db;");
         descLbl.setWrapText(true); descLbl.setMaxWidth(176);
         hoverPanel.getChildren().addAll(iconLbl, nameLbl, typeLbl, descLbl);
-
         double paneW = canvas.getPrefWidth();
         double px = cx + NODE_R + 10;
         double py = cy - NODE_R;
@@ -473,10 +419,6 @@ public class MapController {
         hoverPanel.setVisible(false); hoverPanel.setManaged(false);
     }
 
-    // -------------------------------------------------------
-    // Nodo grafico
-    // -------------------------------------------------------
-
     private StackPane buildNodeGraphic(MapNode node, double cx, double cy,
                                        boolean isCleared, boolean isCurrent,
                                        boolean isReachable, boolean isLocked,
@@ -484,16 +426,10 @@ public class MapController {
         boolean revealed = isCleared || dist <= NEAR_DIST;
         boolean midFog   = !revealed && dist <= MID_DIST;
         boolean farFog   = !revealed && dist >  MID_DIST;
-
         boolean isVoidNode = node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS;
 
-        String color = revealed
-                ? (isLocked ? "#4b5563" : nodeColor(node.getType()))
-                : "#3a3a5a";
-        String icon  = revealed
-                ? (isLocked ? "\ud83d\udd12" : nodeIcon(node.getType()))
-                : "?";
-
+        String color = revealed ? (isLocked ? "#4b5563" : nodeColor(node.getType())) : "#3a3a5a";
+        String icon  = revealed ? (isLocked ? "\ud83d\udd12" : nodeIcon(node.getType())) : "?";
         boolean isSecretUnlocked = revealed && node.getRequiredClass() != null && !isLocked;
 
         Circle pulseRing = null;
@@ -503,20 +439,15 @@ public class MapController {
             pulseRing.setStroke(Color.web(color, 0.5));
             pulseRing.setStrokeWidth(2);
             ScaleTransition pulse = new ScaleTransition(Duration.millis(900), pulseRing);
-            pulse.setFromX(0.85); pulse.setFromY(0.85);
-            pulse.setToX(1.15);   pulse.setToY(1.15);
+            pulse.setFromX(0.85); pulse.setFromY(0.85); pulse.setToX(1.15); pulse.setToY(1.15);
             pulse.setAutoReverse(true); pulse.setCycleCount(ScaleTransition.INDEFINITE); pulse.play();
         }
 
         Circle bg = new Circle(NODE_R);
         if (farFog) {
-            bg.setFill(Color.web("#111128"));
-            bg.setStroke(Color.web("#1e1e38"));
-            bg.setStrokeWidth(1.0);
+            bg.setFill(Color.web("#111128")); bg.setStroke(Color.web("#1e1e38")); bg.setStrokeWidth(1.0);
         } else if (midFog) {
-            bg.setFill(Color.web("#14142a"));
-            bg.setStroke(Color.web("#2e2e50"));
-            bg.setStrokeWidth(1.5);
+            bg.setFill(Color.web("#14142a")); bg.setStroke(Color.web("#2e2e50")); bg.setStrokeWidth(1.5);
         } else if (isCurrent) {
             bg.setFill(Color.web(color, 0.35)); bg.setStroke(Color.web(color));
             bg.setStrokeWidth(3.5); bg.setEffect(new DropShadow(22, Color.web(color)));
@@ -526,39 +457,29 @@ public class MapController {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#4b5563")); bg.setStrokeWidth(1.5);
             ColorAdjust ca = new ColorAdjust(); ca.setSaturation(-0.8); bg.setEffect(ca);
         } else if (isVoidNode && isReachable) {
-            // Nodi VOID raggiungibili: glow viola pulsante
-            bg.setFill(Color.web(VOID_COLOR, 0.2));
-            bg.setStroke(Color.web(VOID_COLOR));
-            bg.setStrokeWidth(2.5);
-            DropShadow voidGlow = new DropShadow(24, Color.web(VOID_COLOR, 0.9));
-            bg.setEffect(voidGlow);
+            bg.setFill(Color.web(VOID_COLOR, 0.2)); bg.setStroke(Color.web(VOID_COLOR)); bg.setStrokeWidth(2.5);
+            bg.setEffect(new DropShadow(24, Color.web(VOID_COLOR, 0.9)));
         } else if (isSecretUnlocked && isNewlyReachable) {
-            bg.setFill(Color.web(color, 0.25)); bg.setStroke(Color.web("#fbbf24"));
-            bg.setStrokeWidth(2.5);
+            bg.setFill(Color.web(color, 0.25)); bg.setStroke(Color.web("#fbbf24")); bg.setStrokeWidth(2.5);
             bg.setEffect(new DropShadow(20, Color.web("#fbbf24", 0.8)));
         } else if (isReachable) {
-            bg.setFill(Color.web(color, 0.2)); bg.setStroke(Color.web(color));
-            bg.setStrokeWidth(2.5); bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
+            bg.setFill(Color.web(color, 0.2)); bg.setStroke(Color.web(color)); bg.setStrokeWidth(2.5);
+            bg.setEffect(new DropShadow(14, Color.web(color, 0.6)));
         } else {
             bg.setFill(Color.web("#1a1a2e")); bg.setStroke(Color.web("#2a2a4a")); bg.setStrokeWidth(1.5);
         }
 
         String iconFontSize = (isCleared && revealed) ? "16" : "22";
-        String iconColor    = farFog || midFog ? "#252540"
-                            : isCleared         ? "#4ade80"
-                            : isLocked          ? "#6b7280" : "white";
+        String iconColor    = farFog || midFog ? "#252540" : isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white";
         Label iconLabel = new Label(revealed && isCleared ? "\u2714" : icon);
         iconLabel.setStyle("-fx-font-size:" + iconFontSize + "px;-fx-text-fill:" + iconColor + ";");
 
         Label nameLabel = new Label(revealed ? node.getName() : "");
         if (revealed) {
-            String nameColor = isCurrent        ? color
-                             : isCleared        ? "#4ade80"
-                             : isLocked         ? "#4b5563"
-                             : (isVoidNode && isReachable) ? VOID_COLOR
-                             : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
-                             : isReachable      ? "white"
-                             : "#4a4a6a";
+            String nameColor = isCurrent ? color : isCleared ? "#4ade80" : isLocked ? "#4b5563"
+                    : (isVoidNode && isReachable) ? VOID_COLOR
+                    : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
+                    : isReachable ? "white" : "#4a4a6a";
             boolean nameBold = isCurrent || (isVoidNode && isReachable) || (isSecretUnlocked && isNewlyReachable);
             nameLabel.setStyle("-fx-font-size:9px;-fx-text-fill:" + nameColor
                     + ";-fx-font-weight:" + (nameBold ? "bold" : "normal") + ";");
@@ -575,29 +496,20 @@ public class MapController {
         if      (farFog) { sp.setOpacity(OPACITY_FAR); sp.setEffect(new GaussianBlur(4)); }
         else if (midFog) { sp.setOpacity(OPACITY_MID); }
 
-        // Animazione apparizione nodi VOID appena raggiungibili
         if (isVoidNode && isReachable && isNewlyReachable) {
-            sp.setOpacity(0);
-            sp.setScaleX(0.6); sp.setScaleY(0.6);
-            FadeTransition ft = new FadeTransition(Duration.millis(800), sp);
-            ft.setFromValue(0); ft.setToValue(1);
+            sp.setOpacity(0); sp.setScaleX(0.6); sp.setScaleY(0.6);
+            FadeTransition ft = new FadeTransition(Duration.millis(800), sp); ft.setFromValue(0); ft.setToValue(1);
             ScaleTransition st = new ScaleTransition(Duration.millis(800), sp);
             st.setFromX(0.6); st.setFromY(0.6); st.setToX(1.0); st.setToY(1.0);
-            SequentialTransition seq = new SequentialTransition(
-                    new javafx.animation.PauseTransition(Duration.millis(200)),
-                    new javafx.animation.ParallelTransition(ft, st));
-            seq.play();
+            new SequentialTransition(new javafx.animation.PauseTransition(Duration.millis(200)),
+                    new javafx.animation.ParallelTransition(ft, st)).play();
         } else if (isSecretUnlocked && isNewlyReachable) {
-            sp.setOpacity(0);
-            sp.setScaleX(0.7); sp.setScaleY(0.7);
-            FadeTransition ft = new FadeTransition(Duration.millis(600), sp);
-            ft.setFromValue(0); ft.setToValue(1);
+            sp.setOpacity(0); sp.setScaleX(0.7); sp.setScaleY(0.7);
+            FadeTransition ft = new FadeTransition(Duration.millis(600), sp); ft.setFromValue(0); ft.setToValue(1);
             ScaleTransition st = new ScaleTransition(Duration.millis(600), sp);
             st.setFromX(0.7); st.setFromY(0.7); st.setToX(1.0); st.setToY(1.0);
-            SequentialTransition seq = new SequentialTransition(
-                    new javafx.animation.PauseTransition(Duration.millis(150)),
-                    new javafx.animation.ParallelTransition(ft, st));
-            seq.play();
+            new SequentialTransition(new javafx.animation.PauseTransition(Duration.millis(150)),
+                    new javafx.animation.ParallelTransition(ft, st)).play();
         }
 
         sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked, dist));
@@ -609,10 +521,6 @@ public class MapController {
         return sp;
     }
 
-    // -------------------------------------------------------
-    // Legende
-    // -------------------------------------------------------
-
     private void buildLegend() {
         legendBox.getChildren().clear();
         String[][] items = {
@@ -620,7 +528,7 @@ public class MapController {
                 {"\u25cf",       "#c4b5fd", "Posizione attuale"},
                 {"\u25cb",       "white",   "Raggiungibile"},
                 {"\u2726",       "#fbbf24", "Sbloccato dalla tua classe"},
-                {"\u2736",       VOID_COLOR,"Percorso dell'Abisso (Cavaliere)"},
+                {"\u25c6",       VOID_COLOR,"Percorso dell'Abisso (Cavaliere)"},
                 {"?",            "#3a3a5a", "Inesplorato (vicino)"},
                 {"\u25cb",       "#1e1e38", "Nella nebbia"},
                 {"\ud83d\udd12", "#6b7280", "Solo certa classe"}
@@ -651,10 +559,6 @@ public class MapController {
         }
     }
 
-    // -------------------------------------------------------
-    // Navigazione
-    // -------------------------------------------------------
-
     private void onNodeSelected(MapNode node) {
         gameService.moveToNode(node.getId());
         EncounterType encounter = gameService.currentEncounter();
@@ -667,15 +571,12 @@ public class MapController {
                 case REST -> { FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/rest-view.fxml");
                     l.<RestController>getController().initData(gameService, playerName, vigore, arcano, imagePath); }
                 case EVENT -> {
-                    // Controlla se è il nodo EVENT speciale del ramo HK
                     String nodeId = gameService.getCurrentNode().map(MapNode::getId).orElse("");
-                    if ("nHK4".equals(nodeId)) {
-                        FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/event-view.fxml");
+                    FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/event-view.fxml");
+                    if ("nHK4".equals(nodeId))
                         l.<EventController>getController().initVoidEvent(gameService, playerName, vigore, arcano, imagePath);
-                    } else {
-                        FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/event-view.fxml");
+                    else
                         l.<EventController>getController().initData(gameService, playerName, vigore, arcano, imagePath);
-                    }
                 }
                 default -> { FXMLLoader l = SceneNavigator.navigateTo(stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
                     l.<HelloController>getController().initData(playerName, vigore, arcano, imagePath, gameService); }
@@ -683,20 +584,16 @@ public class MapController {
         } catch (IOException ex) { throw new RuntimeException("Errore navigazione mappa", ex); }
     }
 
-    // -------------------------------------------------------
-    // Utility
-    // -------------------------------------------------------
-
     private static String nodeIcon(NodeType type) {
         return switch (type) {
-            case BATTLE    -> "\u2694";
-            case ELITE     -> "\ud83d\udc80";
-            case BOSS      -> "\ud83d\udc09";
-            case SHOP      -> "\ud83d\uded2";
-            case REST      -> "\ud83d\udd25";
+            case BATTLE    -> "\u2694";   // ⚔
+            case ELITE     -> "\ud83d\udc80"; // 💀
+            case BOSS      -> "\ud83d\udc09"; // 🐉
+            case SHOP      -> "\ud83d\uded2"; // 🛒
+            case REST      -> "\ud83d\udd25"; // 🔥
             case EVENT     -> "?";
-            case VOID      -> "\u25fc";      // ◼ — quadrato nero
-            case VOID_BOSS -> "\u2620";      // ☠
+            case VOID      -> "\u25c6";   // ◆ — rombo pieno, JavaFX-safe
+            case VOID_BOSS -> "\u2620";   // ☠
         };
     }
 
@@ -708,8 +605,8 @@ public class MapController {
             case SHOP      -> "#fbbf24";
             case REST      -> "#4ade80";
             case EVENT     -> "#c084fc";
-            case VOID      -> VOID_COLOR;       // viola
-            case VOID_BOSS -> VOID_BOSS_COLOR;  // viola scuro
+            case VOID      -> VOID_COLOR;
+            case VOID_BOSS -> VOID_BOSS_COLOR;
         };
     }
 
