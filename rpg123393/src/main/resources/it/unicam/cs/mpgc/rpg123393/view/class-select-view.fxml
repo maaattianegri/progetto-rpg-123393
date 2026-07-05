@@ -7,6 +7,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane
@@ -36,182 +37,193 @@
   </top>
 
   <center>
-    <HBox alignment="CENTER" spacing="16"
-          style="-fx-padding: 12 40; -fx-background-color: #1a1a2e;">
+    <!-- HBox senza padding orizzontale stretto: il padding e' nei StackPane wrapper -->
+    <HBox alignment="CENTER" spacing="0"
+          style="-fx-padding: 0 24; -fx-background-color: #1a1a2e;">
 
       <!-- CAVALIERE -->
-      <VBox fx:id="cardWarrior" spacing="0"
-            style="-fx-background-color: #1e1218; -fx-padding: 24 20;
-                   -fx-background-radius: 16; -fx-border-color: #e74c3c;
-                   -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            HBox.hgrow="ALWAYS" minWidth="220" minHeight="460">
-        <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
-          <Label text="&#x2694;" style="-fx-font-size: 52px;"/>
+      <StackPane HBox.hgrow="ALWAYS" style="-fx-padding: 10;">
+        <VBox fx:id="cardWarrior" spacing="0"
+              style="-fx-background-color: #1e1218; -fx-padding: 24 20;
+                     -fx-background-radius: 16; -fx-border-color: #e74c3c;
+                     -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
+              minWidth="200" minHeight="460">
+          <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
+            <Label text="&#x2694;" style="-fx-font-size: 52px;"/>
+          </VBox>
+          <VBox alignment="CENTER" spacing="6">
+            <Label text="CAVALIERE"
+                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
+            <Label text="Vigore 8 &#x2022; Arcano 3"
+                   style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Alto danno fisico,"
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="bassa resistenza magica."
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
+            <Label text="Colpo di Spada x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
+            <Label text="Scudo di Legno"
+                   style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
+            <Label text="Colpo Devastante x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
+            <Label text="&#x25aa; Accesso al Vuoto"
+                   style="-fx-font-size: 11px; -fx-text-fill: #9333ea; -fx-font-weight: bold;">
+              <VBox.margin><Insets top="8"/></VBox.margin>
+            </Label>
+          </VBox>
+          <Region VBox.vgrow="ALWAYS"/>
+          <Button text="Scegli" onAction="#selectWarrior" maxWidth="Infinity"
+                  style="-fx-background-color: #e74c3c; -fx-text-fill: white;
+                         -fx-font-weight: bold; -fx-padding: 12 0;
+                         -fx-background-radius: 8; -fx-font-size: 13px;"/>
         </VBox>
-        <VBox alignment="CENTER" spacing="6">
-          <Label text="CAVALIERE"
-                 style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
-          <Label text="Vigore 8 &#x2022; Arcano 3"
-                 style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
-          <Label text="Alto danno fisico,"
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="bassa resistenza magica."
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
-                 style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
-          <Label text="Colpo di Spada x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
-          <Label text="Scudo di Legno"
-                 style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
-          <Label text="Colpo Devastante x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
-          <Label text="&#x25aa; Accesso al Vuoto"
-                 style="-fx-font-size: 11px; -fx-text-fill: #9333ea; -fx-font-weight: bold;">
-            <VBox.margin><Insets top="8"/></VBox.margin>
-          </Label>
-        </VBox>
-        <Region VBox.vgrow="ALWAYS"/>
-        <Button text="Scegli" onAction="#selectWarrior" maxWidth="Infinity"
-                style="-fx-background-color: #e74c3c; -fx-text-fill: white;
-                       -fx-font-weight: bold; -fx-padding: 12 0;
-                       -fx-background-radius: 8; -fx-font-size: 13px;"/>
-      </VBox>
+      </StackPane>
 
       <!-- MAGO -->
-      <VBox fx:id="cardMage" spacing="0"
-            style="-fx-background-color: #16101e; -fx-padding: 24 20;
-                   -fx-background-radius: 16; -fx-border-color: #9b59b6;
-                   -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            HBox.hgrow="ALWAYS" minWidth="220" minHeight="460">
-        <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
-          <Label text="&#x1F9D9;" style="-fx-font-size: 52px;"/>
+      <StackPane HBox.hgrow="ALWAYS" style="-fx-padding: 10;">
+        <VBox fx:id="cardMage" spacing="0"
+              style="-fx-background-color: #16101e; -fx-padding: 24 20;
+                     -fx-background-radius: 16; -fx-border-color: #9b59b6;
+                     -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
+              minWidth="200" minHeight="460">
+          <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
+            <Label text="&#x1F9D9;" style="-fx-font-size: 52px;"/>
+          </VBox>
+          <VBox alignment="CENTER" spacing="6">
+            <Label text="MAGO"
+                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
+            <Label text="Vigore 3 &#x2022; Arcano 8"
+                   style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Mana abbondante,"
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="fragilit&#224; in corpo a corpo."
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
+            <Label text="Palla di Fuoco x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #9b59b6;"/>
+            <Label text="Scudo di Legno"
+                   style="-fx-font-size: 10px; -fx-text-fill: #9b59b6;"/>
+            <Label text="Tempesta Arcana x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #9b59b6;"/>
+          </VBox>
+          <Region VBox.vgrow="ALWAYS"/>
+          <Button text="Scegli" onAction="#selectMage" maxWidth="Infinity"
+                  style="-fx-background-color: #9b59b6; -fx-text-fill: white;
+                         -fx-font-weight: bold; -fx-padding: 12 0;
+                         -fx-background-radius: 8; -fx-font-size: 13px;"/>
         </VBox>
-        <VBox alignment="CENTER" spacing="6">
-          <Label text="MAGO"
-                 style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
-          <Label text="Vigore 3 &#x2022; Arcano 8"
-                 style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
-          <Label text="Mana abbondante,"
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="fragilit&#224; in corpo a corpo."
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
-                 style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
-          <Label text="Palla di Fuoco x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #9b59b6;"/>
-          <Label text="Scudo di Legno"
-                 style="-fx-font-size: 10px; -fx-text-fill: #9b59b6;"/>
-          <Label text="Tempesta Arcana x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #9b59b6;"/>
-        </VBox>
-        <Region VBox.vgrow="ALWAYS"/>
-        <Button text="Scegli" onAction="#selectMage" maxWidth="Infinity"
-                style="-fx-background-color: #9b59b6; -fx-text-fill: white;
-                       -fx-font-weight: bold; -fx-padding: 12 0;
-                       -fx-background-radius: 8; -fx-font-size: 13px;"/>
-      </VBox>
+      </StackPane>
 
       <!-- DRACOMANTE -->
-      <VBox fx:id="cardDragon" spacing="0"
-            style="-fx-background-color: #1c1208; -fx-padding: 24 20;
-                   -fx-background-radius: 16; -fx-border-color: #e67e22;
-                   -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            HBox.hgrow="ALWAYS" minWidth="220" minHeight="460">
-        <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
-          <Label text="&#x1F409;" style="-fx-font-size: 52px;"/>
+      <StackPane HBox.hgrow="ALWAYS" style="-fx-padding: 10;">
+        <VBox fx:id="cardDragon" spacing="0"
+              style="-fx-background-color: #1c1208; -fx-padding: 24 20;
+                     -fx-background-radius: 16; -fx-border-color: #e67e22;
+                     -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
+              minWidth="200" minHeight="460">
+          <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
+            <Label text="&#x1F409;" style="-fx-font-size: 52px;"/>
+          </VBox>
+          <VBox alignment="CENTER" spacing="6">
+            <Label text="DRACOMANTE"
+                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
+            <Label text="Vigore 6 &#x2022; Arcano 6"
+                   style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Perfetto equilibrio"
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="tra fisico e magico."
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
+            <Label text="Zanna di Drago x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #e67e22;"/>
+            <Label text="Scudo di Legno"
+                   style="-fx-font-size: 10px; -fx-text-fill: #e67e22;"/>
+            <Label text="Artiglio del Drago x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #e67e22;"/>
+          </VBox>
+          <Region VBox.vgrow="ALWAYS"/>
+          <Button text="Scegli" onAction="#selectDragon" maxWidth="Infinity"
+                  style="-fx-background-color: #e67e22; -fx-text-fill: white;
+                         -fx-font-weight: bold; -fx-padding: 12 0;
+                         -fx-background-radius: 8; -fx-font-size: 13px;"/>
         </VBox>
-        <VBox alignment="CENTER" spacing="6">
-          <Label text="DRACOMANTE"
-                 style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
-          <Label text="Vigore 6 &#x2022; Arcano 6"
-                 style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
-          <Label text="Perfetto equilibrio"
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="tra fisico e magico."
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
-                 style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
-          <Label text="Zanna di Drago x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #e67e22;"/>
-          <Label text="Scudo di Legno"
-                 style="-fx-font-size: 10px; -fx-text-fill: #e67e22;"/>
-          <Label text="Artiglio del Drago x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #e67e22;"/>
-        </VBox>
-        <Region VBox.vgrow="ALWAYS"/>
-        <Button text="Scegli" onAction="#selectDragon" maxWidth="Infinity"
-                style="-fx-background-color: #e67e22; -fx-text-fill: white;
-                       -fx-font-weight: bold; -fx-padding: 12 0;
-                       -fx-background-radius: 8; -fx-font-size: 13px;"/>
-      </VBox>
+      </StackPane>
 
       <!-- PALADINO -->
-      <VBox fx:id="cardPaladin" spacing="0"
-            style="-fx-background-color: #1c1a08; -fx-padding: 24 20;
-                   -fx-background-radius: 16; -fx-border-color: #f1c40f;
-                   -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            HBox.hgrow="ALWAYS" minWidth="220" minHeight="460">
-        <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
-          <Label text="&#x1F6E1;" style="-fx-font-size: 52px;"/>
+      <StackPane HBox.hgrow="ALWAYS" style="-fx-padding: 10;">
+        <VBox fx:id="cardPaladin" spacing="0"
+              style="-fx-background-color: #1c1a08; -fx-padding: 24 20;
+                     -fx-background-radius: 16; -fx-border-color: #f1c40f;
+                     -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
+              minWidth="200" minHeight="460">
+          <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
+            <Label text="&#x1F6E1;" style="-fx-font-size: 52px;"/>
+          </VBox>
+          <VBox alignment="CENTER" spacing="6">
+            <Label text="PALADINO"
+                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f1c40f;"/>
+            <Label text="Vigore 7 &#x2022; Arcano 5"
+                   style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Tank difensivo,"
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="eccellente resistenza."
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
+            <Label text="Colpo di Spada"
+                   style="-fx-font-size: 10px; -fx-text-fill: #f1c40f;"/>
+            <Label text="Scudo di Legno x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #f1c40f;"/>
+            <Label text="Scudo Sacro x2"
+                   style="-fx-font-size: 10px; -fx-text-fill: #f1c40f;"/>
+          </VBox>
+          <Region VBox.vgrow="ALWAYS"/>
+          <Button text="Scegli" onAction="#selectPaladin" maxWidth="Infinity"
+                  style="-fx-background-color: #f1c40f; -fx-text-fill: #1a1a2e;
+                         -fx-font-weight: bold; -fx-padding: 12 0;
+                         -fx-background-radius: 8; -fx-font-size: 13px;"/>
         </VBox>
-        <VBox alignment="CENTER" spacing="6">
-          <Label text="PALADINO"
-                 style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f1c40f;"/>
-          <Label text="Vigore 7 &#x2022; Arcano 5"
-                 style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
-          <Label text="Tank difensivo,"
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="eccellente resistenza."
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
-                 style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
-          <Label text="Colpo di Spada"
-                 style="-fx-font-size: 10px; -fx-text-fill: #f1c40f;"/>
-          <Label text="Scudo di Legno x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #f1c40f;"/>
-          <Label text="Scudo Sacro x2"
-                 style="-fx-font-size: 10px; -fx-text-fill: #f1c40f;"/>
-        </VBox>
-        <Region VBox.vgrow="ALWAYS"/>
-        <Button text="Scegli" onAction="#selectPaladin" maxWidth="Infinity"
-                style="-fx-background-color: #f1c40f; -fx-text-fill: #1a1a2e;
-                       -fx-font-weight: bold; -fx-padding: 12 0;
-                       -fx-background-radius: 8; -fx-font-size: 13px;"/>
-      </VBox>
+      </StackPane>
 
       <!-- ASSASSINO -->
-      <VBox fx:id="cardAssassin" spacing="0"
-            style="-fx-background-color: #0e1a12; -fx-padding: 24 20;
-                   -fx-background-radius: 16; -fx-border-color: #27ae60;
-                   -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            HBox.hgrow="ALWAYS" minWidth="220" minHeight="460">
-        <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
-          <Label text="&#x1F5E1;" style="-fx-font-size: 52px;"/>
+      <StackPane HBox.hgrow="ALWAYS" style="-fx-padding: 10;">
+        <VBox fx:id="cardAssassin" spacing="0"
+              style="-fx-background-color: #0e1a12; -fx-padding: 24 20;
+                     -fx-background-radius: 16; -fx-border-color: #27ae60;
+                     -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
+              minWidth="200" minHeight="460">
+          <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
+            <Label text="&#x1F5E1;" style="-fx-font-size: 52px;"/>
+          </VBox>
+          <VBox alignment="CENTER" spacing="6">
+            <Label text="ASSASSINO"
+                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
+            <Label text="Vigore 4 &#x2022; Arcano 6"
+                   style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
+            <Label text="Veleno e critici,"
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="bassa resistenza diretta."
+                   style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
+            <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
+            <Label text="Lama Avvelenata x3"
+                   style="-fx-font-size: 10px; -fx-text-fill: #27ae60;"/>
+            <Label text="Veleno Acido"
+                   style="-fx-font-size: 10px; -fx-text-fill: #27ae60;"/>
+            <Label text="Scudo di Legno"
+                   style="-fx-font-size: 10px; -fx-text-fill: #27ae60;"/>
+          </VBox>
+          <Region VBox.vgrow="ALWAYS"/>
+          <Button text="Scegli" onAction="#selectAssassin" maxWidth="Infinity"
+                  style="-fx-background-color: #27ae60; -fx-text-fill: white;
+                         -fx-font-weight: bold; -fx-padding: 12 0;
+                         -fx-background-radius: 8; -fx-font-size: 13px;"/>
         </VBox>
-        <VBox alignment="CENTER" spacing="6">
-          <Label text="ASSASSINO"
-                 style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
-          <Label text="Vigore 4 &#x2022; Arcano 6"
-                 style="-fx-font-size: 12px; -fx-text-fill: #a0a0c0;"/>
-          <Label text="Veleno e critici,"
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="bassa resistenza diretta."
-                 style="-fx-font-size: 11px; -fx-text-fill: #888; -fx-text-alignment: center;"/>
-          <Label text="&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;"
-                 style="-fx-text-fill: #3a3a5a; -fx-font-size: 10px;"/>
-          <Label text="Lama Avvelenata x3"
-                 style="-fx-font-size: 10px; -fx-text-fill: #27ae60;"/>
-          <Label text="Veleno Acido"
-                 style="-fx-font-size: 10px; -fx-text-fill: #27ae60;"/>
-          <Label text="Scudo di Legno"
-                 style="-fx-font-size: 10px; -fx-text-fill: #27ae60;"/>
-        </VBox>
-        <Region VBox.vgrow="ALWAYS"/>
-        <Button text="Scegli" onAction="#selectAssassin" maxWidth="Infinity"
-                style="-fx-background-color: #27ae60; -fx-text-fill: white;
-                       -fx-font-weight: bold; -fx-padding: 12 0;
-                       -fx-background-radius: 8; -fx-font-size: 13px;"/>
-      </VBox>
+      </StackPane>
 
     </HBox>
   </center>
