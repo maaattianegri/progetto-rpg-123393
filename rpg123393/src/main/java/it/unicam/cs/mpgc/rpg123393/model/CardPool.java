@@ -20,7 +20,7 @@ public class CardPool {
     public static List<ICard> getClassPool(String className) {
         if (className == null) return new ArrayList<>();
         return switch (className) {
-            case "Guerriero" -> List.of(
+            case "Cavaliere" -> List.of(
                     new DevastatingStrikeCard(),
                     new DevastatingStrikePlusCard(),
                     new BattleCryCard(),
@@ -103,7 +103,7 @@ public class CardPool {
         all.addAll(getStarterPool());
         all.add(new FireballCard());
         all.add(new FireballPlusCard());
-        for (String cls : List.of("Guerriero", "Paladino", "Mago", "Dracomante", "Assassino"))
+        for (String cls : List.of("Cavaliere", "Paladino", "Mago", "Dracomante", "Assassino"))
             all.addAll(getClassPool(cls));
         all.addAll(getNeutralPool());
         return all;
@@ -114,7 +114,7 @@ public class CardPool {
         all.add(new StrikePlusCard());
         all.add(new DefendPlusCard());
         all.add(new FireballPlusCard());
-        // Guerriero
+        // Cavaliere
         all.add(new DevastatingStrikePlusCard());
         all.add(new BattleCryPlusCard());
         all.add(new WhirlwindPlusCard());
@@ -153,7 +153,7 @@ public class CardPool {
             case "Colpo di Spada"           -> new StrikePlusCard();
             case "Scudo di Legno"           -> new DefendPlusCard();
             case "Palla di Fuoco"           -> new FireballPlusCard();
-            // Guerriero
+            // Cavaliere
             case "Colpo Devastante"         -> new DevastatingStrikePlusCard();
             case "Grida di Battaglia"       -> new BattleCryPlusCard();
             case "Mulinello"                -> new WhirlwindPlusCard();
