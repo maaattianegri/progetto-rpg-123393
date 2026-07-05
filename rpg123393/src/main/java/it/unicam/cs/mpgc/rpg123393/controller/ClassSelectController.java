@@ -13,7 +13,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 public class ClassSelectController {
@@ -40,16 +39,20 @@ public class ClassSelectController {
 
     private void attachHoverAnimation(VBox card, String hexColor) {
         Color glowColor = Color.web(hexColor);
-        DropShadow glow = new DropShadow(28, glowColor);
-        glow.setSpread(0.15);
+        DropShadow glow = new DropShadow(32, glowColor);
+        glow.setSpread(0.2);
 
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), card);
-        scaleIn.setToX(1.04);
-        scaleIn.setToY(1.04);
+        scaleIn.setToX(1.03);
+        scaleIn.setToY(1.03);
 
         ScaleTransition scaleOut = new ScaleTransition(Duration.millis(150), card);
         scaleOut.setToX(1.0);
         scaleOut.setToY(1.0);
+
+        // setPickOnBounds(false) permette al nodo scalato di uscire
+        // dal bounding box originale senza essere clippato dal parent
+        card.setPickOnBounds(false);
 
         card.setOnMouseEntered(e -> {
             scaleIn.playFromStart();
