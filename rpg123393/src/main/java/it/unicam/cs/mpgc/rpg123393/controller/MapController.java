@@ -80,8 +80,8 @@ public class MapController {
     private final Map<String, double[]> positions   = new HashMap<>();
     private final Map<String, Integer>  bfsDistance = new HashMap<>();
     /**
-     * ID dei nodi che sono il primo step del percorso segreto (nodo VOID/VOID_BOSS con requiredClass
-     * il cui genitore immediato NON e' un nodo VOID/VOID_BOSS). Questi sono l'"ingresso" del
+     * ID dei nodi che sono il primo step del percorso segreto (qualsiasi tipo con requiredClass
+     * il cui genitore immediato NON ha requiredClass). Questi nodi sono l'"ingresso" del
      * percorso segreto: visibili e cliccabili come qualunque altro nodo (il lock di classe
      * li rendera' comunque inaccessibili alle classi sbagliate).
      */
@@ -118,9 +118,9 @@ public class MapController {
     }
 
     /**
-     * Calcola i nodi "ingresso" del percorso segreto: nodi VOID/VOID_BOSS con requiredClass
-     * che hanno almeno un genitore di tipo NON-VOID. Questi nodi rimangono visibili e
-     * cliccabili anche prima che il giocatore abbia esplorato l'Abisso.
+     * Calcola i nodi "ingresso" del percorso segreto: qualsiasi nodo con requiredClass
+     * che ha almeno un genitore senza requiredClass. Questi nodi rimangono sempre visibili
+     * (il lock di classe impedisce comunque alle classi sbagliate di entrarci).
      */
     private void computeSecretEntryNodes() {
         secretEntryNodeIds.clear();
@@ -128,7 +128,6 @@ public class MapController {
         Map<String, MapNode> byId = new HashMap<>();
         for (MapNode n : all) byId.put(n.getId(), n);
 
-        // Per ogni nodo, costruiamo mappa id -> set dei genitori
         Map<String, Set<String>> parents = new HashMap<>();
         for (MapNode n : all) {
             for (String childId : n.getNextNodeIds()) {
@@ -138,15 +137,13 @@ public class MapController {
 
         for (MapNode n : all) {
             if (n.getRequiredClass() == null) continue;
-            boolean isSecretType = n.getType() == NodeType.VOID || n.getType() == NodeType.VOID_BOSS;
-            if (!isSecretType) continue;
-            // E' un entry node se ha almeno un genitore che NON e' VOID/VOID_BOSS
+            // E' un entry node se ha almeno un genitore senza requiredClass
             Set<String> parentIds = parents.getOrDefault(n.getId(), Collections.emptySet());
-            boolean hasNonVoidParent = parentIds.stream()
+            boolean hasOpenParent = parentIds.stream()
                     .map(byId::get)
                     .filter(Objects::nonNull)
-                    .anyMatch(p -> p.getType() != NodeType.VOID && p.getType() != NodeType.VOID_BOSS);
-            if (hasNonVoidParent) {
+                    .anyMatch(p -> p.getRequiredClass() == null);
+            if (hasOpenParent) {
                 secretEntryNodeIds.add(n.getId());
             }
         }
@@ -299,25 +296,21 @@ public class MapController {
 
     /**
      * Un nodo e' "segreto nascosto" se:
-     * - e' di tipo VOID o VOID_BOSS con requiredClass != null
-     * - NON e' un nodo entry (ingresso dal ramo normale, sempre visibile)
+     * - ha requiredClass != null (qualsiasi tipo)
+     * - NON e' un nodo entry (primo nodo del percorso segreto, sempre visibile)
      * - NON e' gia' cleared
      * - Il percorso segreto non e' ancora stato visitato (voidPathVisited == false)
      *   OPPURE e' visitato ma il nodo e' troppo lontano dal nodo corrente (dist > NEAR_DIST).
      *
-     * La rivelazione e' progressiva: i nodi vengono scoperti uno alla volta
-     * man mano che il Cavaliere avanza nel percorso, esattamente come accade
-     * per i nodi normali. Cio' impedisce che tutti i nodi VOID diventino visibili
-     * in blocco non appena viene cleared il primo nodo VOID.
+     * Questo copre tutti i nodi del percorso HK: nHK0 (VOID entry, sempre visibile),
+     * nHK1 (BATTLE), nHK4 (EVENT), nHKB (VOID_BOSS) — rivelati progressivamente.
      */
     private boolean isSecretNodeHidden(MapNode node, boolean voidPathVisited) {
         if (node == null) return false;
         if (node.isCleared()) return false;
+        if (node.getRequiredClass() == null) return false;   // nodo normale, mai nascosto
         if (secretEntryNodeIds.contains(node.getId())) return false; // entry sempre visibile
-        boolean isSecretPath = node.getRequiredClass() != null
-                && (node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS);
-        if (!isSecretPath) return false;
-        // Prima di entrare nel percorso segreto: tutti nascosti
+        // Prima di entrare nel percorso segreto: tutti i nodi non-entry nascosti
         if (!voidPathVisited) return true;
         // Dopo il primo nodo VOID cleared: rivela solo i nodi a portata (dist <= NEAR_DIST)
         int dist = bfsDistance.getOrDefault(node.getId(), Integer.MAX_VALUE);
@@ -573,7 +566,6 @@ public class MapController {
         }
 
         String iconFontSize = (isCleared && revealed) ? "16" : "22";
-        // Nodi segreti nascosti: icona vuota (nessun '?'), testo invisibile
         String iconColor = farFog || midFog ? "#0d0d1e" : isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white";
         Label iconLabel = new Label(secretHidden ? "" : (revealed && isCleared ? "\u2714" : icon));
         iconLabel.setStyle("-fx-font-size:" + iconFontSize + "px;-fx-text-fill:" + iconColor + ";");
@@ -598,9 +590,8 @@ public class MapController {
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
         if (secretHidden) {
-            // Opacita' minima: praticamente invisibile, si fonde con lo sfondo
             sp.setOpacity(OPACITY_SECRET);
-            sp.setMouseTransparent(true);  // non intercetta eventi mouse
+            sp.setMouseTransparent(true);
         } else if (farFog) {
             sp.setOpacity(OPACITY_FAR); sp.setEffect(new GaussianBlur(4));
         } else if (midFog) {
