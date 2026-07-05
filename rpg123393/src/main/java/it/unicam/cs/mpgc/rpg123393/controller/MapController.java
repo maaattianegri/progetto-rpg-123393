@@ -51,6 +51,8 @@ public class MapController {
     private static final int    MID_DIST     = 3;
     private static final double OPACITY_MID  = 0.45;
     private static final double OPACITY_FAR  = 0.15;
+    /** Opacita' per i nodi del percorso segreto non ancora scoperti (praticamente invisibili). */
+    private static final double OPACITY_SECRET = 0.07;
 
     private static final String VOID_COLOR      = "#9333ea";
     private static final String VOID_BOSS_COLOR = "#581c87";
@@ -77,6 +79,14 @@ public class MapController {
 
     private final Map<String, double[]> positions   = new HashMap<>();
     private final Map<String, Integer>  bfsDistance = new HashMap<>();
+    /**
+     * ID dei nodi che sono il primo step del percorso segreto (nodo VOID/VOID_BOSS con requiredClass
+     * il cui genitore immediato NON e' un nodo VOID/VOID_BOSS). Questi sono l'"ingresso" del
+     * percorso segreto: visibili e cliccabili come qualunque altro nodo (il lock di classe
+     * li rendera' comunque inaccessibili alle classi sbagliate).
+     */
+    private final Set<String> secretEntryNodeIds = new HashSet<>();
+
     private double currentScale = 1.0;
     private double minScale     = 0.40;
     private double dragStartX, dragStartY, dragStartH, dragStartV;
@@ -99,11 +109,47 @@ public class MapController {
         mapScroll.setFitToHeight(false);
         mapScroll.setFitToWidth(false);
 
+        computeSecretEntryNodes();
         buildLayout();
         render();
         setupPanAndZoom();
 
         Platform.runLater(() -> Platform.runLater(this::applyInitialZoomAndCenter));
+    }
+
+    /**
+     * Calcola i nodi "ingresso" del percorso segreto: nodi VOID/VOID_BOSS con requiredClass
+     * che hanno almeno un genitore di tipo NON-VOID. Questi nodi rimangono visibili e
+     * cliccabili anche prima che il giocatore abbia esplorato l'Abisso.
+     */
+    private void computeSecretEntryNodes() {
+        secretEntryNodeIds.clear();
+        List<MapNode> all = gameService.getMapService().getMap().getAllNodes();
+        Map<String, MapNode> byId = new HashMap<>();
+        for (MapNode n : all) byId.put(n.getId(), n);
+
+        // Per ogni nodo, costruiamo mappa id -> set dei genitori
+        Map<String, Set<String>> parents = new HashMap<>();
+        for (MapNode n : all) {
+            for (String childId : n.getNextNodeIds()) {
+                parents.computeIfAbsent(childId, k -> new HashSet<>()).add(n.getId());
+            }
+        }
+
+        for (MapNode n : all) {
+            if (n.getRequiredClass() == null) continue;
+            boolean isSecretType = n.getType() == NodeType.VOID || n.getType() == NodeType.VOID_BOSS;
+            if (!isSecretType) continue;
+            // E' un entry node se ha almeno un genitore che NON e' VOID/VOID_BOSS
+            Set<String> parentIds = parents.getOrDefault(n.getId(), Collections.emptySet());
+            boolean hasNonVoidParent = parentIds.stream()
+                    .map(byId::get)
+                    .filter(Objects::nonNull)
+                    .anyMatch(p -> p.getType() != NodeType.VOID && p.getType() != NodeType.VOID_BOSS);
+            if (hasNonVoidParent) {
+                secretEntryNodeIds.add(n.getId());
+            }
+        }
     }
 
     private void buildLayout() {
@@ -196,7 +242,6 @@ public class MapController {
         gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
         String playerClass = gameService.getClassName();
 
-        // True se il giocatore ha gia' cleared almeno un nodo VOID
         boolean voidPathVisited = gameService.hasVisitedVoidPath();
 
         Set<String> currentNodeNextIds = gameService.getCurrentNode()
@@ -211,14 +256,12 @@ public class MapController {
                 if (to == null) continue;
                 int distSrc  = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
                 int distDest = bfsDistance.getOrDefault(sid,       Integer.MAX_VALUE);
-                // Anche le linee verso nodi del percorso segreto non visitato vanno nascoste
                 MapNode destNode = byId.get(sid);
                 boolean destSecretHidden = isSecretNodeHidden(destNode, voidPathVisited);
                 boolean srcSecretHidden  = isSecretNodeHidden(n,        voidPathVisited);
                 if (!destSecretHidden && !srcSecretHidden) {
                     drawConnection(from, to, n, destNode, currentId, distSrc, distDest);
                 } else {
-                    // Disegna la linea come farFog (quasi invisibile)
                     drawConnectionHidden(from, to);
                 }
             }
@@ -235,8 +278,6 @@ public class MapController {
             boolean locked      = classLocked || flagLocked;
             boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
             int dist = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
-
-            // Forza farFog per nodi del percorso segreto non ancora scoperti
             boolean secretHidden = isSecretNodeHidden(n, voidPathVisited);
 
             canvas.getChildren().add(buildNodeGraphic(
@@ -257,13 +298,20 @@ public class MapController {
     }
 
     /**
-     * Un nodo e' "segreto nascosto" se ha requiredClass != null, e' di tipo VOID o VOID_BOSS,
-     * e il giocatore non ha ancora visitato il percorso dell'Abisso.
-     * Eccezione: se il nodo stesso e' gia' cleared, e' gia' stato scoperto.
+     * Un nodo e' "segreto nascosto" se:
+     * - ha requiredClass != null
+     * - e' di tipo VOID o VOID_BOSS
+     * - NON e' un nodo entry (ingresso del percorso segreto dal ramo normale)
+     * - il giocatore non ha ancora cleared nessun nodo VOID
+     * - non e' gia' cleared
+     *
+     * I nodi entry (es. nHK0 "Ingresso dell'Abisso") restano sempre visibili:
+     * il lock di classe impedisce gia' alle altre classi di entrarci.
      */
     private boolean isSecretNodeHidden(MapNode node, boolean voidPathVisited) {
         if (node == null) return false;
-        if (node.isCleared()) return false;  // gia' visitato: sempre visibile
+        if (node.isCleared()) return false;
+        if (secretEntryNodeIds.contains(node.getId())) return false;  // entry sempre visibile
         boolean isSecretPath = node.getRequiredClass() != null
                 && (node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS);
         return isSecretPath && !voidPathVisited;
@@ -398,12 +446,12 @@ public class MapController {
         canvas.getChildren().add(line);
     }
 
-    /** Linea placeholder per connessioni verso nodi segreti non ancora scoperti: quasi invisibile. */
+    /** Linea placeholder quasi invisibile per connessioni verso nodi segreti nascosti. */
     private void drawConnectionHidden(double[] from, double[] to) {
         Line line = new Line(from[0], from[1], to[0], to[1]);
-        line.setStroke(Color.web("#111128"));
+        line.setStroke(Color.web("#0d0d1e"));
         line.setStrokeWidth(1.0);
-        line.setOpacity(OPACITY_FAR);
+        line.setOpacity(OPACITY_SECRET);
         canvas.getChildren().add(line);
     }
 
@@ -462,10 +510,9 @@ public class MapController {
                                        boolean isReachable, boolean isLocked,
                                        boolean isNewlyReachable, int dist,
                                        boolean secretHidden) {
-        // Se il nodo e' segreto e non ancora scoperto, trattalo sempre come farFog
-        // indipendentemente dalla distanza BFS (che lo vederebbe vicino se adiacente al boss)
         boolean revealed, midFog, farFog;
         if (secretHidden) {
+            // Nodo segreto non ancora scoperto: quasi invisibile, non interagibile
             revealed = false;
             midFog   = false;
             farFog   = true;
@@ -494,7 +541,7 @@ public class MapController {
 
         Circle bg = new Circle(NODE_R);
         if (farFog) {
-            bg.setFill(Color.web("#111128")); bg.setStroke(Color.web("#1e1e38")); bg.setStrokeWidth(1.0);
+            bg.setFill(Color.web("#0d0d1e")); bg.setStroke(Color.web("#0d0d1e")); bg.setStrokeWidth(1.0);
         } else if (midFog) {
             bg.setFill(Color.web("#14142a")); bg.setStroke(Color.web("#2e2e50")); bg.setStrokeWidth(1.5);
         } else if (isCurrent) {
@@ -519,12 +566,13 @@ public class MapController {
         }
 
         String iconFontSize = (isCleared && revealed) ? "16" : "22";
-        String iconColor    = farFog || midFog ? "#252540" : isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white";
-        Label iconLabel = new Label(revealed && isCleared ? "\u2714" : icon);
+        // Nodi segreti nascosti: icona vuota (nessun '?'), testo invisibile
+        String iconColor = farFog || midFog ? "#0d0d1e" : isCleared ? "#4ade80" : isLocked ? "#6b7280" : "white";
+        Label iconLabel = new Label(secretHidden ? "" : (revealed && isCleared ? "\u2714" : icon));
         iconLabel.setStyle("-fx-font-size:" + iconFontSize + "px;-fx-text-fill:" + iconColor + ";");
 
-        Label nameLabel = new Label(revealed ? node.getName() : "");
-        if (revealed) {
+        Label nameLabel = new Label(revealed && !secretHidden ? node.getName() : "");
+        if (revealed && !secretHidden) {
             String nameColor = isCurrent ? color : isCleared ? "#4ade80" : isLocked ? "#4b5563"
                     : (isVoidNode && isReachable) ? VOID_COLOR
                     : (isSecretUnlocked && isNewlyReachable) ? "#fbbf24"
@@ -542,31 +590,39 @@ public class MapController {
         double spSize = pulseRing != null ? (NODE_R + 8) * 2 : NODE_R * 2;
         sp.setLayoutX(cx - spSize / 2); sp.setLayoutY(cy - spSize / 2); sp.setPrefSize(spSize, spSize);
 
-        if      (farFog) { sp.setOpacity(OPACITY_FAR); sp.setEffect(new GaussianBlur(4)); }
-        else if (midFog) { sp.setOpacity(OPACITY_MID); }
-
-        if (isVoidNode && isReachable && isNewlyReachable) {
-            sp.setOpacity(0); sp.setScaleX(0.6); sp.setScaleY(0.6);
-            FadeTransition ft = new FadeTransition(Duration.millis(800), sp); ft.setFromValue(0); ft.setToValue(1);
-            ScaleTransition st = new ScaleTransition(Duration.millis(800), sp);
-            st.setFromX(0.6); st.setFromY(0.6); st.setToX(1.0); st.setToY(1.0);
-            new SequentialTransition(new javafx.animation.PauseTransition(Duration.millis(200)),
-                    new javafx.animation.ParallelTransition(ft, st)).play();
-        } else if (isSecretUnlocked && isNewlyReachable) {
-            sp.setOpacity(0); sp.setScaleX(0.7); sp.setScaleY(0.7);
-            FadeTransition ft = new FadeTransition(Duration.millis(600), sp); ft.setFromValue(0); ft.setToValue(1);
-            ScaleTransition st = new ScaleTransition(Duration.millis(600), sp);
-            st.setFromX(0.7); st.setFromY(0.7); st.setToX(1.0); st.setToY(1.0);
-            new SequentialTransition(new javafx.animation.PauseTransition(Duration.millis(150)),
-                    new javafx.animation.ParallelTransition(ft, st)).play();
+        if (secretHidden) {
+            // Opacita' minima: praticamente invisibile, si fonde con lo sfondo
+            sp.setOpacity(OPACITY_SECRET);
+            sp.setMouseTransparent(true);  // non intercetta eventi mouse
+        } else if (farFog) {
+            sp.setOpacity(OPACITY_FAR); sp.setEffect(new GaussianBlur(4));
+        } else if (midFog) {
+            sp.setOpacity(OPACITY_MID);
         }
 
-        sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked, dist));
-        sp.setOnMouseExited(e  -> hideHoverPanel());
-        // I nodi segreti nascosti non sono cliccabili
-        if (isReachable && revealed && !secretHidden) {
-            sp.setStyle("-fx-cursor:hand;");
-            sp.setOnMouseClicked(e -> onNodeSelected(node));
+        if (!secretHidden) {
+            if (isVoidNode && isReachable && isNewlyReachable) {
+                sp.setOpacity(0); sp.setScaleX(0.6); sp.setScaleY(0.6);
+                FadeTransition ft = new FadeTransition(Duration.millis(800), sp); ft.setFromValue(0); ft.setToValue(1);
+                ScaleTransition st = new ScaleTransition(Duration.millis(800), sp);
+                st.setFromX(0.6); st.setFromY(0.6); st.setToX(1.0); st.setToY(1.0);
+                new SequentialTransition(new javafx.animation.PauseTransition(Duration.millis(200)),
+                        new javafx.animation.ParallelTransition(ft, st)).play();
+            } else if (isSecretUnlocked && isNewlyReachable) {
+                sp.setOpacity(0); sp.setScaleX(0.7); sp.setScaleY(0.7);
+                FadeTransition ft = new FadeTransition(Duration.millis(600), sp); ft.setFromValue(0); ft.setToValue(1);
+                ScaleTransition st = new ScaleTransition(Duration.millis(600), sp);
+                st.setFromX(0.7); st.setFromY(0.7); st.setToX(1.0); st.setToY(1.0);
+                new SequentialTransition(new javafx.animation.PauseTransition(Duration.millis(150)),
+                        new javafx.animation.ParallelTransition(ft, st)).play();
+            }
+
+            sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked, dist));
+            sp.setOnMouseExited(e  -> hideHoverPanel());
+            if (isReachable && revealed) {
+                sp.setStyle("-fx-cursor:hand;");
+                sp.setOnMouseClicked(e -> onNodeSelected(node));
+            }
         }
         return sp;
     }
