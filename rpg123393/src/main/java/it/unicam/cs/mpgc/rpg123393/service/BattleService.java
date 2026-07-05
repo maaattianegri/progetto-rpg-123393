@@ -18,9 +18,7 @@ public class BattleService {
         if (player.getCurrentMana() < card.getManaCost()) {
             return "Mana insufficiente per giocare " + card.getName() + "!";
         }
-        // fix: scala il mana usando il nome corretto del metodo in GameCharacter
-        player.useMana(card.getManaCost());
-
+        // NON chiamare useMana qui: ogni carta lo gestisce internamente in play()
         int hpBefore    = enemy.getCurrentHp();
         int blockBefore = enemy.getBlock();
         card.play(player, enemy);
