@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
@@ -7,7 +8,6 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.StackPane?>
 
 <BorderPane
     xmlns="http://javafx.com/javafx/21"
@@ -36,7 +36,6 @@
   </top>
 
   <center>
-    <!-- Padding extra per non clippare l'animazione scale -->
     <HBox alignment="CENTER" spacing="16"
           style="-fx-padding: 12 40; -fx-background-color: #1a1a2e;">
 
@@ -67,8 +66,9 @@
           <Label text="Colpo Devastante x2"
                  style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
           <Label text="&#x25aa; Accesso al Vuoto"
-                 style="-fx-font-size: 11px; -fx-text-fill: #9333ea; -fx-font-weight: bold;"
-                 VBox.margin="8 0 0 0"/>
+                 style="-fx-font-size: 11px; -fx-text-fill: #9333ea; -fx-font-weight: bold;">
+            <VBox.margin><Insets top="8"/></VBox.margin>
+          </Label>
         </VBox>
         <Region VBox.vgrow="ALWAYS"/>
         <Button text="Scegli" onAction="#selectWarrior" maxWidth="Infinity"
