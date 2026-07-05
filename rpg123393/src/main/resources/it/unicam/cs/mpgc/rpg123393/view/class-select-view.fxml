@@ -34,21 +34,20 @@
            style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
 
     <HBox alignment="CENTER" spacing="20">
-      <!-- CAVALIERE #9333ea (Hollow Knight theme) -->
+      <!-- CAVALIERE — stile neutro, solo badge viola per l'easter egg -->
       <VBox alignment="CENTER" spacing="8"
-            style="-fx-background-color: #1e0338; -fx-padding: 20; -fx-background-radius: 12;
-                   -fx-min-width: 160; -fx-border-color: #9333ea; -fx-border-radius: 12; -fx-border-width: 2;
-                   -fx-effect: dropshadow(gaussian, #9333ea, 10, 0.3, 0, 0);">
-        <Label text="CAVALIERE" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #c084fc;"/>
+            style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
+                   -fx-min-width: 160; -fx-border-color: #e74c3c; -fx-border-radius: 12; -fx-border-width: 1;">
+        <Label text="CAVALIERE" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
         <Label text="Vigore 8 - Arcano 3" style="-fx-font-size: 11px; -fx-text-fill: #a0a0c0;"/>
         <Label text="Danno elevato" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
-        <Label text="Carte: Colpo, Colpo Devastante" style="-fx-font-size: 10px; -fx-text-fill: #c084fc; -fx-wrap-text: true;"/>
+        <Label text="Carte: Colpo, Colpo Devastante" style="-fx-font-size: 10px; -fx-text-fill: #e74c3c; -fx-wrap-text: true;"/>
         <Label text="&#x25fc; Accesso al Vuoto" style="-fx-font-size: 10px; -fx-text-fill: #9333ea; -fx-font-weight: bold;"/>
         <Button text="Scegli" onAction="#selectWarrior"
-                style="-fx-background-color: #9333ea; -fx-text-fill: white; -fx-font-weight: bold;
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold;
                        -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
       </VBox>
-      <!-- MAGO #9b59b6 -->
+      <!-- MAGO -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #9b59b6; -fx-border-radius: 12; -fx-border-width: 1;">
@@ -60,7 +59,7 @@
                 style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-font-weight: bold;
                        -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
       </VBox>
-      <!-- DRACOMANTE #e67e22 -->
+      <!-- DRACOMANTE -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #e67e22; -fx-border-radius: 12; -fx-border-width: 1;">
@@ -75,7 +74,7 @@
     </HBox>
 
     <HBox alignment="CENTER" spacing="20">
-      <!-- PALADINO #f1c40f -->
+      <!-- PALADINO -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #f1c40f; -fx-border-radius: 12; -fx-border-width: 1;">
@@ -87,7 +86,7 @@
                 style="-fx-background-color: #f1c40f; -fx-text-fill: #1a1a2e; -fx-font-weight: bold;
                        -fx-padding: 8 20; -fx-background-radius: 6; -fx-cursor: hand;"/>
       </VBox>
-      <!-- ASSASSINO #27ae60 -->
+      <!-- ASSASSINO -->
       <VBox alignment="CENTER" spacing="8"
             style="-fx-background-color: #2a2a4a; -fx-padding: 20; -fx-background-radius: 12;
                    -fx-min-width: 160; -fx-border-color: #27ae60; -fx-border-radius: 12; -fx-border-width: 1;">
