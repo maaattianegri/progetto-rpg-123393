@@ -56,6 +56,13 @@ public class GameService {
      */
     private boolean upgradeUsedThisShop = false;
 
+    /**
+     * Easter egg Hollow Knight.
+     * True se il Cavaliere ha ottenuto il Cuore di Vuoto visitando il nodo VOID.
+     * Sblocca l'accesso al nodo VOID_BOSS (Cavaliere Vacuo) dall'event nHK4.
+     */
+    private boolean voidHeartObtained = false;
+
     // -------------------------------------------------------
     // Inizializzazione
     // -------------------------------------------------------
@@ -75,7 +82,6 @@ public class GameService {
         } else {
             loadUnlockedCardsFromSave();
         }
-        // Resetta l'anti-ripetizione degli eventi per questa nuova run
         EventPool.resetForNewRun();
     }
 
@@ -91,7 +97,7 @@ public class GameService {
             case "Mago"       -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
             case "Dracomante" -> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
             case "Paladino"   -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new ConsecrationCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
-            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); } // ridotto da 3x a 2x PoisonBlade, aggiunta DefendCard
+            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); }
             default           -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
         }
     }
@@ -109,6 +115,13 @@ public class GameService {
 
     public void addCardToDeck(ICard card) { deck.add(card); }
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
+
+    // -------------------------------------------------------
+    // Easter egg Hollow Knight — Cuore di Vuoto
+    // -------------------------------------------------------
+
+    public boolean isVoidHeartObtained()          { return voidHeartObtained; }
+    public void    obtainVoidHeart()               { this.voidHeartObtained = true; }
 
     // -------------------------------------------------------
     // Navigazione mappa
@@ -165,21 +178,9 @@ public class GameService {
     // Upgrade flag (Fucina dell'Eroe)
     // -------------------------------------------------------
 
-    /** Chiamato da MapController quando si entra in un nodo SHOP. */
-    public void resetUpgradeForNextShop() {
-        upgradeUsedThisShop = false;
-    }
-
-    /** Chiamato da UpgradeController dopo aver effettivamente potenziato una carta. */
-    public void markUpgradeUsed() {
-        upgradeUsedThisShop = true;
-        totalUpgradesUsed++;
-    }
-
-    /** Usato da ShopPool per decidere se includere la Fucina nella lista items. */
-    public boolean isUpgradeAvailable() {
-        return !upgradeUsedThisShop;
-    }
+    public void resetUpgradeForNextShop() { upgradeUsedThisShop = false; }
+    public void markUpgradeUsed()         { upgradeUsedThisShop = true; totalUpgradesUsed++; }
+    public boolean isUpgradeAvailable()   { return !upgradeUsedThisShop; }
 
     // -------------------------------------------------------
     // Battaglia
@@ -347,6 +348,7 @@ public class GameService {
                 .map(MapNode::getId)
                 .collect(java.util.stream.Collectors.toList());
         s.setClearedNodeIds(cleared);
+        s.setVoidHeartObtained(this.voidHeartObtained);
         return s;
     }
 
@@ -357,6 +359,7 @@ public class GameService {
         this.imagePath   = state.getImagePath();
         this.playerLevel = state.getPlayerLevel();
         this.playerXp    = state.getPlayerXp();
+        this.voidHeartObtained = state.isVoidHeartObtained();
         if (state.getUnlockedCards() != null)
             this.unlockedCards = new ArrayList<>(state.getUnlockedCards());
         player = new GameCharacter(
