@@ -48,10 +48,6 @@ public class GameService {
     private int totalUpgradesUsed = 0;
     private boolean upgradeUsedThisShop = false;
 
-    /**
-     * Easter egg Hollow Knight.
-     * True se il Cavaliere ha ottenuto il Cuore di Vuoto visitando il nodo VOID.
-     */
     private boolean voidHeartObtained = false;
 
     // -------------------------------------------------------
@@ -107,8 +103,6 @@ public class GameService {
     public void addCardToDeck(ICard card) { deck.add(card); }
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
 
-    public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
-
     // -------------------------------------------------------
     // Easter egg Hollow Knight
     // -------------------------------------------------------
@@ -116,12 +110,6 @@ public class GameService {
     public boolean isVoidHeartObtained()  { return voidHeartObtained; }
     public void    obtainVoidHeart()      { this.voidHeartObtained = true; }
 
-    /**
-     * Restituisce true se il giocatore ha già visitato (cleared) almeno un nodo
-     * di tipo VOID, cioè è entrato nel percorso segreto dell'Abisso.
-     * Usato dal MapController per nascondere i nodi del percorso segreto
-     * finché non si passa da lì.
-     */
     public boolean hasVisitedVoidPath() {
         return mapService.getMap().getAllNodes().stream()
                 .anyMatch(n -> n.getType() == NodeType.VOID && n.isCleared());
@@ -218,9 +206,9 @@ public class GameService {
     public String getPendingMessage() { String m = pendingMessage; pendingMessage = ""; return m; }
 
     /**
-     * Pesca 3 carte dalla mano senza reinserimento, usando un pool temporaneo
-     * clonato dal mazzo. Questo evita che la stessa istanza ICard compaia in
-     * più slot, il che causava lo stato visivo "carta già usata" a inizio turno.
+     * Pesca 3 carte senza reinserimento da un pool temporaneo clonato dal mazzo.
+     * Evita che la stessa istanza ICard finisca in più slot, causando lo stato
+     * visivo "carta già usata" a inizio turno.
      */
     private void drawHand() {
         List<ICard> pool = new ArrayList<>(deck);
@@ -325,28 +313,106 @@ public class GameService {
     }
 
     // -------------------------------------------------------
-    // Getters vari
+    // Progressione
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()      { return player; }
-    public GameCharacter getEnemy()       { return enemy; }
-    public ICard[]       getHand()        { return hand; }
-    public List<ICard>   getDeck()        { return deck; }
-    public List<String>  getUnlockedCards(){ return unlockedCards; }
-    public List<Relic>   getRelics()      { return relics; }
-    public int           getGold()        { return gold; }
+    public List<String> addXpAndLevelUp(int xpGained) {
+        playerXp += xpGained;
+        List<String> messages = new ArrayList<>();
+        while (levelService.shouldLevelUp(playerXp, playerLevel)) {
+            playerXp = levelService.consumeXpForLevelUp(playerXp, playerLevel);
+            playerLevel++;
+            player.setMaxHp(player.getMaxHp() + levelService.hpBonusOnLevelUp(playerLevel));
+            int manaBonus = levelService.manaBonusOnLevelUp(playerLevel);
+            if (manaBonus > 0) {
+                int newMana = Math.min(player.getMaxMana() + manaBonus, LevelService.MAX_MANA_CAP);
+                player.setMaxMana(newMana);
+            }
+            messages.add(levelService.levelUpMessage(player.getName(), playerLevel));
+        }
+        return messages;
+    }
+
+    // -------------------------------------------------------
+    // Persistenza
+    // -------------------------------------------------------
+
+    public GameState toGameState() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+        GameState s = new GameState(
+                player.getName(), player.getMaxHp(), player.getCurrentHp(),
+                player.getMaxMana(), player.getCurrentMana(),
+                playerLevel, playerXp, now,
+                className != null ? className : "",
+                imagePath != null ? imagePath : "");
+        s.setUnlockedCards(new ArrayList<>(unlockedCards));
+        List<String> deckNames = new ArrayList<>();
+        for (ICard card : deck) deckNames.add(card.getName());
+        s.setDeckCardNames(deckNames);
+        mapService.getMap().getCurrentNode().ifPresent(n -> s.setCurrentNodeId(n.getId()));
+        List<String> cleared = mapService.getMap().getAllNodes().stream()
+                .filter(MapNode::isCleared).map(MapNode::getId)
+                .collect(java.util.stream.Collectors.toList());
+        s.setClearedNodeIds(cleared);
+        s.setVoidHeartObtained(this.voidHeartObtained);
+        return s;
+    }
+
+    public void restoreFromState(GameState state) {
+        this.vigore      = (state.getPlayerMaxHp()  - 50) / 10;
+        this.arcano      = (state.getPlayerMaxMana() - 3)  * 2;
+        this.className   = state.getClassName();
+        this.imagePath   = state.getImagePath();
+        this.playerLevel = state.getPlayerLevel();
+        this.playerXp    = state.getPlayerXp();
+        this.voidHeartObtained = state.isVoidHeartObtained();
+        if (state.getUnlockedCards() != null)
+            this.unlockedCards = new ArrayList<>(state.getUnlockedCards());
+        player = new GameCharacter(
+                state.getPlayerName(), state.getPlayerMaxHp(), state.getPlayerMaxMana());
+        player.setCurrentHp(state.getPlayerCurrentHp());
+        player.setCurrentMana(state.getPlayerCurrentMana());
+        List<String> savedDeck = state.getDeckCardNames();
+        if (savedDeck != null && !savedDeck.isEmpty()) {
+            deck.clear();
+            for (String cardName : savedDeck) {
+                ICard card = CardPool.getCardByName(cardName);
+                if (card != null) deck.add(card);
+            }
+            if (deck.isEmpty()) buildStarterDeck(this.className);
+        } else {
+            buildStarterDeck(this.className);
+        }
+        mapService.restoreMap(state.getCurrentNodeId(), state.getClearedNodeIds());
+    }
+
+    // -------------------------------------------------------
+    // Getter / Setter
+    // -------------------------------------------------------
+
+    public GameCharacter getPlayer()            { return player; }
+    public GameCharacter getEnemy()             { return enemy; }
+    public ICard[]       getHand()              { return hand; }
+    public int           getPlayerLevel()       { return playerLevel; }
+    public int           getPlayerXp()          { return playerXp; }
+    public int           getXpRequired()        { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int           getVigore()            { return vigore; }
+    public int           getArcano()            { return arcano; }
+    public String        getClassName()         { return className; }
+    public String        getImagePath()         { return imagePath; }
+    public List<ICard>   getDeck()              { return deck; }
+    public List<String>  getUnlockedCards()     { return unlockedCards; }
+    public List<Relic>   getRelics()            { return relics; }
+    public int           getGold()              { return gold; }
     public int           getTotalGoldEarned()   { return totalGoldEarned; }
     public int           getTotalUpgradesUsed() { return totalUpgradesUsed; }
-    public String        getClassName()   { return className; }
-    public String        getImagePath()   { return imagePath; }
-    public int           getPlayerLevel() { return playerLevel; }
-    public int           getPlayerXp()    { return playerXp; }
+    public void setClassName(String c)    { this.className = c; }
+    public void setImagePath(String p)    { this.imagePath = p; }
+    public void addGold(int amount)       { this.gold += amount; totalGoldEarned += amount; }
+    public MapService getMapService()     { return mapService; }
 
-    public void addXp(int xp) {
-        playerXp += xp;
-        while (playerXp >= levelService.xpForNextLevel(playerLevel)) {
-            playerXp -= levelService.xpForNextLevel(playerLevel);
-            playerLevel++;
-        }
-    }
+    @Deprecated
+    public RunManager getRunManager()     { return runManager; }
+
+    public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
 }

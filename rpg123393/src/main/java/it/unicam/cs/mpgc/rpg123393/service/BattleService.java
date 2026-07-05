@@ -18,13 +18,14 @@ public class BattleService {
         if (player.getCurrentMana() < card.getManaCost()) {
             return "Mana insufficiente per giocare " + card.getName() + "!";
         }
-        player.spendMana(card.getManaCost());
+        // fix: scala il mana usando il nome corretto del metodo in GameCharacter
+        player.useMana(card.getManaCost());
 
         int hpBefore    = enemy.getCurrentHp();
         int blockBefore = enemy.getBlock();
         card.play(player, enemy);
 
-        int dmgDealt    = hpBefore    - enemy.getCurrentHp();
+        int dmgDealt = hpBefore - enemy.getCurrentHp();
         StringBuilder msg = new StringBuilder();
         msg.append(player.getName()).append(" usa ").append(card.getName()).append("!");
         if (dmgDealt > 0)    msg.append(" [Danno: ").append(dmgDealt).append("]");
