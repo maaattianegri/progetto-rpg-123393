@@ -120,8 +120,8 @@ public class GameService {
     // Easter egg Hollow Knight — Cuore di Vuoto
     // -------------------------------------------------------
 
-    public boolean isVoidHeartObtained()          { return voidHeartObtained; }
-    public void    obtainVoidHeart()               { this.voidHeartObtained = true; }
+    public boolean isVoidHeartObtained()  { return voidHeartObtained; }
+    public void    obtainVoidHeart()      { this.voidHeartObtained = true; }
 
     // -------------------------------------------------------
     // Navigazione mappa
@@ -183,7 +183,7 @@ public class GameService {
     public boolean isUpgradeAvailable()   { return !upgradeUsedThisShop; }
 
     // -------------------------------------------------------
-    // Battaglia
+    // Battaglia — standard
     // -------------------------------------------------------
 
     public void startBattle() {
@@ -192,6 +192,32 @@ public class GameService {
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
     }
+
+    // -------------------------------------------------------
+    // Battaglia — ramo Hollow Knight
+    // -------------------------------------------------------
+
+    /**
+     * Avvia uno scontro contro un nemico del Vuoto (nHK1, nHK2, nHK3).
+     * Usa EnemyFactory.createVoidEnemy() invece del pool normale.
+     */
+    public void startVoidBattle() {
+        enemy = enemyFactory.createVoidEnemy(playerLevel);
+        for (Relic relic : relics) relic.onBattleStart(player);
+        startPlayerTurn();
+    }
+
+    /**
+     * Avvia lo scontro contro il boss segreto Cavaliere Vacuo (nHKB).
+     * Richiede che voidHeartObtained sia true (garantito da EventController).
+     */
+    public void startVoidBoss() {
+        enemy = enemyFactory.createVoidBoss(playerLevel);
+        for (Relic relic : relics) relic.onBattleStart(player);
+        startPlayerTurn();
+    }
+
+    // -------------------------------------------------------
 
     public void startPlayerTurn() {
         String poisonMsg = battleService.startTurn(player);
