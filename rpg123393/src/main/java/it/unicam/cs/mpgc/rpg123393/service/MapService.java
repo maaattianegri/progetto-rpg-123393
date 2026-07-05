@@ -21,9 +21,14 @@ import java.util.Optional;
  *   nB1 ELITE → nB2 BATTLE → nB3 SHOP → nB4 ELITE → nB5 ELITE → BOSS_B1 (Vampiro Lord) → BOSS_B2 (Drago Antico)
  *
  * RAMO C — Oscuro (2 nodi condivisi poi si biforca)
- *   nC1 EVENT (condizionale: Dracomante|Assassino) → nC2 ELITE → [BIVIO C]
+ *   nC1 EVENT (condizionale: Dracomante|Assassino|Cavaliere) → nC2 ELITE → [BIVIO C]
  *         ├─ RAMO C1 (Proibito):  nC3 EVENT → BOSS_C1 (Cuore dell'Abisso)
  *         └─ RAMO C2 (Abissale):  nC4 BATTLE → nC5 ELITE → BOSS_C2 (Re Ombra)
+ *                                              └─ [solo Cavaliere] nHK0 VOID (Ingresso Abisso)
+ *                                                       → nHK1 BATTLE → nHK2 BATTLE → nHK3 BATTLE
+ *                                                       → nHK4 EVENT (Velo tra i Mondi)
+ *                                                              ├─ [accetta] nHK_BOSS VOID_BOSS (Cavaliere Vacuo)
+ *                                                              └─ [rifiuta] nBB2 (Drago Antico) ← ricollega Ramo B
  */
 public class MapService {
 
@@ -74,9 +79,9 @@ public class MapService {
         MapNode nBB2 = node("nBB2", "Drago Antico",
                 "Il Drago Antico scuote la terra con ogni passo.", NodeType.BOSS);
 
-        // --- RAMO C: Oscuro (nC1 condizionale) ---
+        // --- RAMO C: Oscuro (nC1 aperto anche al Cavaliere) ---
         MapNode nC1 = node("nC1", "Cripta Proibita",
-                "Solo chi conosce l'oscurit\u00e0 pu\u00f2 entrare.", NodeType.EVENT, "Dracomante|Assassino");
+                "Solo chi conosce l'oscurit\u00e0 pu\u00f2 entrare.", NodeType.EVENT, "Dracomante|Assassino|Cavaliere");
         MapNode nC2 = node("nC2", "Sentinella Abissale",
                 "Una creatura di pura tenebra ti sfida.", NodeType.ELITE);
 
@@ -93,6 +98,26 @@ public class MapService {
                 "Il guardiano del Re Ombra non concede passaggio.", NodeType.ELITE);
         MapNode nCB2 = node("nCB2", "Re Ombra",
                 "Il signore segreto del dungeon emerge dall'oscurit\u00e0.", NodeType.BOSS);
+
+        // --- RAMO HK: Easter egg Hollow Knight (solo Cavaliere) ---
+        MapNode nHK0 = node("nHK0", "Ingresso dell'Abisso",
+                "Il buio oltre la soglia è diverso da qualsiasi oscurit\u00e0 tu abbia mai visto. Pulsa.",
+                NodeType.VOID, "Cavaliere");
+        MapNode nHK1 = node("nHK1", "Frammenti del Vuoto",
+                "Creature fatte di tenebra pura, senza occhi n\u00e9 voce. Ti attaccano in silenzio.",
+                NodeType.BATTLE, "Cavaliere");
+        MapNode nHK2 = node("nHK2", "Antro della Larva",
+                "Larve dell'Abisso sciamano tra le fessure delle pietre. Sono pi\u00f9 pericolose di quanto sembrino.",
+                NodeType.BATTLE, "Cavaliere");
+        MapNode nHK3 = node("nHK3", "Guscio Vuoto",
+                "Un guerriero antico, svuotato di ogni volont\u00e0. Combatte per istinto puro.",
+                NodeType.BATTLE, "Cavaliere");
+        MapNode nHK4 = node("nHK4", "Il Velo tra i Mondi",
+                "Davanti a te galleggia qualcosa di oscuro e pulsante. Il Cuore di Vuoto ti chiama.",
+                NodeType.EVENT, "Cavaliere");
+        MapNode nHKB = node("nHKB", "Cavaliere Vacuo",
+                "Un riflesso di te stesso, svuotato. Combatte con la tua stessa tecnica, ma senza esitazione.",
+                NodeType.VOID_BOSS, "Cavaliere");
 
         // ---- Connessioni ----
 
@@ -129,13 +154,25 @@ public class MapService {
         // C2
         nC4.addNextNode("nC5");
         nC5.addNextNode("nCB2");
+        // Biforcazione HK da nC5 (solo Cavaliere vede nHK0)
+        nC5.addNextNode("nHK0");
+
+        // Ramo HK
+        nHK0.addNextNode("nHK1");
+        nHK1.addNextNode("nHK2");
+        nHK2.addNextNode("nHK3");
+        nHK3.addNextNode("nHK4");
+        // Biforcazione EVENT: accetta → boss segreto, rifiuta → Drago Antico
+        nHK4.addNextNode("nHKB");
+        nHK4.addNextNode("nBB2");
 
         // Aggiunta alla mappa
         for (MapNode n : List.of(
                 n00, n01,
                 nA1, nA2, nA3, nA4, nA5, nA6, nAB,
                 nB1, nB2, nB3, nB4, nB5, nBB1, nBB2,
-                nC1, nC2, nC3, nCB1, nC4, nC5, nCB2)) {
+                nC1, nC2, nC3, nCB1, nC4, nC5, nCB2,
+                nHK0, nHK1, nHK2, nHK3, nHK4, nHKB)) {
             gm.addNode(n);
         }
 
@@ -173,12 +210,15 @@ public class MapService {
     }
 
     public boolean isCurrentNodeBoss() {
-        return map.getCurrentNode().map(n -> n.getType() == NodeType.BOSS).orElse(false);
+        return map.getCurrentNode().map(n ->
+                n.getType() == NodeType.BOSS || n.getType() == NodeType.VOID_BOSS
+        ).orElse(false);
     }
 
     public boolean isCurrentNodeLastBoss() {
         return map.getCurrentNode()
-                .map(n -> n.getType() == NodeType.BOSS && n.getNextNodeIds().isEmpty())
+                .map(n -> (n.getType() == NodeType.BOSS || n.getType() == NodeType.VOID_BOSS)
+                        && n.getNextNodeIds().isEmpty())
                 .orElse(false);
     }
 
