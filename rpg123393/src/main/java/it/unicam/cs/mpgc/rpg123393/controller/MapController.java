@@ -196,6 +196,9 @@ public class MapController {
         gameService.getReachableNodes().forEach(n -> reachableIds.add(n.getId()));
         String playerClass = gameService.getClassName();
 
+        // True se il giocatore ha gia' cleared almeno un nodo VOID
+        boolean voidPathVisited = gameService.hasVisitedVoidPath();
+
         Set<String> currentNodeNextIds = gameService.getCurrentNode()
                 .map(n -> new HashSet<>(n.getNextNodeIds()))
                 .orElse(new HashSet<>());
@@ -208,7 +211,16 @@ public class MapController {
                 if (to == null) continue;
                 int distSrc  = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
                 int distDest = bfsDistance.getOrDefault(sid,       Integer.MAX_VALUE);
-                drawConnection(from, to, n, byId.get(sid), currentId, distSrc, distDest);
+                // Anche le linee verso nodi del percorso segreto non visitato vanno nascoste
+                MapNode destNode = byId.get(sid);
+                boolean destSecretHidden = isSecretNodeHidden(destNode, voidPathVisited);
+                boolean srcSecretHidden  = isSecretNodeHidden(n,        voidPathVisited);
+                if (!destSecretHidden && !srcSecretHidden) {
+                    drawConnection(from, to, n, destNode, currentId, distSrc, distDest);
+                } else {
+                    // Disegna la linea come farFog (quasi invisibile)
+                    drawConnectionHidden(from, to);
+                }
             }
         }
 
@@ -223,11 +235,15 @@ public class MapController {
             boolean locked      = classLocked || flagLocked;
             boolean isNewlyReachable = currentNodeNextIds.contains(n.getId());
             int dist = bfsDistance.getOrDefault(n.getId(), Integer.MAX_VALUE);
+
+            // Forza farFog per nodi del percorso segreto non ancora scoperti
+            boolean secretHidden = isSecretNodeHidden(n, voidPathVisited);
+
             canvas.getChildren().add(buildNodeGraphic(
                     n, pos[0], pos[1],
                     n.isCleared(), n.getId().equals(currentId),
                     reachableIds.contains(n.getId()) && !locked,
-                    locked, isNewlyReachable, dist));
+                    locked, isNewlyReachable, dist, secretHidden));
         }
 
         var p = gameService.getPlayer();
@@ -238,6 +254,19 @@ public class MapController {
         selectedNodeLabel.setText("Trascina per muoverti \u2022 Rotella per zoomare \u2022 Clicca un nodo raggiungibile per avanzare");
         buildLegend();
         buildControlsLegend();
+    }
+
+    /**
+     * Un nodo e' "segreto nascosto" se ha requiredClass != null, e' di tipo VOID o VOID_BOSS,
+     * e il giocatore non ha ancora visitato il percorso dell'Abisso.
+     * Eccezione: se il nodo stesso e' gia' cleared, e' gia' stato scoperto.
+     */
+    private boolean isSecretNodeHidden(MapNode node, boolean voidPathVisited) {
+        if (node == null) return false;
+        if (node.isCleared()) return false;  // gia' visitato: sempre visibile
+        boolean isSecretPath = node.getRequiredClass() != null
+                && (node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS);
+        return isSecretPath && !voidPathVisited;
     }
 
     private void setupPanAndZoom() {
@@ -369,6 +398,15 @@ public class MapController {
         canvas.getChildren().add(line);
     }
 
+    /** Linea placeholder per connessioni verso nodi segreti non ancora scoperti: quasi invisibile. */
+    private void drawConnectionHidden(double[] from, double[] to) {
+        Line line = new Line(from[0], from[1], to[0], to[1]);
+        line.setStroke(Color.web("#111128"));
+        line.setStrokeWidth(1.0);
+        line.setOpacity(OPACITY_FAR);
+        canvas.getChildren().add(line);
+    }
+
     private VBox buildHoverPanel() {
         VBox p = new VBox(6);
         p.setAlignment(Pos.CENTER_LEFT);
@@ -422,10 +460,21 @@ public class MapController {
     private StackPane buildNodeGraphic(MapNode node, double cx, double cy,
                                        boolean isCleared, boolean isCurrent,
                                        boolean isReachable, boolean isLocked,
-                                       boolean isNewlyReachable, int dist) {
-        boolean revealed = isCleared || dist <= NEAR_DIST;
-        boolean midFog   = !revealed && dist <= MID_DIST;
-        boolean farFog   = !revealed && dist >  MID_DIST;
+                                       boolean isNewlyReachable, int dist,
+                                       boolean secretHidden) {
+        // Se il nodo e' segreto e non ancora scoperto, trattalo sempre come farFog
+        // indipendentemente dalla distanza BFS (che lo vederebbe vicino se adiacente al boss)
+        boolean revealed, midFog, farFog;
+        if (secretHidden) {
+            revealed = false;
+            midFog   = false;
+            farFog   = true;
+        } else {
+            revealed = isCleared || dist <= NEAR_DIST;
+            midFog   = !revealed && dist <= MID_DIST;
+            farFog   = !revealed && dist >  MID_DIST;
+        }
+
         boolean isVoidNode = node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS;
 
         String color = revealed ? (isLocked ? "#4b5563" : nodeColor(node.getType())) : "#3a3a5a";
@@ -514,7 +563,8 @@ public class MapController {
 
         sp.setOnMouseEntered(e -> showHoverPanel(node, cx, cy, isLocked, dist));
         sp.setOnMouseExited(e  -> hideHoverPanel());
-        if (isReachable && revealed) {
+        // I nodi segreti nascosti non sono cliccabili
+        if (isReachable && revealed && !secretHidden) {
             sp.setStyle("-fx-cursor:hand;");
             sp.setOnMouseClicked(e -> onNodeSelected(node));
         }
@@ -586,14 +636,14 @@ public class MapController {
 
     private static String nodeIcon(NodeType type) {
         return switch (type) {
-            case BATTLE    -> "\u2694";   // ⚔
-            case ELITE     -> "\ud83d\udc80"; // 💀
-            case BOSS      -> "\ud83d\udc09"; // 🐉
-            case SHOP      -> "\ud83d\uded2"; // 🛒
-            case REST      -> "\ud83d\udd25"; // 🔥
+            case BATTLE    -> "\u2694";
+            case ELITE     -> "\ud83d\udc80";
+            case BOSS      -> "\ud83d\udc09";
+            case SHOP      -> "\ud83d\uded2";
+            case REST      -> "\ud83d\udd25";
             case EVENT     -> "?";
-            case VOID      -> "\u25c6";   // ◆ — rombo pieno, JavaFX-safe
-            case VOID_BOSS -> "\u2620";   // ☠
+            case VOID      -> "\u25c6";
+            case VOID_BOSS -> "\u2620";
         };
     }
 

@@ -84,7 +84,6 @@ public class GameService {
         deck.clear();
         if (className == null) className = "";
         switch (className) {
-            // Cavaliere = ex-Guerriero, stesso deck, accesso al ramo VOID
             case "Cavaliere" -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
             case "Mago"      -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
             case "Dracomante"-> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
@@ -114,6 +113,17 @@ public class GameService {
 
     public boolean isVoidHeartObtained()  { return voidHeartObtained; }
     public void    obtainVoidHeart()      { this.voidHeartObtained = true; }
+
+    /**
+     * Restituisce true se il giocatore ha già visitato (cleared) almeno un nodo
+     * di tipo VOID, cioè è entrato nel percorso segreto dell'Abisso.
+     * Usato dal MapController per nascondere i nodi del percorso segreto
+     * finché non si passa da lì.
+     */
+    public boolean hasVisitedVoidPath() {
+        return mapService.getMap().getAllNodes().stream()
+                .anyMatch(n -> n.getType() == NodeType.VOID && n.isCleared());
+    }
 
     // -------------------------------------------------------
     // Navigazione mappa
