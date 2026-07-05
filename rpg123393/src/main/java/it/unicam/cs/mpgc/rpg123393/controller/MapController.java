@@ -299,22 +299,29 @@ public class MapController {
 
     /**
      * Un nodo e' "segreto nascosto" se:
-     * - ha requiredClass != null
-     * - e' di tipo VOID o VOID_BOSS
-     * - NON e' un nodo entry (ingresso del percorso segreto dal ramo normale)
-     * - il giocatore non ha ancora cleared nessun nodo VOID
-     * - non e' gia' cleared
+     * - e' di tipo VOID o VOID_BOSS con requiredClass != null
+     * - NON e' un nodo entry (ingresso dal ramo normale, sempre visibile)
+     * - NON e' gia' cleared
+     * - Il percorso segreto non e' ancora stato visitato (voidPathVisited == false)
+     *   OPPURE e' visitato ma il nodo e' troppo lontano dal nodo corrente (dist > NEAR_DIST).
      *
-     * I nodi entry (es. nHK0 "Ingresso dell'Abisso") restano sempre visibili:
-     * il lock di classe impedisce gia' alle altre classi di entrarci.
+     * La rivelazione e' progressiva: i nodi vengono scoperti uno alla volta
+     * man mano che il Cavaliere avanza nel percorso, esattamente come accade
+     * per i nodi normali. Cio' impedisce che tutti i nodi VOID diventino visibili
+     * in blocco non appena viene cleared il primo nodo VOID.
      */
     private boolean isSecretNodeHidden(MapNode node, boolean voidPathVisited) {
         if (node == null) return false;
         if (node.isCleared()) return false;
-        if (secretEntryNodeIds.contains(node.getId())) return false;  // entry sempre visibile
+        if (secretEntryNodeIds.contains(node.getId())) return false; // entry sempre visibile
         boolean isSecretPath = node.getRequiredClass() != null
                 && (node.getType() == NodeType.VOID || node.getType() == NodeType.VOID_BOSS);
-        return isSecretPath && !voidPathVisited;
+        if (!isSecretPath) return false;
+        // Prima di entrare nel percorso segreto: tutti nascosti
+        if (!voidPathVisited) return true;
+        // Dopo il primo nodo VOID cleared: rivela solo i nodi a portata (dist <= NEAR_DIST)
+        int dist = bfsDistance.getOrDefault(node.getId(), Integer.MAX_VALUE);
+        return dist > NEAR_DIST;
     }
 
     private void setupPanAndZoom() {
