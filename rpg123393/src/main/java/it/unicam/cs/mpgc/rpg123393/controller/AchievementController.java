@@ -3,13 +3,11 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 import it.unicam.cs.mpgc.rpg123393.model.achievement.Achievement;
 import it.unicam.cs.mpgc.rpg123393.model.achievement.AchievementCategory;
 import it.unicam.cs.mpgc.rpg123393.model.achievement.AchievementRegistry;
-import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
-import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
+import it.unicam.cs.mpgc.rpg123393.persistence.AchievementStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
@@ -21,17 +19,17 @@ import java.util.List;
 
 public class AchievementController {
 
-    @FXML private VBox      contentBox;
-    @FXML private Label     progressLabel;
+    @FXML private VBox  contentBox;
+    @FXML private Label progressLabel;
 
-    private final JsonSaveRepository saveRepo = new JsonSaveRepository();
+    private final AchievementStore store = new AchievementStore();
 
     @FXML
     public void initialize() {
-        GameState state = null;
-        try { state = saveRepo.load(); } catch (IOException e) { /* nessun save */ }
+        AchievementStore.AchievementData data = null;
+        try { data = store.load(); } catch (IOException e) { /* nessun file */ }
 
-        List<String> unlocked = state != null ? state.getUnlockedAchievements() : List.of();
+        List<String> unlocked = (data != null) ? data.unlocked : List.of();
         int totalUnlocked = 0;
         int total = AchievementRegistry.count();
 
@@ -43,7 +41,6 @@ public class AchievementController {
                     .filter(a -> unlocked.contains(a.getId())).count();
             totalUnlocked += catUnlocked;
 
-            // Header categoria
             Label catHeader = new Label(cat.getDisplayName()
                     + "  " + catUnlocked + "/" + items.size());
             catHeader.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;"
@@ -52,7 +49,6 @@ public class AchievementController {
                     + " -fx-border-color: transparent transparent #3a3a5e transparent;"
                     + " -fx-border-width: 0 0 1 0;");
 
-            // Griglia categoria
             FlowPane flow = new FlowPane();
             flow.setHgap(14);
             flow.setVgap(14);
@@ -78,10 +74,6 @@ public class AchievementController {
                     "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
         } catch (IOException e) { e.printStackTrace(); }
     }
-
-    // -------------------------------------------------------
-    // Builder card achievement
-    // -------------------------------------------------------
 
     private VBox buildCard(Achievement a, boolean unlocked) {
         Label icon = new Label(a.getDisplayIcon(unlocked));
