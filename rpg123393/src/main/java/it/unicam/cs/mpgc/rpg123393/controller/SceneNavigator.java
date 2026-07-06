@@ -2,6 +2,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -9,31 +10,34 @@ import java.io.IOException;
 /**
  * Utility per la navigazione tra schermate.
  *
- * Usa scene.setRoot() invece di stage.setScene() per evitare il flash visivo
- * (il millisecondo in cui la finestra torna piccola) che si verifica quando
- * si crea una nuova Scene su uno Stage in fullscreen.
+ * Usa un StackPane root fisso (impostato in HelloApplication) e swappa
+ * solo il primo figlio (il contenuto della scena), lasciando intatto
+ * l'overlay toast in cima allo stack.
  *
- * In questo modo il fullscreen non viene mai interrotto.
+ * In questo modo il fullscreen non viene mai interrotto e il
+ * AchievementToastManager mantiene sempre il suo riferimento all'overlay.
  */
 public final class SceneNavigator {
 
     private SceneNavigator() {}
 
-    /**
-     * Cambia il contenuto della scena corrente senza toccare Stage o fullscreen.
-     *
-     * @param stage    stage corrente (usato solo per accedere alla Scene)
-     * @param fxmlPath path assoluto FXML
-     * @return il FXMLLoader già caricato per fare getController()
-     * @throws IOException se l'FXML non viene trovato
-     */
     public static FXMLLoader navigateTo(Stage stage, String fxmlPath) throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 SceneNavigator.class.getResource(fxmlPath));
-        Parent newRoot = loader.load();
+        Parent newContent = loader.load();
 
-        // Sostituisce solo il root della scena esistente — fullscreen intatto
-        stage.getScene().setRoot(newRoot);
+        // Il root e' sempre lo StackPane fisso creato in HelloApplication
+        if (stage.getScene().getRoot() instanceof StackPane rootPane) {
+            // Sostituisce solo il primo figlio (il contenuto), non l'overlay toast
+            if (!rootPane.getChildren().isEmpty()) {
+                rootPane.getChildren().set(0, newContent);
+            } else {
+                rootPane.getChildren().add(newContent);
+            }
+        } else {
+            // Fallback di sicurezza (non dovrebbe mai succedere)
+            stage.getScene().setRoot(newContent);
+        }
 
         return loader;
     }

@@ -3,6 +3,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
+import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.animation.*;
 import javafx.fxml.FXML;
@@ -51,6 +52,13 @@ public class HelloController {
     private int         vigore;
     private int         arcano;
 
+    // HP del giocatore a inizio battaglia
+    private int     playerHpAtBattleStart;
+    // true se il nemico e' morto per veleno (rilevato tramite HP nemico a 0 e veleno attivo)
+    private boolean enemyKilledByPoison;
+    // true se il nodo corrente e' un boss (letto prima che lo stato avanzi)
+    private boolean currentEnemyIsBoss;
+
     // -------------------------------------------------------
     // Inizializzazione
     // -------------------------------------------------------
@@ -90,7 +98,6 @@ public class HelloController {
         this.gameService = existingService;
         loadPlayerImage(imagePath);
 
-        // Determina il tipo di nemico in base al nodo corrente
         NodeType nodeType = existingService.getCurrentNode()
                 .map(MapNode::getType)
                 .orElse(NodeType.BATTLE);
@@ -103,12 +110,10 @@ public class HelloController {
                 && (nodeType == NodeType.BATTLE || nodeType == NodeType.VOID || nodeType == NodeType.VOID_BOSS);
 
         if (nodeType == NodeType.VOID_BOSS) {
-            // Boss segreto: Cavaliere Vacuo
             gameService.startVoidBoss();
             log("\u25fc  UN RIFLESSO EMERGE DALL'OSCURIT\u00c0...");
             log("\ud83d\udfe3  Cavaliere Vacuo \u2014 Il tuo stesso riflesso. Senza esitazione.");
         } else if (isVoidBranch) {
-            // Nodi BATTLE del ramo HK (nHK1, nHK2, nHK3)
             gameService.startVoidBattle();
             log("\u25fc  Il Vuoto si muove...");
             log("Una creatura dell'Abisso ti sfida.");
@@ -117,6 +122,8 @@ public class HelloController {
             gameService.startBattle();
         }
 
+        // Leggi il flag boss DOPO aver avviato la battaglia
+        refreshBossFlag();
         startPlayerTurnUI();
     }
 
@@ -126,19 +133,50 @@ public class HelloController {
 
     private void startBattle() {
         gameService.startBattle();
+        playerHpAtBattleStart = gameService.getPlayer().getCurrentHp();
+        enemyKilledByPoison   = false;
+        refreshBossFlag();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurnUI();
     }
 
+    /**
+     * Aggiorna il flag boss leggendo il tipo del nodo corrente.
+     * Va chiamato subito dopo startBattle/startVoidBoss, quando il nodo e' ancora quello giusto.
+     */
+    private void refreshBossFlag() {
+        NodeType nodeType = gameService.getCurrentNode()
+                .map(MapNode::getType)
+                .orElse(NodeType.BATTLE);
+        currentEnemyIsBoss = nodeType == NodeType.BOSS
+                || nodeType == NodeType.VOID_BOSS
+                || gameService.isLastBoss();
+    }
+
     private void startPlayerTurnUI() {
         gameService.startPlayerTurn();
         String pending = gameService.getPendingMessage();
-        if (pending != null && !pending.isEmpty()) log(pending);
+        if (pending != null && !pending.isEmpty()) {
+            log(pending);
+            // Rileva morte per veleno: nemico a 0 HP durante il tick del veleno
+            // getPendingMessage() viene eseguito all'inizio del turno del giocatore,
+            // che e' quando il veleno ticks. Se la battaglia e' gia' finita qui
+            // significa che il veleno ha dato il colpo finale.
+            if (gameService.isBattleOver() && gameService.isPlayerVictory()) {
+                int enemyPoison = gameService.getEnemy().getPoison();
+                // Il veleno era attivo prima del tick (ancora > 0 o appena sceso a 0)
+                // Usiamo il messaggio come segnale aggiuntivo di conferma
+                boolean poisonMentioned = pending.toLowerCase().contains("velen");
+                enemyKilledByPoison = poisonMentioned || enemyPoison >= 0;
+            }
+        }
         log("\n--- IL TUO TURNO ---");
         updateEnemyIntent();
         refreshCardButtons();
         updateUI();
+        // Se la battaglia e' finita nel tick veleno, gestiamo subito la fine
+        if (gameService.isBattleOver()) handleBattleEnd();
     }
 
     @FXML private void onCard0Click() { playCard(0, cardBtn0); }
@@ -150,15 +188,27 @@ public class HelloController {
             log("[!] Mana insufficiente per questa carta!");
             return;
         }
+        // Controlla veleno attivo PRIMA di giocare la carta
+        int enemyPoisonBefore = gameService.getEnemy().getPoison();
+
         if (button.getGraphic() instanceof VBox cardGraphic) {
             animateCardPlay(cardGraphic, button, () -> {
-                log(gameService.playCard(index));
+                String result = gameService.playCard(index);
+                log(result);
+                // Se il nemico e' morto e aveva veleno attivo = kill da veleno (o combo veleno+carta)
+                if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
+                    enemyKilledByPoison = true;
+                }
                 button.setDisable(true);
                 updateUI();
                 if (gameService.isBattleOver()) handleBattleEnd();
             });
         } else {
-            log(gameService.playCard(index));
+            String result = gameService.playCard(index);
+            log(result);
+            if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
+                enemyKilledByPoison = true;
+            }
             button.setDisable(true);
             updateUI();
             if (gameService.isBattleOver()) handleBattleEnd();
@@ -179,6 +229,33 @@ public class HelloController {
         log("\n" + gameService.getBattleResult());
         disableAllCardButtons();
         if (gameService.isPlayerVictory()) {
+            var player = gameService.getPlayer();
+            boolean tookNoDamage = player.getCurrentHp() == playerHpAtBattleStart;
+            boolean atFullHp     = player.getCurrentHp() == player.getMaxHp();
+            boolean belowTenHp   = player.getCurrentHp() < 10;
+            int currentMana      = player.getCurrentMana();
+
+            AchievementService ach = gameService.getAchievementService();
+            ach.onEnemyDefeated(
+                    gameService.getEnemy().getName(),
+                    tookNoDamage,
+                    currentEnemyIsBoss,       // flag letto prima che lo stato avanzi
+                    atFullHp,
+                    enemyKilledByPoison,
+                    belowTenHp,
+                    player.getCurrentHp(),
+                    player.getMaxHp(),
+                    currentMana,
+                    currentMana
+            );
+
+            // Cavaliere Vacuo
+            NodeType nodeType = gameService.getCurrentNode()
+                    .map(MapNode::getType).orElse(NodeType.BATTLE);
+            if (nodeType == NodeType.VOID_BOSS) {
+                ach.onHollowKnightDefeated();
+            }
+
             int xpGained = 50 + gameService.getPlayerLevel() * 20;
             List<String> msgs = gameService.addXpAndLevelUp(xpGained);
             log("Hai guadagnato " + xpGained + " XP!");
@@ -186,6 +263,9 @@ public class HelloController {
             updateUI();
             navigateToVictory(xpGained, msgs);
         } else {
+            if (gameService.getEncounterIndex() <= 1) {
+                gameService.getAchievementService().onDiedAtFirstNode();
+            }
             navigateToGameOver();
         }
     }
@@ -218,18 +298,14 @@ public class HelloController {
     private void attachHoverAnimation(VBox cardGraphic) {
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), cardGraphic);
         scaleIn.setToX(1.15); scaleIn.setToY(1.15);
-
         TranslateTransition moveUp = new TranslateTransition(Duration.millis(150), cardGraphic);
         moveUp.setToY(-16);
-
         ParallelTransition hoverIn = new ParallelTransition(scaleIn, moveUp);
 
         ScaleTransition scaleOut = new ScaleTransition(Duration.millis(120), cardGraphic);
         scaleOut.setToX(1.0); scaleOut.setToY(1.0);
-
         TranslateTransition moveDown = new TranslateTransition(Duration.millis(120), cardGraphic);
         moveDown.setToY(0);
-
         ParallelTransition hoverOut = new ParallelTransition(scaleOut, moveDown);
 
         cardGraphic.setOnMouseEntered(e -> { hoverOut.stop(); cardGraphic.toFront(); hoverIn.playFromStart(); });
@@ -238,16 +314,12 @@ public class HelloController {
 
     private void animateCardPlay(VBox cardGraphic, Button button, Runnable onComplete) {
         cardGraphic.setScaleX(1.0); cardGraphic.setScaleY(1.0);
-
         TranslateTransition fly = new TranslateTransition(Duration.millis(200), cardGraphic);
         fly.setByY(-80);
-
         FadeTransition fade = new FadeTransition(Duration.millis(200), cardGraphic);
         fade.setFromValue(1.0); fade.setToValue(0.0);
-
         ScaleTransition shrink = new ScaleTransition(Duration.millis(200), cardGraphic);
         shrink.setToX(0.85); shrink.setToY(0.85);
-
         ParallelTransition playAnim = new ParallelTransition(fly, fade, shrink);
         playAnim.setOnFinished(e -> {
             cardGraphic.setTranslateY(0);

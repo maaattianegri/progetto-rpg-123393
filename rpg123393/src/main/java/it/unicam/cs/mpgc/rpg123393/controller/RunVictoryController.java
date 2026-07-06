@@ -24,23 +24,29 @@ public class RunVictoryController {
     public void initData(GameService gs, String playerName) {
         var p = gs.getPlayer();
 
-        // Epilogo narrativo basato sul boss sconfitto
         epilogueLabel.setText(buildEpilogue(gs.getEnemy().getName(), playerName));
 
-        // Statistiche
-        playerStatLabel.setText("⚔  Eroe: " + playerName
-                + "  (" + gs.getClassName() + ")");
-        levelStatLabel.setText("⭐  Livello raggiunto: " + gs.getPlayerLevel());
-        hpStatLabel.setText("❤  HP finali: "
-                + p.getCurrentHp() + " / " + p.getMaxHp());
+        playerStatLabel.setText("\u2694  Eroe: " + playerName + "  (" + gs.getClassName() + ")");
+        levelStatLabel.setText("\u2b50  Livello raggiunto: " + gs.getPlayerLevel());
+        hpStatLabel.setText("\u2764  HP finali: " + p.getCurrentHp() + " / " + p.getMaxHp());
 
         long total   = gs.getMapService().getMap().getAllNodes().size();
         long cleared = gs.getMapService().getMap().getAllNodes().stream()
                 .filter(n -> n.isCleared()).count();
-        nodesStatLabel.setText("🗺  Nodi completati: " + cleared + " / " + total);
-        goldStatLabel.setText("🪙  Oro totale guadagnato: " + gs.getTotalGoldEarned());
-        cardsStatLabel.setText("🃏  Carte nel mazzo: " + gs.getDeck().size());
-        upgradesStatLabel.setText("✨  Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
+        nodesStatLabel.setText("\uD83D\uDDFA  Nodi completati: " + cleared + " / " + total);
+        goldStatLabel.setText("\uD83E\uDE99  Oro totale guadagnato: " + gs.getTotalGoldEarned());
+        cardsStatLabel.setText("\uD83C\uDCCF  Carte nel mazzo: " + gs.getDeck().size());
+        upgradesStatLabel.setText("\u2728  Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
+
+        // Hook achievement: run completata
+        gs.getAchievementService().onRunCompleted(
+                gs.getClassName(),
+                (int) cleared,
+                gs.getGold(),
+                gs.getTotalGoldEarned(),
+                gs.getUnlockedCards().size(),
+                p.getCurrentHp() == p.getMaxHp()
+        );
     }
 
     private String buildEpilogue(String bossName, String playerName) {
@@ -48,16 +54,16 @@ public class RunVictoryController {
             case "Drago Antico" ->
                     playerName + " ha spento le fiamme del Drago Antico. " +
                     "Le sue ossa giacciono nel silenzio della cripta, " +
-                    "e il suo nome risuona tra le stelle per l'eternità.";
+                    "e il suo nome risuona tra le stelle per l'eternit\u00e0.";
             case "Orco Berserker" ->
-                    "La furia dell'Orco Berserker si è spezzata sotto i colpi di " +
+                    "La furia dell'Orco Berserker si \u00e8 spezzata sotto i colpi di " +
                     playerName + ". La pace torna finalmente nelle terre del Nord.";
             case "Troll Rigenerante" ->
                     "Nessuna rigenerazione ha potuto salvare il Troll dalla determinazione di " +
-                    playerName + ". La palude è finalmente libera.";
+                    playerName + ". La palude \u00e8 finalmente libera.";
             default ->
                     playerName + " ha trionfato sulle tenebre. " +
-                    "La run è completa: ogni nemico è caduto, ogni sfida è stata superata.";
+                    "La run \u00e8 completa: ogni nemico \u00e8 caduto, ogni sfida \u00e8 stata superata.";
         };
     }
 
