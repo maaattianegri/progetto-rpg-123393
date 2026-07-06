@@ -1,222 +1,231 @@
 package it.unicam.cs.mpgc.rpg123393.model.achievement;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Registro statico di tutti gli achievement del gioco.
- *
- * <p>Gli achievement sono suddivisi in:
- * <ul>
- *   <li><b>Progressione run</b> — legati al numero di run avviate/completate e situazioni di sopravvivenza</li>
- *   <li><b>Classe</b> — legati al completamento di run con classi specifiche</li>
- *   <li><b>Combattimento</b> — legati a statistiche di battaglia accumulate nel tempo</li>
- *   <li><b>Collezione e progressione globale</b> — carte sbloccate, oro accumulato, fucina usata</li>
- *   <li><b>Sfide per singola run</b> — comportamenti particolari durante una singola run</li>
- *   <li><b>Segreti</b> — nascosti finche' non sbloccati, legati a percorsi o situazioni speciali</li>
- * </ul>
+ * Registro centralizzato di tutti gli achievement del gioco.
+ * Tutti i 30 achievement sono definiti qui con id, nome, descrizione, icona e categoria.
  */
 public final class AchievementRegistry {
 
-    private static final Map<String, Achievement> BY_ID;
-    private static final List<Achievement>        ALL;
+    private static final List<Achievement> ALL = new ArrayList<>();
+    private static final Map<String, Achievement> BY_ID = new LinkedHashMap<>();
 
     static {
-        Map<String, Achievement> map = new LinkedHashMap<>();
-
-        // -------------------------------------------------------
-        // PROGRESSIONE RUN
-        // -------------------------------------------------------
-        reg(map, new Achievement("first_steps",
-                "Iniziazione",
-                "Inizia la tua prima run.",
-                "\uD83D\uDEAA")); // 🚪
-
-        reg(map, new Achievement("first_run",
-                "Primo Passo",
-                "Completa la tua prima run.",
-                "\uD83C\uDFC6")); // 🏆
-
-        reg(map, new Achievement("ten_runs",
-                "Veterano del Dungeon",
-                "Completa 10 run.",
-                "\uD83D\uDD31")); // 🔱
-
-        reg(map, new Achievement("survivor",
-                "Sopravvissuto",
-                "Sopravvivi con meno di 10 HP alla fine di un combattimento.",
-                "\u2764\uFE0F")); // ❤️
-
-        // -------------------------------------------------------
-        // CLASSE
-        // -------------------------------------------------------
-        reg(map, new Achievement("cavaliere_run",
-                "Lama d'Acciaio",
-                "Completa una run con il Cavaliere.",
-                "\u2694\uFE0F")); // ⚔️
-
-        reg(map, new Achievement("mago_run",
-                "Artefice dell'Arcano",
-                "Completa una run con il Mago.",
-                "\uD83E\uDDD9")); // 🧙
-
-        reg(map, new Achievement("paladino_run",
-                "Scudo della Fede",
-                "Completa una run con il Paladino.",
-                "\uD83D\uDEE1\uFE0F")); // 🛡️
-
-        reg(map, new Achievement("assassino_run",
-                "Ombra Silente",
-                "Completa una run con l'Assassino.",
-                "\uD83D\uDDE1\uFE0F")); // 🗡️
-
-        reg(map, new Achievement("dracomante_run",
-                "Sangue del Drago",
-                "Completa una run con il Dracomante.",
-                "\uD83D\uDC09")); // 🐉
-
-        reg(map, new Achievement("all_classes",
-                "Maestro delle Arti",
-                "Completa almeno una run con ogni classe.",
-                "\uD83C\uDF1F")); // 🌟
-
         // -------------------------------------------------------
         // COMBATTIMENTO
         // -------------------------------------------------------
-        reg(map, new Achievement("no_damage_fight",
-                "Intoccabile",
+        register(new Achievement(
+                "first_steps", "Primi Passi",
+                "Inizia la tua prima run.",
+                "\u2694\uFE0F", AchievementCategory.COMBATTIMENTO));
+
+        register(new Achievement(
+                "no_damage_fight", "Intoccabile",
                 "Vinci un combattimento senza subire danni.",
-                "\uD83D\uDCA8")); // 💨
+                "\uD83D\uDEE1\uFE0F", AchievementCategory.COMBATTIMENTO));
 
-        reg(map, new Achievement("boss_slayer",
-                "Cacciatore di Boss",
-                "Sconfiggi 10 boss in totale.",
-                "\uD83D\uDC80")); // 💀
+        register(new Achievement(
+                "boss_slayer", "Cacciatore di Boss",
+                "Sconfiggi 10 boss in totale tra tutte le run.",
+                "\uD83D\uDC80", AchievementCategory.COMBATTIMENTO));
 
-        reg(map, new Achievement("hundred_enemies",
-                "Sterminatore",
-                "Sconfiggi 100 nemici in totale.",
-                "\u2694\uFE0F")); // ⚔️
+        register(new Achievement(
+                "hundred_enemies", "Carneficina",
+                "Sconfiggi 100 nemici in totale tra tutte le run.",
+                "\u2620\uFE0F", AchievementCategory.COMBATTIMENTO));
 
-        reg(map, new Achievement("poison_master",
-                "Maestro del Veleno",
+        register(new Achievement(
+                "poison_master", "Maestro del Veleno",
                 "Uccidi un nemico con il danno da veleno.",
-                "\uD83D\uDC22")); // 🐢
+                "\uD83D\uDC0D", AchievementCategory.COMBATTIMENTO));
+
+        register(new Achievement(
+                "survivor", "Sopravvissuto per un pelo",
+                "Vinci un combattimento con meno di 10 HP rimanenti.",
+                "\uD83E\uDE78", AchievementCategory.COMBATTIMENTO));
+
+        register(new Achievement(
+                "full_hp_boss", "Senza un graffio",
+                "Sconfiggi il boss finale di una run senza aver perso HP.",
+                "\uD83D\uDCAA", AchievementCategory.COMBATTIMENTO));
 
         // -------------------------------------------------------
-        // COLLEZIONE E PROGRESSIONE GLOBALE
+        // RUN
         // -------------------------------------------------------
-        reg(map, new Achievement("twenty_cards",
-                "Collezionista",
-                "Sblocca 20 carte diverse.",
-                "\uD83C\uDCCF")); // 🃏
+        register(new Achievement(
+                "first_run", "Il Viaggio Comincia",
+                "Completa la tua prima run.",
+                "\uD83C\uDFC1", AchievementCategory.RUN));
 
-        reg(map, new Achievement("unlock_all_cards",
-                "Biblioteca Completa",
-                "Sblocca tutte le carte del gioco.",
-                "\uD83D\uDCDA")); // 📚
+        register(new Achievement(
+                "ten_runs", "Veterano dell'Arena",
+                "Completa 10 run.",
+                "\uD83C\uDFC5", AchievementCategory.RUN));
 
-        reg(map, new Achievement("rich",
-                "Mercante di Fortuna",
-                "Accumula 500 oro in totale tra tutte le run.",
-                "\uD83E\uDE99")); // 🪙
-
-        reg(map, new Achievement("upgrade_addict",
-                "Artigiano",
-                "Usa la fucina 20 volte in totale.",
-                "\uD83D\uDD28")); // 🔨
-
-        // -------------------------------------------------------
-        // SFIDE PER SINGOLA RUN
-        // -------------------------------------------------------
-        reg(map, new Achievement("no_shop",
-                "Ascetico",
-                "Completa una run senza acquistare nulla al negozio.",
-                "\uD83D\uDEAB")); // 🚫
-
-        reg(map, new Achievement("no_forge",
-                "Purista",
-                "Completa una run senza usare mai la fucina.",
-                "\u2B50")); // ⭐
-
-        reg(map, new Achievement("pacifist_shop",
-                "Solo Reliquie",
-                "Completa una run acquistando solo reliquie (nessuna carta al negozio).",
-                "\uD83D\uDC8E")); // 💎
-
-        reg(map, new Achievement("full_hp_boss",
-                "Impermeabile",
-                "Affronta il boss finale con gli HP al massimo.",
-                "\uD83D\uDC9A")); // 💚
-
-        reg(map, new Achievement("speed_run",
-                "Fulmine",
+        register(new Achievement(
+                "speed_run", "Come un Fulmine",
                 "Completa una run visitando meno di 15 nodi.",
-                "\u26A1")); // ⚡
+                "\u26A1", AchievementCategory.RUN));
+
+        register(new Achievement(
+                "no_forge", "Lama Grezza",
+                "Completa una run senza mai usare la fucina.",
+                "\uD83D\uDD27", AchievementCategory.RUN));
+
+        register(new Achievement(
+                "no_shop", "Il Prezzo della Gloria",
+                "Completa una run senza acquistare nessuna carta al negozio.",
+                "\uD83D\uDEAB", AchievementCategory.RUN));
+
+        register(new Achievement(
+                "pacifist_shop", "Solo Reliquie",
+                "Completa una run acquistando solo reliquie al negozio (nessuna carta).",
+                "\uD83D\uDCFF", AchievementCategory.RUN));
+
+        register(new Achievement(
+                "golden_run", "Run d'Oro",
+                "Termina una run con pi\u00f9 di 300 monete d'oro.",
+                "\uD83D\uDCB0", AchievementCategory.RUN));
+
+        // -------------------------------------------------------
+        // CLASSI
+        // -------------------------------------------------------
+        register(new Achievement(
+                "cavaliere_run", "Il Cavaliere",
+                "Completa una run con il Cavaliere.",
+                "\uD83D\uDEE1\uFE0F", AchievementCategory.CLASSI));
+
+        register(new Achievement(
+                "mago_run", "Il Mago",
+                "Completa una run con il Mago.",
+                "\uD83E\uDDD9", AchievementCategory.CLASSI));
+
+        register(new Achievement(
+                "paladino_run", "Il Paladino",
+                "Completa una run con il Paladino.",
+                "\u2728", AchievementCategory.CLASSI));
+
+        register(new Achievement(
+                "assassino_run", "L'Assassino",
+                "Completa una run con l'Assassino.",
+                "\uD83D\uDDE1\uFE0F", AchievementCategory.CLASSI));
+
+        register(new Achievement(
+                "dracomante_run", "Il Dracomante",
+                "Completa una run con il Dracomante.",
+                "\uD83D\uDC09", AchievementCategory.CLASSI));
+
+        register(new Achievement(
+                "all_classes", "Maestro delle Arti",
+                "Completa almeno una run con ogni classe disponibile.",
+                "\uD83C\uDF1F", AchievementCategory.CLASSI));
+
+        // -------------------------------------------------------
+        // PROGRESSIONE
+        // -------------------------------------------------------
+        register(new Achievement(
+                "rich", "Il Grande Mercante",
+                "Accumula 500 monete d'oro totali tra tutte le run.",
+                "\uD83D\uDCB3", AchievementCategory.PROGRESSIONE));
+
+        register(new Achievement(
+                "twenty_cards", "Collezionista",
+                "Sblocca 20 carte nella collezione.",
+                "\uD83C\uDCCF", AchievementCategory.PROGRESSIONE));
+
+        register(new Achievement(
+                "unlock_all_cards", "Archivista Supremo",
+                "Sblocca tutte le carte della collezione.",
+                "\uD83D\uDCDA", AchievementCategory.PROGRESSIONE));
+
+        register(new Achievement(
+                "upgrade_addict", "Forgiatore Ossessivo",
+                "Usa la fucina 20 volte in totale tra tutte le run.",
+                "\uD83D\uDD28", AchievementCategory.PROGRESSIONE));
 
         // -------------------------------------------------------
         // SEGRETI
         // -------------------------------------------------------
-        reg(map, new Achievement("void_heart",
+        register(new Achievement(
+                "void_heart",
                 "Cuore di Vuoto",
-                "Hai ottenuto il Void Heart nell'Abisso.",
+                "Hai ottenuto il Cuore di Vuoto nel percorso del Cavaliere.",
                 true,
-                "\u2728 Qualcosa pulsa nell'oscurit\u00e0\u2026",
-                "\uD83D\uDDA4")); // 🖤
+                "Un percorso nascosto attende chi osa esplorare...",
+                "\uD83D\uDDA4",
+                AchievementCategory.SEGRETI));
 
-        reg(map, new Achievement("hollow_knight",
+        register(new Achievement(
+                "hollow_knight",
                 "Il Cavaliere Vacuo",
-                "Hai sconfitto il tuo riflesso nell'Abisso.",
+                "Hai sconfitto il Cavaliere Vacuo nel percorso nascosto.",
                 true,
-                "\uD83D\uDD2E Uno specchio non mente mai.",
-                "\u26AB")); // ⚫
+                "Un boss leggendario si cela nell'oscurit\u00e0...",
+                "\u26AB",
+                AchievementCategory.SEGRETI));
 
-        reg(map, new Achievement("void_rejected",
-                "Rifiuto dell'Abisso",
-                "Hai guardato l'Abisso negli occhi\u2026 e hai scelto di voltarti.",
+        register(new Achievement(
+                "void_rejected",
+                "Rifiuto del Vuoto",
+                "Hai rifiutato il Cuore di Vuoto e scelto la tua strada.",
                 true,
-                "\uD83C\uDF00 Non tutto ci\u00f2 che brilla va raccolto.",
-                "\uD83D\uDD34")); // 🔴
+                "Non tutto ci\u00f2 che luccica va preso...",
+                "\uD83D\uDEAB",
+                AchievementCategory.SEGRETI));
 
-        reg(map, new Achievement("die_first",
-                "Umiliazione Totale",
-                "Sei morto contro il primo nemico della run. Forse non sei tagliato per questo.",
+        register(new Achievement(
+                "die_first",
+                "Vita Breve",
+                "Muori al primo nodo della run.",
                 true,
-                "\uD83E\uDD14 Forse non sei tagliato per questo.",
-                "\uD83D\uDCA9")); // 💩
+                "Come si pu\u00f2 perdere cos\u00ec in fretta...?",
+                "\uD83D\uDC80",
+                AchievementCategory.SEGRETI));
 
-        reg(map, new Achievement("golden_run",
-                "Re del Dungeon",
-                "Hai finito una run con pi\u00f9 di 300 oro in tasca.",
+        register(new Achievement(
+                "zero_mana",
+                "Riserve Vuote",
+                "Vinci un combattimento con 0 mana e nessuna carta giocabile in mano.",
                 true,
-                "\uD83D\uDCB0 L'oro non basta mai.",
-                "\uD83D\uDC51")); // 👑
+                "C'\u00e8 un modo per vincere senza risorse?",
+                "\uD83D\uDCA8",
+                AchievementCategory.SEGRETI));
 
-        reg(map, new Achievement("zero_mana",
-                "A Mani Nude",
-                "Hai vinto un combattimento finendo con 0 mana e nessuna carta giocabile.",
+        register(new Achievement(
+                "dracomante_run2",
+                "Il Vero Dracomante",
+                "Sconfiggi il boss finale con una carta Drago giocata nell'ultimo turno.",
                 true,
-                "\uD83D\uDCAA La forza non viene dalle carte.",
-                "\uD83D\uDD25")); // 🔥
-
-        BY_ID = Collections.unmodifiableMap(map);
-        ALL   = Collections.unmodifiableList(List.copyOf(map.values()));
+                "Solo chi domina i draghi pu\u00f2 dirsi tale...",
+                "\uD83D\uDD25",
+                AchievementCategory.SEGRETI));
     }
 
     private AchievementRegistry() {}
 
-    private static void reg(Map<String, Achievement> map, Achievement a) {
-        map.put(a.getId(), a);
+    private static void register(Achievement a) {
+        ALL.add(a);
+        BY_ID.put(a.getId(), a);
     }
 
-    /** Restituisce tutti gli achievement nell'ordine di registrazione. */
-    public static List<Achievement> getAll() { return ALL; }
+    public static List<Achievement> getAll() {
+        return Collections.unmodifiableList(ALL);
+    }
 
-    /** Restituisce l'achievement con l'id dato, o {@code null} se non esiste. */
-    public static Achievement getById(String id) { return BY_ID.get(id); }
+    public static Achievement getById(String id) {
+        return BY_ID.get(id);
+    }
 
-    /** Numero totale di achievement. */
-    public static int count() { return ALL.size(); }
+    /** Restituisce tutti gli achievement di una determinata categoria. */
+    public static List<Achievement> getByCategory(AchievementCategory category) {
+        return ALL.stream()
+                .filter(a -> a.getCategory() == category)
+                .collect(Collectors.toList());
+    }
+
+    public static int count() {
+        return ALL.size();
+    }
 }

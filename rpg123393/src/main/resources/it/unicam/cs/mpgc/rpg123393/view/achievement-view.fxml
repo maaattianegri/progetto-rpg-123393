@@ -3,7 +3,6 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
@@ -11,33 +10,33 @@
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.AchievementController"
-      style="-fx-background-color: #1a1a2e; -fx-padding: 40 50;">
+      prefWidth="1000" prefHeight="720"
+      style="-fx-background-color: #1a1a2e; -fx-padding: 36 50 0 50;">
 
     <!-- Header -->
-    <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-padding: 0 0 30 0;">
-        <Button text="&#x2190; Indietro" onAction="#onBack"
-                style="-fx-background-color: transparent; -fx-text-fill: #6a6a9a;
-                       -fx-font-size: 14px; -fx-cursor: hand;
-                       -fx-border-color: #3a3a5e; -fx-border-radius: 8;
-                       -fx-padding: 8 16; -fx-border-width: 1;"/>
-        <VBox HBox.hgrow="ALWAYS">
-            <Label text="&#x1F3C6; Achievement"
-                   style="-fx-font-size: 38px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;
-                          -fx-effect: dropshadow(gaussian, #e0c97f, 14, 0.3, 0, 0);"/>
-            <Label fx:id="progressLabel" text="0 / 30 sbloccati"
-                   style="-fx-font-size: 14px; -fx-text-fill: #6a6a9a; -fx-font-style: italic;"/>
-        </VBox>
-    </HBox>
+    <VBox alignment="CENTER" spacing="4" style="-fx-padding: 0 0 24 0;">
+        <Label text="&#x1F3C6; Achievement"
+               style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;
+                      -fx-effect: dropshadow(gaussian, #e0c97f, 14, 0.3, 0, 0);"/>
+        <Label fx:id="progressLabel" text="0 / 30 sbloccati"
+               style="-fx-font-size: 13px; -fx-text-fill: #6a6a9a; -fx-font-style: italic;"/>
+    </VBox>
 
-    <!-- Griglia scrollabile -->
+    <!-- Sezioni per categoria (scrollabile) -->
     <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                VBox.vgrow="ALWAYS"
                 style="-fx-background: transparent; -fx-background-color: transparent;
-                       -fx-border-color: transparent;"
-                VBox.vgrow="ALWAYS">
-        <FlowPane fx:id="achievementsFlow"
-                  hgap="16" vgap="16"
-                  prefWrapLength="900"
-                  style="-fx-background-color: transparent; -fx-padding: 4;"/>
+                       -fx-border-color: transparent;">
+        <VBox fx:id="contentBox" spacing="0"
+              style="-fx-background-color: transparent; -fx-padding: 0 0 20 0;"/>
     </ScrollPane>
+
+    <!-- Bottone indietro in fondo (coerente con collection-view) -->
+    <HBox alignment="CENTER" style="-fx-padding: 12;">
+        <Button text="&#x2190; Menu Principale" onAction="#onBack"
+                style="-fx-background-color: #1e1e3a; -fx-text-fill: #e0c97f;
+                       -fx-border-color: #e0c97f; -fx-border-radius: 20; -fx-border-width: 1;
+                       -fx-padding: 6 20; -fx-cursor: hand; -fx-background-radius: 20;"/>
+    </HBox>
 
 </VBox>
