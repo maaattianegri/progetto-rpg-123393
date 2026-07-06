@@ -131,11 +131,12 @@ public class EventController {
         if (accepted) {
             gameService.obtainVoidHeart();
             outcomeLabel.setText(
-                    "\u25fc  Il Cuore di Vuoto è tuo.\n"
+                    "\u25fc  Il Cuore di Vuoto \u00e8 tuo.\n"
                     + "Senti il Vuoto fluire in te. Il Cavaliere Vacuo ti aspetta."
             );
             outcomeLabel.setStyle("-fx-text-fill: #c084fc; -fx-font-size: 13px;");
         } else {
+            gameService.rejectVoidHeart();
             outcomeLabel.setText(
                     "Hai rifiutato il richiamo del Vuoto.\n"
                     + "Il sentiero ti riporta verso il Drago Antico."
@@ -199,7 +200,7 @@ public class EventController {
                 loader.<HelloController>getController()
                       .initData(playerName, vigore, arcano, imagePath, gameService);
             } else if (voidEventMode) {
-                // Rifiutato: avanza verso nBB2 (Drago Antico, già collegato in MapService)
+                // Rifiutato: avanza verso nBB2 (Drago Antico, gi\u00e0 collegato in MapService)
                 gameService.moveToNode("nBB2");
                 FXMLLoader loader = SceneNavigator.navigateTo(
                         stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
