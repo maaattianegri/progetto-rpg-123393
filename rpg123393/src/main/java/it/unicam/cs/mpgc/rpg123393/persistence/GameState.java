@@ -27,8 +27,7 @@ public class GameState {
     private List<String> deckCardNames = new ArrayList<>();
 
     // -------------------------------------------------------
-    // Stato mappa (Fase 1 — mappa a nodi)
-    // Retrocompatibile: se assente nel JSON salvato, resta null.
+    // Stato mappa
     // -------------------------------------------------------
 
     /** ID del nodo corrente nella mappa. Null se la run usa ancora il RunManager legacy. */
@@ -40,10 +39,33 @@ public class GameState {
     /**
      * Flag easter egg Hollow Knight.
      * True se il Cavaliere ha ottenuto il Cuore di Vuoto visitando il nodo VOID.
-     * Sblocca l'accesso al VOID_BOSS (Cavaliere Vacuo).
-     * Retrocompatibile: se assente nel JSON salvato, resta false.
      */
     private boolean voidHeartObtained = false;
+
+    // -------------------------------------------------------
+    // Achievement (meta-progressione, non si resettano mai)
+    // -------------------------------------------------------
+
+    /** ID degli achievement già sbloccati. */
+    private List<String> unlockedAchievements = new ArrayList<>();
+
+    // --- Contatori globali tra tutte le run ---
+    private int totalRunsStarted    = 0;
+    private int totalRunsCompleted  = 0;
+    private int totalEnemiesKilled  = 0;
+    private int totalBossesKilled   = 0;
+    private int totalGoldEarned     = 0;
+    private int totalForgeUses      = 0;
+
+    // --- Flag run corrente (si resettano a inizio run) ---
+    /** Oro speso nello shop nella run corrente. */
+    private int  runShopCardsBought  = 0;
+    /** Oro speso per reliquie nella run corrente (usato per "Solo Reliquie"). */
+    private int  runShopRelicsBought = 0;
+    /** Volte che la fucina è stata usata nella run corrente. */
+    private int  runForgeUses        = 0;
+    /** Nodi visitati nella run corrente (per speed run). */
+    private int  runNodesVisited     = 0;
 
     public GameState() {}
 
@@ -63,6 +85,9 @@ public class GameState {
         this.imagePath         = imagePath;
     }
 
+    // -------------------------------------------------------
+    // Getter / Setter base
+    // -------------------------------------------------------
     public String getPlayerName()          { return playerName; }
     public void   setPlayerName(String v)  { this.playerName = v; }
     public int    getPlayerMaxHp()         { return playerMaxHp; }
@@ -97,8 +122,72 @@ public class GameState {
     public void         setClearedNodeIds(List<String> v) { this.clearedNodeIds = v != null ? v : new ArrayList<>(); }
 
     // Easter egg Hollow Knight
-    public boolean isVoidHeartObtained()             { return voidHeartObtained; }
-    public void    setVoidHeartObtained(boolean v)   { this.voidHeartObtained = v; }
+    public boolean isVoidHeartObtained()           { return voidHeartObtained; }
+    public void    setVoidHeartObtained(boolean v) { this.voidHeartObtained = v; }
+
+    // -------------------------------------------------------
+    // Achievement
+    // -------------------------------------------------------
+    public List<String> getUnlockedAchievements()               { return unlockedAchievements; }
+    public void         setUnlockedAchievements(List<String> v) { this.unlockedAchievements = v != null ? v : new ArrayList<>(); }
+
+    public void unlockAchievement(String id) {
+        if (!unlockedAchievements.contains(id)) unlockedAchievements.add(id);
+    }
+    public boolean isAchievementUnlocked(String id) { return unlockedAchievements.contains(id); }
+
+    // Contatori globali
+    public int  getTotalRunsStarted()          { return totalRunsStarted; }
+    public void setTotalRunsStarted(int v)     { this.totalRunsStarted = v; }
+    public void incrementRunsStarted()         { this.totalRunsStarted++; }
+
+    public int  getTotalRunsCompleted()        { return totalRunsCompleted; }
+    public void setTotalRunsCompleted(int v)   { this.totalRunsCompleted = v; }
+    public void incrementRunsCompleted()       { this.totalRunsCompleted++; }
+
+    public int  getTotalEnemiesKilled()        { return totalEnemiesKilled; }
+    public void setTotalEnemiesKilled(int v)   { this.totalEnemiesKilled = v; }
+    public void incrementEnemiesKilled()       { this.totalEnemiesKilled++; }
+
+    public int  getTotalBossesKilled()         { return totalBossesKilled; }
+    public void setTotalBossesKilled(int v)    { this.totalBossesKilled = v; }
+    public void incrementBossesKilled()        { this.totalBossesKilled++; }
+
+    public int  getTotalGoldEarned()           { return totalGoldEarned; }
+    public void setTotalGoldEarned(int v)      { this.totalGoldEarned = v; }
+    public void addGoldEarned(int amount)      { this.totalGoldEarned += amount; }
+
+    public int  getTotalForgeUses()            { return totalForgeUses; }
+    public void setTotalForgeUses(int v)       { this.totalForgeUses = v; }
+    public void incrementForgeUses()           { this.totalForgeUses++; }
+
+    // Flag run corrente
+    public int  getRunShopCardsBought()        { return runShopCardsBought; }
+    public void setRunShopCardsBought(int v)   { this.runShopCardsBought = v; }
+    public void incrementRunShopCardsBought()  { this.runShopCardsBought++; }
+
+    public int  getRunShopRelicsBought()       { return runShopRelicsBought; }
+    public void setRunShopRelicsBought(int v)  { this.runShopRelicsBought = v; }
+    public void incrementRunShopRelicsBought() { this.runShopRelicsBought++; }
+
+    public int  getRunForgeUses()              { return runForgeUses; }
+    public void setRunForgeUses(int v)         { this.runForgeUses = v; }
+    public void incrementRunForgeUses()        { this.runForgeUses++; }
+
+    public int  getRunNodesVisited()           { return runNodesVisited; }
+    public void setRunNodesVisited(int v)      { this.runNodesVisited = v; }
+    public void incrementRunNodesVisited()     { this.runNodesVisited++; }
+
+    /**
+     * Resetta tutti i flag/contatori legati alla singola run.
+     * Da chiamare all'inizio di ogni nuova run.
+     */
+    public void resetRunFlags() {
+        runShopCardsBought  = 0;
+        runShopRelicsBought = 0;
+        runForgeUses        = 0;
+        runNodesVisited     = 0;
+    }
 
     /** Aggiunge una carta alla collezione se non già presente. */
     public void unlockCard(String cardName) {
