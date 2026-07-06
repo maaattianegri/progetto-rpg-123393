@@ -8,7 +8,7 @@ import java.util.List;
 
 public class JsonSaveRepository implements SaveRepository {
 
-    private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".eldoria";
+    private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".rpgsave";
     private static final String SAVE_FILE = SAVE_DIR + File.separator + "savegame.json";
 
     @Override
@@ -61,20 +61,16 @@ public class JsonSaveRepository implements SaveRepository {
         else
             sb.append("null");
         sb.append(",\n");
-        // Liste run corrente
         sb.append("  \"unlockedCards\": ").append(stringArrayToJson(s.getUnlockedCards())).append(",\n");
         sb.append("  \"deckCardNames\": ").append(stringArrayToJson(s.getDeckCardNames())).append(",\n");
         sb.append("  \"clearedNodeIds\": ").append(stringArrayToJson(s.getClearedNodeIds())).append(",\n");
-        // Achievement
         sb.append("  \"unlockedAchievements\": ").append(stringArrayToJson(s.getUnlockedAchievements())).append(",\n");
-        // Contatori globali
         sb.append("  \"totalRunsStarted\": ").append(s.getTotalRunsStarted()).append(",\n");
         sb.append("  \"totalRunsCompleted\": ").append(s.getTotalRunsCompleted()).append(",\n");
         sb.append("  \"totalEnemiesKilled\": ").append(s.getTotalEnemiesKilled()).append(",\n");
         sb.append("  \"totalBossesKilled\": ").append(s.getTotalBossesKilled()).append(",\n");
         sb.append("  \"totalGoldEarned\": ").append(s.getTotalGoldEarned()).append(",\n");
         sb.append("  \"totalForgeUses\": ").append(s.getTotalForgeUses()).append(",\n");
-        // Flag run corrente
         sb.append("  \"runShopCardsBought\": ").append(s.getRunShopCardsBought()).append(",\n");
         sb.append("  \"runShopRelicsBought\": ").append(s.getRunShopRelicsBought()).append(",\n");
         sb.append("  \"runForgeUses\": ").append(s.getRunForgeUses()).append(",\n");
@@ -102,14 +98,12 @@ public class JsonSaveRepository implements SaveRepository {
                 String raw = line.split(":", 2)[1].trim();
                 s.setCurrentNodeId(raw.equals("null") ? null : raw.replace("\"", ""));
             }
-            // Contatori globali
             else if (line.startsWith("\"totalRunsStarted\""))   s.setTotalRunsStarted(intValue(line));
             else if (line.startsWith("\"totalRunsCompleted\""))  s.setTotalRunsCompleted(intValue(line));
             else if (line.startsWith("\"totalEnemiesKilled\""))  s.setTotalEnemiesKilled(intValue(line));
             else if (line.startsWith("\"totalBossesKilled\""))   s.setTotalBossesKilled(intValue(line));
             else if (line.startsWith("\"totalGoldEarned\""))     s.setTotalGoldEarned(intValue(line));
             else if (line.startsWith("\"totalForgeUses\""))      s.setTotalForgeUses(intValue(line));
-            // Flag run corrente
             else if (line.startsWith("\"runShopCardsBought\""))  s.setRunShopCardsBought(intValue(line));
             else if (line.startsWith("\"runShopRelicsBought\"")) s.setRunShopRelicsBought(intValue(line));
             else if (line.startsWith("\"runForgeUses\""))        s.setRunForgeUses(intValue(line));

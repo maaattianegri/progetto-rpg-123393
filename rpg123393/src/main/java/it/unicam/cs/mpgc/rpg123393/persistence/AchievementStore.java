@@ -8,15 +8,11 @@ import java.util.List;
 
 /**
  * Persistenza dedicata agli achievement, separata dal savegame di run.
- * Scrive/legge ~/.eldoria/achievements.json con un formato JSON minimale.
- *
- * Usare questo store invece di integrare i dati achievement nel GameState
- * elimina qualsiasi rischio di sovrascrittura reciproca tra il save di gioco
- * e i progressi achievement.
+ * Scrive/legge ~/.rpgsave/achievements.json con un formato JSON minimale.
  */
 public class AchievementStore {
 
-    private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".eldoria";
+    private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".rpgsave";
     private static final String FILE_PATH = SAVE_DIR + File.separator + "achievements.json";
 
     public boolean exists() {
@@ -54,7 +50,6 @@ public class AchievementStore {
 
     private AchievementData fromJson(String json) {
         AchievementData d = new AchievementData();
-        // Leggi campi scalari riga per riga
         for (String rawLine : json.split("\n")) {
             String line = rawLine.trim().replaceAll(",?$", "");
             if      (line.startsWith("\"totalEnemiesDefeated\"")) d.totalEnemiesDefeated = intVal(line);
@@ -63,8 +58,7 @@ public class AchievementStore {
             else if (line.startsWith("\"totalGoldEarned\""))      d.totalGoldEarned      = intVal(line);
             else if (line.startsWith("\"totalUpgradesUsed\""))    d.totalUpgradesUsed    = intVal(line);
         }
-        // Leggi array
-        d.unlocked        = parseArray(json, "unlocked");
+        d.unlocked         = parseArray(json, "unlocked");
         d.classesCompleted = parseArray(json, "classesCompleted");
         return d;
     }
