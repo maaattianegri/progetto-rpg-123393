@@ -3,6 +3,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
+import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.animation.*;
 import javafx.fxml.FXML;
@@ -51,6 +52,11 @@ public class HelloController {
     private int         vigore;
     private int         arcano;
 
+    // HP del giocatore a inizio battaglia (per rilevare se ha preso danni)
+    private int playerHpAtBattleStart;
+    // true se il nemico è morto per veleno
+    private boolean enemyKilledByPoison;
+
     // -------------------------------------------------------
     // Inizializzazione
     // -------------------------------------------------------
@@ -90,7 +96,6 @@ public class HelloController {
         this.gameService = existingService;
         loadPlayerImage(imagePath);
 
-        // Determina il tipo di nemico in base al nodo corrente
         NodeType nodeType = existingService.getCurrentNode()
                 .map(MapNode::getType)
                 .orElse(NodeType.BATTLE);
@@ -103,12 +108,10 @@ public class HelloController {
                 && (nodeType == NodeType.BATTLE || nodeType == NodeType.VOID || nodeType == NodeType.VOID_BOSS);
 
         if (nodeType == NodeType.VOID_BOSS) {
-            // Boss segreto: Cavaliere Vacuo
             gameService.startVoidBoss();
             log("\u25fc  UN RIFLESSO EMERGE DALL'OSCURIT\u00c0...");
             log("\ud83d\udfe3  Cavaliere Vacuo \u2014 Il tuo stesso riflesso. Senza esitazione.");
         } else if (isVoidBranch) {
-            // Nodi BATTLE del ramo HK (nHK1, nHK2, nHK3)
             gameService.startVoidBattle();
             log("\u25fc  Il Vuoto si muove...");
             log("Una creatura dell'Abisso ti sfida.");
@@ -126,6 +129,8 @@ public class HelloController {
 
     private void startBattle() {
         gameService.startBattle();
+        playerHpAtBattleStart = gameService.getPlayer().getCurrentHp();
+        enemyKilledByPoison   = false;
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurnUI();
@@ -134,7 +139,13 @@ public class HelloController {
     private void startPlayerTurnUI() {
         gameService.startPlayerTurn();
         String pending = gameService.getPendingMessage();
-        if (pending != null && !pending.isEmpty()) log(pending);
+        if (pending != null && !pending.isEmpty()) {
+            log(pending);
+            // Controlla se il nemico è morto per veleno durante il turno appena concluso
+            if (pending.contains("veleno") && gameService.isBattleOver() && gameService.isPlayerVictory()) {
+                enemyKilledByPoison = true;
+            }
+        }
         log("\n--- IL TUO TURNO ---");
         updateEnemyIntent();
         refreshCardButtons();
@@ -179,6 +190,41 @@ public class HelloController {
         log("\n" + gameService.getBattleResult());
         disableAllCardButtons();
         if (gameService.isPlayerVictory()) {
+            // Dati per achievement
+            var player = gameService.getPlayer();
+            boolean tookNoDamage  = player.getCurrentHp() == playerHpAtBattleStart;
+            boolean atFullHp      = player.getCurrentHp() == player.getMaxHp();
+            boolean belowTenHp    = player.getCurrentHp() < 10;
+            boolean isBoss        = gameService.isLastBoss()
+                    || gameService.currentEncounter().name().contains("BOSS");
+            int currentMana       = player.getCurrentMana();
+
+            AchievementService ach = gameService.getAchievementService();
+            ach.onEnemyDefeated(
+                    gameService.getEnemy().getName(),
+                    tookNoDamage,
+                    isBoss,
+                    atFullHp,
+                    enemyKilledByPoison,
+                    belowTenHp,
+                    player.getCurrentHp(),
+                    player.getMaxHp(),
+                    currentMana,
+                    currentMana
+            );
+
+            // Cavaliere Vacuo sconfitto
+            NodeType nodeType = gameService.getCurrentNode()
+                    .map(MapNode::getType).orElse(NodeType.BATTLE);
+            if (nodeType == NodeType.VOID_BOSS) {
+                ach.onHollowKnightDefeated();
+            }
+
+            // Morto al primo nodo (no nodes cleared = primo nodo)
+            if (gameService.getEncounterIndex() == 1) {
+                // non serve: è vittoria, non morte
+            }
+
             int xpGained = 50 + gameService.getPlayerLevel() * 20;
             List<String> msgs = gameService.addXpAndLevelUp(xpGained);
             log("Hai guadagnato " + xpGained + " XP!");
@@ -186,6 +232,10 @@ public class HelloController {
             updateUI();
             navigateToVictory(xpGained, msgs);
         } else {
+            // Sconfitta: controlla se era il primo nodo
+            if (gameService.getEncounterIndex() <= 1) {
+                gameService.getAchievementService().onDiedAtFirstNode();
+            }
             navigateToGameOver();
         }
     }

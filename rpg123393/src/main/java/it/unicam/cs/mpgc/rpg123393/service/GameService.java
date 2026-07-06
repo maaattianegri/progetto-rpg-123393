@@ -18,9 +18,10 @@ public class GameService {
 
     private static final boolean DEBUG_UNLOCK_ALL = true;
 
-    private final BattleService battleService = new BattleService();
-    private final LevelService  levelService  = new LevelService();
-    private final EnemyFactory  enemyFactory  = new EnemyFactory();
+    private final BattleService      battleService      = new BattleService();
+    private final LevelService       levelService       = new LevelService();
+    private final EnemyFactory       enemyFactory       = new EnemyFactory();
+    private final AchievementService achievementService = new AchievementService();
 
     private final RunManager runManager = new RunManager();
     private final MapService mapService = new MapService();
@@ -70,6 +71,7 @@ public class GameService {
             loadUnlockedCardsFromSave();
         }
         EventPool.resetForNewRun();
+        achievementService.onRunStarted();
     }
 
     public void createPlayer(String name, int vigore, int arcano) {
@@ -108,7 +110,13 @@ public class GameService {
     // -------------------------------------------------------
 
     public boolean isVoidHeartObtained()  { return voidHeartObtained; }
-    public void    obtainVoidHeart()      { this.voidHeartObtained = true; }
+    public void    obtainVoidHeart()      {
+        this.voidHeartObtained = true;
+        achievementService.onVoidHeartObtained();
+    }
+    public void    rejectVoidHeart()      {
+        achievementService.onVoidHeartRejected();
+    }
 
     public boolean hasVisitedVoidPath() {
         return mapService.getMap().getAllNodes().stream()
@@ -125,11 +133,14 @@ public class GameService {
 
     public EncounterType advanceEncounter() {
         Optional<MapNode> next = mapService.advance();
+        achievementService.onNodeVisited();
         return next.map(MapNode::toEncounterType).orElse(EncounterType.NORMAL);
     }
 
     public boolean moveToNode(String nodeId) {
-        return mapService.moveToNode(nodeId);
+        boolean moved = mapService.moveToNode(nodeId);
+        if (moved) achievementService.onNodeVisited();
+        return moved;
     }
 
     public List<MapNode> getReachableNodes() {
@@ -170,7 +181,11 @@ public class GameService {
     // -------------------------------------------------------
 
     public void resetUpgradeForNextShop() { upgradeUsedThisShop = false; }
-    public void markUpgradeUsed()         { upgradeUsedThisShop = true; totalUpgradesUsed++; }
+    public void markUpgradeUsed() {
+        upgradeUsedThisShop = true;
+        totalUpgradesUsed++;
+        achievementService.onForgeUsed();
+    }
     public boolean isUpgradeAvailable()   { return !upgradeUsedThisShop; }
 
     // -------------------------------------------------------
@@ -205,11 +220,6 @@ public class GameService {
     private String pendingMessage = "";
     public String getPendingMessage() { String m = pendingMessage; pendingMessage = ""; return m; }
 
-    /**
-     * Pesca 3 carte senza reinserimento da un pool temporaneo clonato dal mazzo.
-     * Evita che la stessa istanza ICard finisca in più slot, causando lo stato
-     * visivo "carta già usata" a inizio turno.
-     */
     private void drawHand() {
         List<ICard> pool = new ArrayList<>(deck);
         for (int i = 0; i < hand.length; i++) {
@@ -261,7 +271,8 @@ public class GameService {
         if (gold < item.getPrice()) return false;
         if (item.getType() != ShopItem.ItemType.UPGRADE) gold -= item.getPrice();
         switch (item.getType()) {
-            case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
+            case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName());
+                                 achievementService.onShopCardBought(); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
             case UPGRADE    -> { }
@@ -355,6 +366,9 @@ public class GameService {
                 .collect(java.util.stream.Collectors.toList());
         s.setClearedNodeIds(cleared);
         s.setVoidHeartObtained(this.voidHeartObtained);
+        // Preserva i dati achievement cross-run
+        List<String> prevUnlocked = achievementService.getUnlocked();
+        s.setUnlockedAchievements(new ArrayList<>(prevUnlocked));
         return s;
     }
 
@@ -390,26 +404,27 @@ public class GameService {
     // Getter / Setter
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()            { return player; }
-    public GameCharacter getEnemy()             { return enemy; }
-    public ICard[]       getHand()              { return hand; }
-    public int           getPlayerLevel()       { return playerLevel; }
-    public int           getPlayerXp()          { return playerXp; }
-    public int           getXpRequired()        { return levelService.xpRequiredForNextLevel(playerLevel); }
-    public int           getVigore()            { return vigore; }
-    public int           getArcano()            { return arcano; }
-    public String        getClassName()         { return className; }
-    public String        getImagePath()         { return imagePath; }
-    public List<ICard>   getDeck()              { return deck; }
-    public List<String>  getUnlockedCards()     { return unlockedCards; }
-    public List<Relic>   getRelics()            { return relics; }
-    public int           getGold()              { return gold; }
-    public int           getTotalGoldEarned()   { return totalGoldEarned; }
-    public int           getTotalUpgradesUsed() { return totalUpgradesUsed; }
+    public GameCharacter     getPlayer()            { return player; }
+    public GameCharacter     getEnemy()             { return enemy; }
+    public ICard[]           getHand()              { return hand; }
+    public int               getPlayerLevel()       { return playerLevel; }
+    public int               getPlayerXp()          { return playerXp; }
+    public int               getXpRequired()        { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int               getVigore()            { return vigore; }
+    public int               getArcano()            { return arcano; }
+    public String            getClassName()         { return className; }
+    public String            getImagePath()         { return imagePath; }
+    public List<ICard>       getDeck()              { return deck; }
+    public List<String>      getUnlockedCards()     { return unlockedCards; }
+    public List<Relic>       getRelics()            { return relics; }
+    public int               getGold()              { return gold; }
+    public int               getTotalGoldEarned()   { return totalGoldEarned; }
+    public int               getTotalUpgradesUsed() { return totalUpgradesUsed; }
     public void setClassName(String c)    { this.className = c; }
     public void setImagePath(String p)    { this.imagePath = p; }
     public void addGold(int amount)       { this.gold += amount; totalGoldEarned += amount; }
-    public MapService getMapService()     { return mapService; }
+    public MapService        getMapService()        { return mapService; }
+    public AchievementService getAchievementService() { return achievementService; }
 
     @Deprecated
     public RunManager getRunManager()     { return runManager; }
