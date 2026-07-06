@@ -6,6 +6,9 @@ import java.util.List;
 /**
  * DTO serializzabile su JSON che rappresenta lo stato completo di una partita.
  * Contiene sia i dati della run corrente che i contatori cross-run per gli achievement.
+ *
+ * I metodi con nomi alternativi (es. getTotalEnemiesKilled / getTotalEnemiesDefeated)
+ * sono alias mantenuti per retrocompatibilità con JsonSaveRepository.
  */
 public class GameState {
 
@@ -33,12 +36,20 @@ public class GameState {
     // Achievement: sblocchi e contatori cross-run
     // -------------------------------------------------------
     private List<String> unlockedAchievements = new ArrayList<>();
+
+    private int  totalRunsStarted      = 0;
+    private int  totalRunsCompleted    = 0;
     private int  totalEnemiesDefeated  = 0;
     private int  totalBossesDefeated   = 0;
-    private int  totalRunsCompleted    = 0;
     private int  totalGoldEarned       = 0;
     private int  totalUpgradesUsed     = 0;
     private List<String> classesCompleted = new ArrayList<>();
+
+    // Contatori per-run (usati da JsonSaveRepository)
+    private int  runShopCardsBought    = 0;
+    private int  runShopRelicsBought   = 0;
+    private int  runForgeUses          = 0;
+    private int  runNodesVisited       = 0;
 
     // -------------------------------------------------------
     // Costruttori
@@ -96,14 +107,14 @@ public class GameState {
     public String getImagePath()         { return imagePath; }
     public void   setImagePath(String v) { this.imagePath = v; }
 
-    public List<String> getUnlockedCards()          { return unlockedCards; }
-    public void         setUnlockedCards(List<String> v) { this.unlockedCards = v; }
+    public List<String> getUnlockedCards()              { return unlockedCards; }
+    public void         setUnlockedCards(List<String> v){ this.unlockedCards = v; }
 
     public List<String> getDeckCardNames()              { return deckCardNames; }
     public void         setDeckCardNames(List<String> v){ this.deckCardNames = v; }
 
-    public String getCurrentNodeId()             { return currentNodeId; }
-    public void   setCurrentNodeId(String v)     { this.currentNodeId = v; }
+    public String getCurrentNodeId()          { return currentNodeId; }
+    public void   setCurrentNodeId(String v)  { this.currentNodeId = v; }
 
     public List<String> getClearedNodeIds()              { return clearedNodeIds; }
     public void         setClearedNodeIds(List<String> v){ this.clearedNodeIds = v; }
@@ -112,20 +123,20 @@ public class GameState {
     public void    setVoidHeartObtained(boolean v) { this.voidHeartObtained = v; }
 
     // -------------------------------------------------------
-    // Getter / Setter — achievement cross-run
+    // Getter / Setter — achievement cross-run (nomi canonici)
     // -------------------------------------------------------
 
     public List<String> getUnlockedAchievements()              { return unlockedAchievements; }
     public void         setUnlockedAchievements(List<String> v){ this.unlockedAchievements = v; }
+
+    public int  getTotalRunsCompleted()            { return totalRunsCompleted; }
+    public void setTotalRunsCompleted(int v)       { this.totalRunsCompleted = v; }
 
     public int  getTotalEnemiesDefeated()          { return totalEnemiesDefeated; }
     public void setTotalEnemiesDefeated(int v)     { this.totalEnemiesDefeated = v; }
 
     public int  getTotalBossesDefeated()           { return totalBossesDefeated; }
     public void setTotalBossesDefeated(int v)      { this.totalBossesDefeated = v; }
-
-    public int  getTotalRunsCompleted()            { return totalRunsCompleted; }
-    public void setTotalRunsCompleted(int v)       { this.totalRunsCompleted = v; }
 
     public int  getTotalGoldEarned()               { return totalGoldEarned; }
     public void setTotalGoldEarned(int v)          { this.totalGoldEarned = v; }
@@ -135,4 +146,39 @@ public class GameState {
 
     public List<String> getClassesCompleted()              { return classesCompleted; }
     public void         setClassesCompleted(List<String> v){ this.classesCompleted = v; }
+
+    // -------------------------------------------------------
+    // Alias per JsonSaveRepository (nomi originali del repository)
+    // -------------------------------------------------------
+
+    public int  getTotalRunsStarted()          { return totalRunsStarted; }
+    public void setTotalRunsStarted(int v)     { this.totalRunsStarted = v; }
+
+    /** alias getTotalEnemiesDefeated */
+    public int  getTotalEnemiesKilled()        { return totalEnemiesDefeated; }
+    public void setTotalEnemiesKilled(int v)   { this.totalEnemiesDefeated = v; }
+
+    /** alias getTotalBossesDefeated */
+    public int  getTotalBossesKilled()         { return totalBossesDefeated; }
+    public void setTotalBossesKilled(int v)    { this.totalBossesDefeated = v; }
+
+    /** alias getTotalUpgradesUsed */
+    public int  getTotalForgeUses()            { return totalUpgradesUsed; }
+    public void setTotalForgeUses(int v)       { this.totalUpgradesUsed = v; }
+
+    // -------------------------------------------------------
+    // Getter / Setter — contatori per-run (JsonSaveRepository)
+    // -------------------------------------------------------
+
+    public int  getRunShopCardsBought()        { return runShopCardsBought; }
+    public void setRunShopCardsBought(int v)   { this.runShopCardsBought = v; }
+
+    public int  getRunShopRelicsBought()       { return runShopRelicsBought; }
+    public void setRunShopRelicsBought(int v)  { this.runShopRelicsBought = v; }
+
+    public int  getRunForgeUses()              { return runForgeUses; }
+    public void setRunForgeUses(int v)         { this.runForgeUses = v; }
+
+    public int  getRunNodesVisited()           { return runNodesVisited; }
+    public void setRunNodesVisited(int v)      { this.runNodesVisited = v; }
 }
