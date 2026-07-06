@@ -52,10 +52,12 @@ public class HelloController {
     private int         vigore;
     private int         arcano;
 
-    // HP del giocatore a inizio battaglia (per rilevare se ha preso danni)
-    private int playerHpAtBattleStart;
-    // true se il nemico è morto per veleno
+    // HP del giocatore a inizio battaglia
+    private int     playerHpAtBattleStart;
+    // true se il nemico e' morto per veleno (rilevato tramite HP nemico a 0 e veleno attivo)
     private boolean enemyKilledByPoison;
+    // true se il nodo corrente e' un boss (letto prima che lo stato avanzi)
+    private boolean currentEnemyIsBoss;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -120,6 +122,8 @@ public class HelloController {
             gameService.startBattle();
         }
 
+        // Leggi il flag boss DOPO aver avviato la battaglia
+        refreshBossFlag();
         startPlayerTurnUI();
     }
 
@@ -131,9 +135,23 @@ public class HelloController {
         gameService.startBattle();
         playerHpAtBattleStart = gameService.getPlayer().getCurrentHp();
         enemyKilledByPoison   = false;
+        refreshBossFlag();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurnUI();
+    }
+
+    /**
+     * Aggiorna il flag boss leggendo il tipo del nodo corrente.
+     * Va chiamato subito dopo startBattle/startVoidBoss, quando il nodo e' ancora quello giusto.
+     */
+    private void refreshBossFlag() {
+        NodeType nodeType = gameService.getCurrentNode()
+                .map(MapNode::getType)
+                .orElse(NodeType.BATTLE);
+        currentEnemyIsBoss = nodeType == NodeType.BOSS
+                || nodeType == NodeType.VOID_BOSS
+                || gameService.isLastBoss();
     }
 
     private void startPlayerTurnUI() {
@@ -141,15 +159,24 @@ public class HelloController {
         String pending = gameService.getPendingMessage();
         if (pending != null && !pending.isEmpty()) {
             log(pending);
-            // Controlla se il nemico è morto per veleno durante il turno appena concluso
-            if (pending.contains("veleno") && gameService.isBattleOver() && gameService.isPlayerVictory()) {
-                enemyKilledByPoison = true;
+            // Rileva morte per veleno: nemico a 0 HP durante il tick del veleno
+            // getPendingMessage() viene eseguito all'inizio del turno del giocatore,
+            // che e' quando il veleno ticks. Se la battaglia e' gia' finita qui
+            // significa che il veleno ha dato il colpo finale.
+            if (gameService.isBattleOver() && gameService.isPlayerVictory()) {
+                int enemyPoison = gameService.getEnemy().getPoison();
+                // Il veleno era attivo prima del tick (ancora > 0 o appena sceso a 0)
+                // Usiamo il messaggio come segnale aggiuntivo di conferma
+                boolean poisonMentioned = pending.toLowerCase().contains("velen");
+                enemyKilledByPoison = poisonMentioned || enemyPoison >= 0;
             }
         }
         log("\n--- IL TUO TURNO ---");
         updateEnemyIntent();
         refreshCardButtons();
         updateUI();
+        // Se la battaglia e' finita nel tick veleno, gestiamo subito la fine
+        if (gameService.isBattleOver()) handleBattleEnd();
     }
 
     @FXML private void onCard0Click() { playCard(0, cardBtn0); }
@@ -161,15 +188,27 @@ public class HelloController {
             log("[!] Mana insufficiente per questa carta!");
             return;
         }
+        // Controlla veleno attivo PRIMA di giocare la carta
+        int enemyPoisonBefore = gameService.getEnemy().getPoison();
+
         if (button.getGraphic() instanceof VBox cardGraphic) {
             animateCardPlay(cardGraphic, button, () -> {
-                log(gameService.playCard(index));
+                String result = gameService.playCard(index);
+                log(result);
+                // Se il nemico e' morto e aveva veleno attivo = kill da veleno (o combo veleno+carta)
+                if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
+                    enemyKilledByPoison = true;
+                }
                 button.setDisable(true);
                 updateUI();
                 if (gameService.isBattleOver()) handleBattleEnd();
             });
         } else {
-            log(gameService.playCard(index));
+            String result = gameService.playCard(index);
+            log(result);
+            if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
+                enemyKilledByPoison = true;
+            }
             button.setDisable(true);
             updateUI();
             if (gameService.isBattleOver()) handleBattleEnd();
@@ -190,20 +229,17 @@ public class HelloController {
         log("\n" + gameService.getBattleResult());
         disableAllCardButtons();
         if (gameService.isPlayerVictory()) {
-            // Dati per achievement
             var player = gameService.getPlayer();
-            boolean tookNoDamage  = player.getCurrentHp() == playerHpAtBattleStart;
-            boolean atFullHp      = player.getCurrentHp() == player.getMaxHp();
-            boolean belowTenHp    = player.getCurrentHp() < 10;
-            boolean isBoss        = gameService.isLastBoss()
-                    || gameService.currentEncounter().name().contains("BOSS");
-            int currentMana       = player.getCurrentMana();
+            boolean tookNoDamage = player.getCurrentHp() == playerHpAtBattleStart;
+            boolean atFullHp     = player.getCurrentHp() == player.getMaxHp();
+            boolean belowTenHp   = player.getCurrentHp() < 10;
+            int currentMana      = player.getCurrentMana();
 
             AchievementService ach = gameService.getAchievementService();
             ach.onEnemyDefeated(
                     gameService.getEnemy().getName(),
                     tookNoDamage,
-                    isBoss,
+                    currentEnemyIsBoss,       // flag letto prima che lo stato avanzi
                     atFullHp,
                     enemyKilledByPoison,
                     belowTenHp,
@@ -213,16 +249,11 @@ public class HelloController {
                     currentMana
             );
 
-            // Cavaliere Vacuo sconfitto
+            // Cavaliere Vacuo
             NodeType nodeType = gameService.getCurrentNode()
                     .map(MapNode::getType).orElse(NodeType.BATTLE);
             if (nodeType == NodeType.VOID_BOSS) {
                 ach.onHollowKnightDefeated();
-            }
-
-            // Morto al primo nodo (no nodes cleared = primo nodo)
-            if (gameService.getEncounterIndex() == 1) {
-                // non serve: è vittoria, non morte
             }
 
             int xpGained = 50 + gameService.getPlayerLevel() * 20;
@@ -232,7 +263,6 @@ public class HelloController {
             updateUI();
             navigateToVictory(xpGained, msgs);
         } else {
-            // Sconfitta: controlla se era il primo nodo
             if (gameService.getEncounterIndex() <= 1) {
                 gameService.getAchievementService().onDiedAtFirstNode();
             }
@@ -268,18 +298,14 @@ public class HelloController {
     private void attachHoverAnimation(VBox cardGraphic) {
         ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), cardGraphic);
         scaleIn.setToX(1.15); scaleIn.setToY(1.15);
-
         TranslateTransition moveUp = new TranslateTransition(Duration.millis(150), cardGraphic);
         moveUp.setToY(-16);
-
         ParallelTransition hoverIn = new ParallelTransition(scaleIn, moveUp);
 
         ScaleTransition scaleOut = new ScaleTransition(Duration.millis(120), cardGraphic);
         scaleOut.setToX(1.0); scaleOut.setToY(1.0);
-
         TranslateTransition moveDown = new TranslateTransition(Duration.millis(120), cardGraphic);
         moveDown.setToY(0);
-
         ParallelTransition hoverOut = new ParallelTransition(scaleOut, moveDown);
 
         cardGraphic.setOnMouseEntered(e -> { hoverOut.stop(); cardGraphic.toFront(); hoverIn.playFromStart(); });
@@ -288,16 +314,12 @@ public class HelloController {
 
     private void animateCardPlay(VBox cardGraphic, Button button, Runnable onComplete) {
         cardGraphic.setScaleX(1.0); cardGraphic.setScaleY(1.0);
-
         TranslateTransition fly = new TranslateTransition(Duration.millis(200), cardGraphic);
         fly.setByY(-80);
-
         FadeTransition fade = new FadeTransition(Duration.millis(200), cardGraphic);
         fade.setFromValue(1.0); fade.setToValue(0.0);
-
         ScaleTransition shrink = new ScaleTransition(Duration.millis(200), cardGraphic);
         shrink.setToX(0.85); shrink.setToY(0.85);
-
         ParallelTransition playAnim = new ParallelTransition(fly, fade, shrink);
         playAnim.setOnFinished(e -> {
             cardGraphic.setTranslateY(0);
