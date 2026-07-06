@@ -82,6 +82,15 @@ public class MainMenuController {
     }
 
     @FXML
+    private void onAchievements(ActionEvent event) {
+        try {
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/achievement-view.fxml");
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    @FXML
     private void onExit(ActionEvent event) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Esci dal gioco");
