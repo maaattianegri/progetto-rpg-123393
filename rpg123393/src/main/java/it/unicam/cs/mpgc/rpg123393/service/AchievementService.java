@@ -1,5 +1,6 @@
 package it.unicam.cs.mpgc.rpg123393.service;
 
+import it.unicam.cs.mpgc.rpg123393.controller.AchievementToastManager;
 import it.unicam.cs.mpgc.rpg123393.model.achievement.Achievement;
 import it.unicam.cs.mpgc.rpg123393.model.achievement.AchievementRegistry;
 import it.unicam.cs.mpgc.rpg123393.persistence.AchievementStore;
@@ -11,21 +12,17 @@ import java.util.List;
 
 /**
  * Gestisce lo sblocco degli achievement durante la run.
- *
- * Usa {@link AchievementStore} per la persistenza su un file separato
- * (~/.eldoria/achievements.json), completamente indipendente dal savegame di run.
- * Questo elimina qualsiasi rischio di sovrascrittura reciproca.
+ * Usa {@link AchievementStore} per la persistenza su file separato.
+ * Usa {@link AchievementToastManager} per mostrare il banner in-game.
  */
 public class AchievementService {
 
     private final AchievementStore store = new AchievementStore();
 
-    // Stato runtime per-run
     private boolean noForgeUsedThisRun = true;
     private boolean noShopCardThisRun  = true;
     private int     nodesVisitedThisRun = 0;
 
-    // Stato cross-run in memoria (caricato all'avvio, persistito ad ogni evento)
     private List<String> unlocked          = new ArrayList<>();
     private List<String> classesCompleted  = new ArrayList<>();
     private int totalEnemiesDefeated = 0;
@@ -37,10 +34,6 @@ public class AchievementService {
     public AchievementService() {
         loadFromStore();
     }
-
-    // -------------------------------------------------------
-    // Caricamento
-    // -------------------------------------------------------
 
     private void loadFromStore() {
         try {
@@ -155,14 +148,10 @@ public class AchievementService {
         persist();
     }
 
-    // -------------------------------------------------------
-    // Getter pubblico (usato da GameService.toGameState e AchievementController)
-    // -------------------------------------------------------
-
     public List<String> getUnlocked() { return unlocked; }
 
     // -------------------------------------------------------
-    // Unlock + persist
+    // Unlock + toast
     // -------------------------------------------------------
 
     private void unlock(String id) {
@@ -171,6 +160,7 @@ public class AchievementService {
         if (a == null) return;
         unlocked.add(id);
         System.out.println("[Achievement sbloccato] " + a.getName());
+        AchievementToastManager.getInstance().show(id);
     }
 
     private void persist() {
