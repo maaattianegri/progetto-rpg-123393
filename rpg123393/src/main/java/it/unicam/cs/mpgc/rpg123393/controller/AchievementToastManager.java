@@ -16,28 +16,18 @@ import javafx.util.Duration;
 import java.util.LinkedList;
 import java.util.Queue;
 
-/**
- * Singleton che mostra notifiche toast stile Steam per gli achievement sbloccati.
- *
- * Utilizza uno StackPane root fisso (passato da HelloApplication) come overlay,
- * cosi' i toast sopravvivono ai cambi di scena gestiti da SceneNavigator.
- *
- * Utilizzo:
- *   1. All'avvio: AchievementToastManager.getInstance().init(stage, rootPane);
- *   2. Quando si sblocca: AchievementToastManager.getInstance().show("achievement_id");
- */
 public class AchievementToastManager {
 
     private static final AchievementToastManager INSTANCE = new AchievementToastManager();
 
-    private static final double TOAST_WIDTH  = 320;
-    private static final double TOAST_HEIGHT = 80;
+    private static final double TOAST_WIDTH   = 320;
+    private static final double TOAST_HEIGHT  = 80;
     private static final double MARGIN_RIGHT  = 24;
     private static final double MARGIN_BOTTOM = 24;
     private static final double SHOW_SECONDS  = 3.5;
 
     private Stage     primaryStage;
-    private StackPane rootPane;    // il root fisso dello stage
+    private StackPane rootPane;
     private boolean   showing = false;
     private final Queue<String> queue = new LinkedList<>();
 
@@ -45,18 +35,12 @@ public class AchievementToastManager {
 
     public static AchievementToastManager getInstance() { return INSTANCE; }
 
-    // -------------------------------------------------------
-    // Init (chiamare una volta in HelloApplication dopo stage.show())
-    // -------------------------------------------------------
-
     public void init(Stage stage, StackPane rootPane) {
         this.primaryStage = stage;
         this.rootPane     = rootPane;
+        // Il rootPane stesso non deve mai bloccare i click sul contenuto sottostante
+        rootPane.setPickOnBounds(false);
     }
-
-    // -------------------------------------------------------
-    // API pubblica
-    // -------------------------------------------------------
 
     public void show(String achievementId) {
         Platform.runLater(() -> {
@@ -64,10 +48,6 @@ public class AchievementToastManager {
             if (!showing) showNext();
         });
     }
-
-    // -------------------------------------------------------
-    // Logica interna
-    // -------------------------------------------------------
 
     private void showNext() {
         if (queue.isEmpty() || rootPane == null) { showing = false; return; }
@@ -78,26 +58,24 @@ public class AchievementToastManager {
 
         VBox toast = buildToast(a);
 
+        // Il toast non deve intercettare nessun evento mouse
+        toast.setMouseTransparent(true);
+
         StackPane.setAlignment(toast, Pos.BOTTOM_RIGHT);
         StackPane.setMargin(toast, new Insets(0, MARGIN_RIGHT, MARGIN_BOTTOM, 0));
-
-        // Parte fuori schermo a destra
         toast.setTranslateX(TOAST_WIDTH + MARGIN_RIGHT + 10);
         toast.setOpacity(0);
 
         rootPane.getChildren().add(toast);
 
-        // Slide-in + fade-in
         TranslateTransition slideIn = new TranslateTransition(Duration.millis(350), toast);
         slideIn.setToX(0);
         FadeTransition fadeIn = new FadeTransition(Duration.millis(350), toast);
         fadeIn.setToValue(1.0);
         ParallelTransition enter = new ParallelTransition(slideIn, fadeIn);
 
-        // Pausa
         PauseTransition pause = new PauseTransition(Duration.seconds(SHOW_SECONDS));
 
-        // Slide-out + fade-out
         TranslateTransition slideOut = new TranslateTransition(Duration.millis(400), toast);
         slideOut.setToX(TOAST_WIDTH + MARGIN_RIGHT + 10);
         FadeTransition fadeOut = new FadeTransition(Duration.millis(400), toast);
@@ -144,7 +122,6 @@ public class AchievementToastManager {
                 + " -fx-effect: dropshadow(gaussian, rgba(78,204,163,0.45), 18, 0.3, 0, 0);"
         );
 
-        // Barra colorata in cima
         Rectangle bar = new Rectangle(TOAST_WIDTH, 5);
         bar.setFill(Color.web("#4ecca3"));
 
