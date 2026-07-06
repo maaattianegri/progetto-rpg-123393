@@ -19,12 +19,12 @@ import java.util.Queue;
 /**
  * Singleton che mostra notifiche toast stile Steam per gli achievement sbloccati.
  *
- * Utilizzo:
- *   1. All'avvio: AchievementToastManager.getInstance().init(stage);
- *   2. Quando si sblocca: AchievementToastManager.getInstance().show("achievement_id");
+ * Utilizza uno StackPane root fisso (passato da HelloApplication) come overlay,
+ * cosi' i toast sopravvivono ai cambi di scena gestiti da SceneNavigator.
  *
- * Il manager gestisce una coda: se più achievement si sbloccano in rapida successione
- * i toast escono in sequenza, non sovrapposti.
+ * Utilizzo:
+ *   1. All'avvio: AchievementToastManager.getInstance().init(stage, rootPane);
+ *   2. Quando si sblocca: AchievementToastManager.getInstance().show("achievement_id");
  */
 public class AchievementToastManager {
 
@@ -32,12 +32,13 @@ public class AchievementToastManager {
 
     private static final double TOAST_WIDTH  = 320;
     private static final double TOAST_HEIGHT = 80;
-    private static final double MARGIN       = 20;
-    private static final double SHOW_SECONDS = 3.5;
+    private static final double MARGIN_RIGHT  = 24;
+    private static final double MARGIN_BOTTOM = 24;
+    private static final double SHOW_SECONDS  = 3.5;
 
-    private Stage         primaryStage;
-    private StackPane     overlay;
-    private boolean       showing = false;
+    private Stage     primaryStage;
+    private StackPane rootPane;    // il root fisso dello stage
+    private boolean   showing = false;
     private final Queue<String> queue = new LinkedList<>();
 
     private AchievementToastManager() {}
@@ -45,35 +46,18 @@ public class AchievementToastManager {
     public static AchievementToastManager getInstance() { return INSTANCE; }
 
     // -------------------------------------------------------
-    // Inizializzazione (chiamare una volta in HelloApplication)
+    // Init (chiamare una volta in HelloApplication dopo stage.show())
     // -------------------------------------------------------
 
-    public void init(Stage stage) {
+    public void init(Stage stage, StackPane rootPane) {
         this.primaryStage = stage;
-        // Ogni volta che la scena cambia, re-inietta l'overlay
-        stage.sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene != null) injectOverlay(newScene);
-        });
-        if (stage.getScene() != null) injectOverlay(stage.getScene());
-    }
-
-    private void injectOverlay(javafx.scene.Scene scene) {
-        // Cerca se c'è già un StackPane root; altrimenti wrappa
-        if (scene.getRoot() instanceof StackPane sp) {
-            overlay = sp;
-        } else {
-            StackPane wrapper = new StackPane(scene.getRoot());
-            wrapper.setStyle("-fx-background-color: transparent;");
-            scene.setRoot(wrapper);
-            overlay = wrapper;
-        }
+        this.rootPane     = rootPane;
     }
 
     // -------------------------------------------------------
     // API pubblica
     // -------------------------------------------------------
 
-    /** Accoda un toast per l'achievement con questo id. Thread-safe. */
     public void show(String achievementId) {
         Platform.runLater(() -> {
             queue.add(achievementId);
@@ -86,7 +70,7 @@ public class AchievementToastManager {
     // -------------------------------------------------------
 
     private void showNext() {
-        if (queue.isEmpty() || overlay == null) { showing = false; return; }
+        if (queue.isEmpty() || rootPane == null) { showing = false; return; }
         showing = true;
         String id = queue.poll();
         Achievement a = AchievementRegistry.getById(id);
@@ -94,48 +78,44 @@ public class AchievementToastManager {
 
         VBox toast = buildToast(a);
 
-        // Posiziona in basso a destra, fuori schermo
-        double sceneW = primaryStage.getScene().getWidth();
-        double sceneH = primaryStage.getScene().getHeight();
-
         StackPane.setAlignment(toast, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(toast, new Insets(0, MARGIN, MARGIN, 0));
-        toast.setTranslateX(TOAST_WIDTH + MARGIN + 10); // fuori schermo a destra
+        StackPane.setMargin(toast, new Insets(0, MARGIN_RIGHT, MARGIN_BOTTOM, 0));
+
+        // Parte fuori schermo a destra
+        toast.setTranslateX(TOAST_WIDTH + MARGIN_RIGHT + 10);
         toast.setOpacity(0);
 
-        overlay.getChildren().add(toast);
+        rootPane.getChildren().add(toast);
 
-        // --- Animazione: slide-in + fade-in ---
+        // Slide-in + fade-in
         TranslateTransition slideIn = new TranslateTransition(Duration.millis(350), toast);
         slideIn.setToX(0);
         FadeTransition fadeIn = new FadeTransition(Duration.millis(350), toast);
-        fadeIn.setToValue(1);
+        fadeIn.setToValue(1.0);
         ParallelTransition enter = new ParallelTransition(slideIn, fadeIn);
 
-        // --- Pausa ---
+        // Pausa
         PauseTransition pause = new PauseTransition(Duration.seconds(SHOW_SECONDS));
 
-        // --- Fade-out ---
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), toast);
-        fadeOut.setToValue(0);
+        // Slide-out + fade-out
         TranslateTransition slideOut = new TranslateTransition(Duration.millis(400), toast);
-        slideOut.setToX(TOAST_WIDTH + MARGIN + 10);
-        ParallelTransition exit = new ParallelTransition(fadeOut, slideOut);
+        slideOut.setToX(TOAST_WIDTH + MARGIN_RIGHT + 10);
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(400), toast);
+        fadeOut.setToValue(0.0);
+        ParallelTransition exit = new ParallelTransition(slideOut, fadeOut);
 
         SequentialTransition seq = new SequentialTransition(enter, pause, exit);
         seq.setOnFinished(e -> {
-            overlay.getChildren().remove(toast);
+            rootPane.getChildren().remove(toast);
             showNext();
         });
         seq.play();
     }
 
     private VBox buildToast(Achievement a) {
-        // Icona
         Label icon = new Label(a.getIcon());
         icon.setStyle("-fx-font-size: 28px;");
 
-        // Testi
         Label header = new Label("Achievement sbloccato!");
         header.setStyle("-fx-font-size: 11px; -fx-text-fill: #4ecca3; -fx-font-weight: bold;");
 
@@ -151,28 +131,26 @@ public class AchievementToastManager {
         content.setAlignment(Pos.CENTER_LEFT);
         content.setPadding(new Insets(12, 16, 12, 14));
 
-        VBox toast = new VBox(content);
-        toast.setPrefWidth(TOAST_WIDTH);
-        toast.setMaxWidth(TOAST_WIDTH);
-        toast.setMinHeight(TOAST_HEIGHT);
-        toast.setStyle(
+        VBox card = new VBox(content);
+        card.setPrefWidth(TOAST_WIDTH);
+        card.setMaxWidth(TOAST_WIDTH);
+        card.setMinHeight(TOAST_HEIGHT);
+        card.setStyle(
                 "-fx-background-color: #0d0d1a;"
-                + " -fx-background-radius: 10;"
+                + " -fx-background-radius: 0 0 10 10;"
                 + " -fx-border-color: #4ecca3;"
-                + " -fx-border-radius: 10;"
-                + " -fx-border-width: 1.5;"
+                + " -fx-border-radius: 0 0 10 10;"
+                + " -fx-border-width: 0 1.5 1.5 1.5;"
                 + " -fx-effect: dropshadow(gaussian, rgba(78,204,163,0.45), 18, 0.3, 0, 0);"
         );
 
-        // Barra verde in cima (stile Steam)
-        Rectangle bar = new Rectangle(TOAST_WIDTH, 4);
+        // Barra colorata in cima
+        Rectangle bar = new Rectangle(TOAST_WIDTH, 5);
         bar.setFill(Color.web("#4ecca3"));
-        bar.setArcWidth(10);
-        bar.setArcHeight(10);
 
-        VBox wrapper = new VBox(bar, toast);
-        wrapper.setStyle("-fx-background-color: transparent;");
-        wrapper.setPrefWidth(TOAST_WIDTH);
-        return wrapper;
+        VBox toast = new VBox(bar, card);
+        toast.setPrefWidth(TOAST_WIDTH);
+        toast.setStyle("-fx-background-color: transparent;");
+        return toast;
     }
 }
