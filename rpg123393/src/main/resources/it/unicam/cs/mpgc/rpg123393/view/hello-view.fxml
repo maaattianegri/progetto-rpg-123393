@@ -51,10 +51,10 @@
                          -fx-background-color: #0d1b2a;"/>
     </left>
 
-    <!-- CENTER: immagini combattenti, spostate leggermente a destra con padding asimmetrico -->
+    <!-- CENTER: immagini combattenti -->
     <center>
         <HBox alignment="CENTER" spacing="80"
-              style="-fx-background-color: #1a1a2e; -fx-padding: 24 24 24 80;">
+              style="-fx-background-color: #1a1a2e; -fx-padding: 24;">
 
             <!-- Player -->
             <VBox alignment="CENTER" spacing="10">
