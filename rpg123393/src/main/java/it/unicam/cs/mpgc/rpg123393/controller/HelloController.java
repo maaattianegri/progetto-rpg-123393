@@ -1,6 +1,7 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
+import it.unicam.cs.mpgc.rpgchoice.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
@@ -44,7 +45,11 @@ public class HelloController {
     @FXML private Button    cardBtn1;
     @FXML private Button    cardBtn2;
     @FXML private TextArea  consoleArea;
+
     @FXML private ImageView playerImage;
+    @FXML private ImageView enemyImage;
+    @FXML private Label     playerNameCenterLabel;
+    @FXML private Label     enemyNameCenterLabel;
 
     private GameService gameService;
     private String      imagePath;
@@ -52,11 +57,8 @@ public class HelloController {
     private int         vigore;
     private int         arcano;
 
-    // HP del giocatore a inizio battaglia
     private int     playerHpAtBattleStart;
-    // true se il nemico e' morto per veleno (rilevato tramite HP nemico a 0 e veleno attivo)
     private boolean enemyKilledByPoison;
-    // true se il nodo corrente e' un boss (letto prima che lo stato avanzi)
     private boolean currentEnemyIsBoss;
 
     // -------------------------------------------------------
@@ -122,7 +124,6 @@ public class HelloController {
             gameService.startBattle();
         }
 
-        // Leggi il flag boss DOPO aver avviato la battaglia
         refreshBossFlag();
         startPlayerTurnUI();
     }
@@ -136,15 +137,13 @@ public class HelloController {
         playerHpAtBattleStart = gameService.getPlayer().getCurrentHp();
         enemyKilledByPoison   = false;
         refreshBossFlag();
+        loadEnemyImage();
+        updateCombatantLabels();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurnUI();
     }
 
-    /**
-     * Aggiorna il flag boss leggendo il tipo del nodo corrente.
-     * Va chiamato subito dopo startBattle/startVoidBoss, quando il nodo e' ancora quello giusto.
-     */
     private void refreshBossFlag() {
         NodeType nodeType = gameService.getCurrentNode()
                 .map(MapNode::getType)
@@ -159,14 +158,8 @@ public class HelloController {
         String pending = gameService.getPendingMessage();
         if (pending != null && !pending.isEmpty()) {
             log(pending);
-            // Rileva morte per veleno: nemico a 0 HP durante il tick del veleno
-            // getPendingMessage() viene eseguito all'inizio del turno del giocatore,
-            // che e' quando il veleno ticks. Se la battaglia e' gia' finita qui
-            // significa che il veleno ha dato il colpo finale.
             if (gameService.isBattleOver() && gameService.isPlayerVictory()) {
                 int enemyPoison = gameService.getEnemy().getPoison();
-                // Il veleno era attivo prima del tick (ancora > 0 o appena sceso a 0)
-                // Usiamo il messaggio come segnale aggiuntivo di conferma
                 boolean poisonMentioned = pending.toLowerCase().contains("velen");
                 enemyKilledByPoison = poisonMentioned || enemyPoison >= 0;
             }
@@ -175,7 +168,6 @@ public class HelloController {
         updateEnemyIntent();
         refreshCardButtons();
         updateUI();
-        // Se la battaglia e' finita nel tick veleno, gestiamo subito la fine
         if (gameService.isBattleOver()) handleBattleEnd();
     }
 
@@ -188,14 +180,12 @@ public class HelloController {
             log("[!] Mana insufficiente per questa carta!");
             return;
         }
-        // Controlla veleno attivo PRIMA di giocare la carta
         int enemyPoisonBefore = gameService.getEnemy().getPoison();
 
         if (button.getGraphic() instanceof VBox cardGraphic) {
             animateCardPlay(cardGraphic, button, () -> {
                 String result = gameService.playCard(index);
                 log(result);
-                // Se il nemico e' morto e aveva veleno attivo = kill da veleno (o combo veleno+carta)
                 if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
                     enemyKilledByPoison = true;
                 }
@@ -239,7 +229,7 @@ public class HelloController {
             ach.onEnemyDefeated(
                     gameService.getEnemy().getName(),
                     tookNoDamage,
-                    currentEnemyIsBoss,       // flag letto prima che lo stato avanzi
+                    currentEnemyIsBoss,
                     atFullHp,
                     enemyKilledByPoison,
                     belowTenHp,
@@ -249,7 +239,6 @@ public class HelloController {
                     currentMana
             );
 
-            // Cavaliere Vacuo
             NodeType nodeType = gameService.getCurrentNode()
                     .map(MapNode::getType).orElse(NodeType.BATTLE);
             if (nodeType == NodeType.VOID_BOSS) {
@@ -289,6 +278,44 @@ public class HelloController {
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath,
                     gameService.getClassName());
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    // -------------------------------------------------------
+    // Caricamento immagini
+    // -------------------------------------------------------
+
+    private void loadPlayerImage(String path) {
+        ImageLoaderHelper.load(playerImage, path);
+        if (playerNameCenterLabel != null && playerName != null) {
+            playerNameCenterLabel.setText(playerName);
+        }
+    }
+
+    private void loadEnemyImage() {
+        if (gameService == null || gameService.getEnemy() == null) return;
+        String enemyName = gameService.getEnemy().getName();
+        String key = toImageKey(enemyName);
+        ImageLoaderHelper.load(enemyImage, ImageLoaderHelper.enemyImagePath(key));
+        if (enemyNameCenterLabel != null) {
+            enemyNameCenterLabel.setText(enemyName);
+        }
+    }
+
+    /**
+     * Converte il nome display del nemico nella chiave del file immagine.
+     * Es. "Ratto Gigante" → "ratto_gigante"
+     */
+    private String toImageKey(String displayName) {
+        return displayName
+                .toLowerCase()
+                .replace(" ", "_")
+                .replace("'", "_")
+                .replace("à", "a")
+                .replace("è", "e")
+                .replace("é", "e")
+                .replace("ì", "i")
+                .replace("ò", "o")
+                .replace("ù", "u");
     }
 
     // -------------------------------------------------------
@@ -417,14 +444,6 @@ public class HelloController {
 
     private void disableAllCardButtons() {
         cardBtn0.setDisable(true); cardBtn1.setDisable(true); cardBtn2.setDisable(true);
-    }
-
-    private void loadPlayerImage(String path) {
-        if (path == null) return;
-        InputStream stream = getClass().getResourceAsStream(path);
-        if (stream == null)
-            stream = getClass().getClassLoader().getResourceAsStream(path.replaceFirst("^/", ""));
-        if (stream != null) playerImage.setImage(new Image(stream));
     }
 
     private void log(String msg) { consoleArea.appendText(msg + "\n"); }

@@ -7,6 +7,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -25,8 +26,21 @@ public class ClassSelectController {
     @FXML private VBox cardPaladin;
     @FXML private VBox cardAssassin;
 
+    @FXML private ImageView imgWarrior;
+    @FXML private ImageView imgMage;
+    @FXML private ImageView imgDragon;
+    @FXML private ImageView imgPaladin;
+    @FXML private ImageView imgAssassin;
+
     @FXML
     private void initialize() {
+        // Carica le immagini delle classi (fallback silenzioso se il file non c'è ancora)
+        ImageLoaderHelper.load(imgWarrior,  ImageLoaderHelper.classImagePath("warrior"));
+        ImageLoaderHelper.load(imgMage,     ImageLoaderHelper.classImagePath("mage"));
+        ImageLoaderHelper.load(imgDragon,   ImageLoaderHelper.classImagePath("dragon"));
+        ImageLoaderHelper.load(imgPaladin,  ImageLoaderHelper.classImagePath("paladin"));
+        ImageLoaderHelper.load(imgAssassin, ImageLoaderHelper.classImagePath("assassin"));
+
         Map<VBox, String> cards = Map.of(
                 cardWarrior,  "#e74c3c",
                 cardMage,     "#9b59b6",
@@ -60,11 +74,11 @@ public class ClassSelectController {
         });
     }
 
-    @FXML private void selectWarrior(ActionEvent e)  { startGame(e, 8, 3, "/images/tank.jpg",  "Cavaliere"); }
-    @FXML private void selectMage(ActionEvent e)     { startGame(e, 3, 8, "/images/mago.jpg",  "Mago"); }
-    @FXML private void selectDragon(ActionEvent e)   { startGame(e, 6, 6, "/images/dragon.jpg","Dracomante"); }
-    @FXML private void selectPaladin(ActionEvent e)  { startGame(e, 7, 5, "/images/tank.jpg",  "Paladino"); }
-    @FXML private void selectAssassin(ActionEvent e) { startGame(e, 4, 6, "/images/mago.jpg",  "Assassino"); }
+    @FXML private void selectWarrior(ActionEvent e)  { startGame(e, 8, 3, "warrior",  "Cavaliere"); }
+    @FXML private void selectMage(ActionEvent e)     { startGame(e, 3, 8, "mage",     "Mago"); }
+    @FXML private void selectDragon(ActionEvent e)   { startGame(e, 6, 6, "dragon",   "Dracomante"); }
+    @FXML private void selectPaladin(ActionEvent e)  { startGame(e, 7, 5, "paladin",  "Paladino"); }
+    @FXML private void selectAssassin(ActionEvent e) { startGame(e, 4, 6, "assassin", "Assassino"); }
 
     @FXML
     private void onBack(ActionEvent event) {
@@ -76,10 +90,11 @@ public class ClassSelectController {
     }
 
     private void startGame(ActionEvent event, int vigore, int arcano,
-                           String imagePath, String className) {
+                           String classKey, String className) {
         try {
             String name = nameField.getText().trim();
             if (name.isEmpty()) name = "Eroe Sconosciuto";
+            String imagePath = ImageLoaderHelper.classImagePath(classKey);
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
