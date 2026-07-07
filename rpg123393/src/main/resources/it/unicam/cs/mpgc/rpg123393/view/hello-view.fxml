@@ -65,28 +65,35 @@
         <StackPane>
 
             <!-- Personaggi in campo -->
-            <!-- translate-y positivo = sposta in basso rispetto alla posizione naturale -->
-            <HBox alignment="CENTER" spacing="120"
-                  style="-fx-padding: 120 40 0 0; -fx-background-color: transparent;">
+            <HBox alignment="BOTTOM_CENTER" spacing="120"
+                  style="-fx-padding: 120 40 290 0; -fx-background-color: transparent;">
 
-                <!-- Player: spinto a sinistra -->
-                <VBox alignment="CENTER" spacing="10"
-                      style="-fx-translate-x: -60;">
+                <!-- Player: StackPane a altezza fissa, immagine cresce verso l'alto, nome sempre in basso -->
+                <StackPane prefHeight="460" prefWidth="420"
+                           alignment="BOTTOM_CENTER"
+                           style="-fx-translate-x: -60; -fx-background-color: transparent;">
                     <ImageView fx:id="playerImage"
-                               fitWidth="410" fitHeight="410" preserveRatio="true"
+                               fitWidth="410" preserveRatio="true"
+                               StackPane.alignment="BOTTOM_CENTER"
                                style="-fx-effect: dropshadow(gaussian, #4ecca3, 22, 0.5, 0, 0);"/>
                     <Label fx:id="playerNameCenterLabel" text=""
-                           style="-fx-text-fill: #4ecca3; -fx-font-size: 15px; -fx-font-weight: bold;"/>
-                </VBox>
+                           StackPane.alignment="BOTTOM_CENTER"
+                           style="-fx-text-fill: #4ecca3; -fx-font-size: 15px; -fx-font-weight: bold;
+                                  -fx-translate-y: 0;"/>
+                </StackPane>
 
-                <!-- Nemico -->
-                <VBox alignment="CENTER" spacing="10">
+                <!-- Nemico: stesso StackPane fisso, immagine piu' grande sale verso l'alto -->
+                <StackPane fx:id="enemyViewport" prefHeight="460" prefWidth="700"
+                           alignment="BOTTOM_CENTER"
+                           style="-fx-background-color: transparent;">
                     <ImageView fx:id="enemyImage"
-                               fitWidth="410" fitHeight="410" preserveRatio="true"
+                               fitWidth="410" preserveRatio="true"
+                               StackPane.alignment="BOTTOM_CENTER"
                                style="-fx-effect: dropshadow(gaussian, #e63946, 22, 0.5, 0, 0);"/>
                     <Label fx:id="enemyNameCenterLabel" text=""
+                           StackPane.alignment="BOTTOM_CENTER"
                            style="-fx-text-fill: #ff6b6b; -fx-font-size: 15px; -fx-font-weight: bold;"/>
-                </VBox>
+                </StackPane>
             </HBox>
 
             <!-- OVERLAY BASSO: stats (sinistra) + carte (centro) + fine turno (destra) -->
@@ -163,7 +170,7 @@
                                    -fx-background-radius: 10; -fx-cursor: hand;
                                    -fx-border-color: transparent; -fx-border-radius: 10; -fx-border-width: 0;"/>
 
-                    <!-- Fine turno senza sfondo barra -->
+                    <!-- Fine turno -->
                     <VBox alignment="CENTER" spacing="8" style="-fx-padding: 0 0 0 16;">
                         <Button text="Fine Turno &#9654;" onAction="#onEndTurnClick"
                                 prefWidth="140"

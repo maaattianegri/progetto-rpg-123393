@@ -15,6 +15,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -46,12 +47,12 @@ public class HelloController {
     @FXML private Button    cardBtn2;
     @FXML private TextArea  consoleArea;
 
-    @FXML private ImageView playerImage;
-    @FXML private ImageView enemyImage;
-    @FXML private Label     playerNameCenterLabel;
-    @FXML private Label     enemyNameCenterLabel;
+    @FXML private ImageView  playerImage;
+    @FXML private ImageView  enemyImage;
+    @FXML private StackPane  enemyViewport;
+    @FXML private Label      playerNameCenterLabel;
+    @FXML private Label      enemyNameCenterLabel;
 
-    // Viewport fisso del player: bordo inferiore di riferimento
     private static final double PLAYER_SIZE = 410;
 
     private GameService gameService;
@@ -312,7 +313,7 @@ public class HelloController {
             ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
         }
         playerImage.setFitWidth(PLAYER_SIZE);
-        playerImage.setFitHeight(PLAYER_SIZE);
+        playerImage.setFitHeight(0); // 0 = libero, scala da fitWidth con preserveRatio
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -326,30 +327,26 @@ public class HelloController {
         if (enemyNameCenterLabel != null) {
             enemyNameCenterLabel.setText(enemyName);
         }
-        double[] size = enemySizeFor(key);
-        enemyImage.setFitWidth(size[0]);
-        enemyImage.setFitHeight(size[1]);
+        double fitW = enemySizeFor(key);
+        enemyImage.setFitWidth(fitW);
+        enemyImage.setFitHeight(0); // 0 = libero, scala da fitWidth con preserveRatio
+        // Aggiorna larghezza viewport nemico in modo che non tagli l'immagine grande
+        if (enemyViewport != null) {
+            enemyViewport.setPrefWidth(fitW + 40);
+        }
     }
 
-    /**
-     * Restituisce {fitWidth, fitHeight} per ogni nemico.
-     * Entrambe le dimensioni crescono proporzionalmente cosi' preserveRatio
-     * scala davvero l'immagine e non viene mai bloccata dal lato piu' corto.
-     */
-    private double[] enemySizeFor(String key) {
+    private double enemySizeFor(String key) {
         return switch (key) {
-            // Boss finali — enormi
-            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo"
-                    -> new double[]{680, 680};
+            // Boss finali
+            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 660;
             // Boss intermedi
-            case "negromante", "vampiro_lord", "re_ombra"
-                    -> new double[]{600, 600};
-            // Elite — chiaramente piu' grandi del player
+            case "negromante", "vampiro_lord", "re_ombra"               -> 580;
+            // Elite
             case "custode_delle_ombre", "sentinella_abissale",
-                 "sentinella_cremisi", "troll_rigenerante"
-                    -> new double[]{540, 540};
+                 "sentinella_cremisi", "troll_rigenerante"               -> 520;
             // Nemici base
-            default -> new double[]{PLAYER_SIZE, PLAYER_SIZE};
+            default -> PLAYER_SIZE;
         };
     }
 
