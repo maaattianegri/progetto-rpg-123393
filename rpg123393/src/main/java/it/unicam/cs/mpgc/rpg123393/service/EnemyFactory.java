@@ -126,7 +126,6 @@ public class EnemyFactory {
             case "Orco Berserker"       -> { cards.add(new OrcFuryCard()); cards.add(new StrikeCard()); }
             case "Scheletro Arcano"     -> { cards.add(new SkeletonCurseCard()); cards.add(new SkeletonCurseCard()); cards.add(new StrikeCard()); cards.add(new DefendCard()); }
             case "Troll Rigenerante"    -> { cards.add(new TrollRegenCard()); cards.add(new TrollRegenCard()); cards.add(new StrikeCard()); cards.add(new StrikeCard()); }
-            case "Banshee"              -> { cards.add(new BansheeWailCard()); cards.add(new BansheeWailCard()); cards.add(new StrikeCard()); }
             case "Cavaliere Vampiro"    -> { cards.add(new VampireKnightCard()); cards.add(new VampireKnightCard()); cards.add(new StrikeCard()); cards.add(new DefendCard()); }
             case "Sentinella Cremisi"   -> { cards.add(new CrimsonSentinelCard()); cards.add(new CrimsonSentinelCard()); cards.add(new StrikeCard()); }
             case "Sentinella Abissale"  -> { cards.add(new AbyssalSentinelCard()); cards.add(new AbyssalSentinelCard()); cards.add(new StrikeCard()); }
