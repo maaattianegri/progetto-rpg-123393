@@ -47,12 +47,12 @@
             style="-fx-background-color: #1e1218; -fx-padding: 24 20;
                    -fx-background-radius: 16; -fx-border-color: #e74c3c;
                    -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            minWidth="200" minHeight="440">
+            minWidth="280" minHeight="480">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgWarrior"
-                     fitWidth="240" fitHeight="240"
+                     fitWidth="340" fitHeight="340"
                      preserveRatio="true"
-                     style="-fx-effect: dropshadow(gaussian, #e74c3c, 12, 0.4, 0, 0);"/>
+                     style="-fx-effect: dropshadow(gaussian, #e74c3c, 14, 0.4, 0, 0);"/>
         </VBox>
         <VBox alignment="CENTER" spacing="6">
           <Label text="CAVALIERE"
@@ -90,12 +90,12 @@
             style="-fx-background-color: #16101e; -fx-padding: 24 20;
                    -fx-background-radius: 16; -fx-border-color: #9b59b6;
                    -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            minWidth="200" minHeight="440">
+            minWidth="280" minHeight="480">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgMage"
-                     fitWidth="240" fitHeight="240"
+                     fitWidth="340" fitHeight="340"
                      preserveRatio="true"
-                     style="-fx-effect: dropshadow(gaussian, #9b59b6, 12, 0.4, 0, 0);"/>
+                     style="-fx-effect: dropshadow(gaussian, #9b59b6, 14, 0.4, 0, 0);"/>
         </VBox>
         <VBox alignment="CENTER" spacing="6">
           <Label text="MAGO"
@@ -129,12 +129,12 @@
             style="-fx-background-color: #1c1208; -fx-padding: 24 20;
                    -fx-background-radius: 16; -fx-border-color: #e67e22;
                    -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            minWidth="200" minHeight="440">
+            minWidth="280" minHeight="480">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgDragon"
-                     fitWidth="240" fitHeight="240"
+                     fitWidth="340" fitHeight="340"
                      preserveRatio="true"
-                     style="-fx-effect: dropshadow(gaussian, #e67e22, 12, 0.4, 0, 0);"/>
+                     style="-fx-effect: dropshadow(gaussian, #e67e22, 14, 0.4, 0, 0);"/>
         </VBox>
         <VBox alignment="CENTER" spacing="6">
           <Label text="DRACOMANTE"
@@ -168,12 +168,12 @@
             style="-fx-background-color: #1c1a08; -fx-padding: 24 20;
                    -fx-background-radius: 16; -fx-border-color: #f1c40f;
                    -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            minWidth="200" minHeight="440">
+            minWidth="280" minHeight="480">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgPaladin"
-                     fitWidth="240" fitHeight="240"
+                     fitWidth="340" fitHeight="340"
                      preserveRatio="true"
-                     style="-fx-effect: dropshadow(gaussian, #f1c40f, 12, 0.4, 0, 0);"/>
+                     style="-fx-effect: dropshadow(gaussian, #f1c40f, 14, 0.4, 0, 0);"/>
         </VBox>
         <VBox alignment="CENTER" spacing="6">
           <Label text="PALADINO"
@@ -207,12 +207,12 @@
             style="-fx-background-color: #0e1a12; -fx-padding: 24 20;
                    -fx-background-radius: 16; -fx-border-color: #27ae60;
                    -fx-border-radius: 16; -fx-border-width: 2; -fx-cursor: hand;"
-            minWidth="200" minHeight="440">
+            minWidth="280" minHeight="480">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgAssassin"
-                     fitWidth="240" fitHeight="240"
+                     fitWidth="340" fitHeight="340"
                      preserveRatio="true"
-                     style="-fx-effect: dropshadow(gaussian, #27ae60, 12, 0.4, 0, 0);"/>
+                     style="-fx-effect: dropshadow(gaussian, #27ae60, 14, 0.4, 0, 0);"/>
         </VBox>
         <VBox alignment="CENTER" spacing="6">
           <Label text="ASSASSINO"
