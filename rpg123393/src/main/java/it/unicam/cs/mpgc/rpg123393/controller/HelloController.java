@@ -321,6 +321,23 @@ public class HelloController {
         if (enemyNameCenterLabel != null) {
             enemyNameCenterLabel.setText(enemyName);
         }
+        double size = enemySizeFor(key);
+        enemyImage.setFitWidth(size);
+        enemyImage.setFitHeight(size);
+    }
+
+    private double enemySizeFor(String key) {
+        return switch (key) {
+            // Boss finali — enormi
+            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 520;
+            // Boss intermedi
+            case "negromante", "vampiro_lord", "re_ombra"               -> 460;
+            // Elite
+            case "custode_delle_ombre", "sentinella_abissale",
+                 "sentinella_cremisi", "troll_rigenerante"               -> 420;
+            // Nemici base
+            default                                                      -> 370;
+        };
     }
 
     private String toImageKey(String displayName) {
