@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -19,7 +20,7 @@ public class ShopController {
 
     @FXML private VBox  rootPane;
     @FXML private Label goldLabel;
-    @FXML private VBox  shopItemList;
+    @FXML private HBox  itemsBox;
 
     private GameService    gameService;
     private String         playerName;
@@ -40,10 +41,22 @@ public class ShopController {
         refresh();
     }
 
+    @FXML
+    public void initialize() {
+        // Forza l'HBox a espandersi quanto il viewport del ScrollPane
+        itemsBox.prefWidthProperty().bind(
+            itemsBox.parentProperty().flatMap(p ->
+                p instanceof javafx.scene.layout.Region r
+                    ? r.widthProperty().map(w -> w)
+                    : javafx.beans.binding.Bindings.createObjectBinding(() -> 0.0)
+            )
+        );
+    }
+
     private void refresh() {
         goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
-        shopItemList.getChildren().clear();
-        for (ShopItem item : items) shopItemList.getChildren().add(buildItemTile(item));
+        itemsBox.getChildren().clear();
+        for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
     }
 
     private String itemColor(ShopItem item) {
@@ -71,34 +84,40 @@ public class ShopController {
 
         Label tagLabel = new Label(typeTag);
         tagLabel.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #1a1a2e;"
-                + "-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 3 10;"
+                + "-fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 14;"
                 + "-fx-background-radius: 10;");
 
         Label nameLabel = new Label(item.getName());
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold;");
-        nameLabel.setWrapText(true); nameLabel.setMaxWidth(180); nameLabel.setAlignment(Pos.CENTER);
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+        nameLabel.setWrapText(true);
+        nameLabel.setMaxWidth(230);
+        nameLabel.setAlignment(Pos.CENTER);
 
         Label descLabel = new Label(item.getDescription());
-        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 12px;");
-        descLabel.setWrapText(true); descLabel.setMaxWidth(180); descLabel.setAlignment(Pos.CENTER);
+        descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 13px;");
+        descLabel.setWrapText(true);
+        descLabel.setMaxWidth(230);
+        descLabel.setAlignment(Pos.CENTER);
 
         Label priceLabel = new Label("\uD83E\uDE99 " + item.getPrice() + " oro");
-        priceLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 14px; -fx-font-weight: bold;");
+        priceLabel.setStyle("-fx-text-fill: #e0c97f; -fx-font-size: 16px; -fx-font-weight: bold;");
 
         boolean canAfford = gameService.getGold() >= item.getPrice();
         Button buyBtn = new Button("Acquista");
         buyBtn.setDisable(!canAfford);
+        buyBtn.setPrefWidth(210);
         buyBtn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
                 + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
-                + "-fx-font-weight: bold; -fx-padding: 10 24; -fx-background-radius: 8; -fx-cursor: hand;");
+                + "-fx-font-weight: bold; -fx-font-size: 14px;"
+                + "-fx-padding: 12 24; -fx-background-radius: 8; -fx-cursor: hand;");
         buyBtn.setOnAction(e -> handleBuy(item, buyBtn));
 
-        VBox box = new VBox(10, tagLabel, nameLabel, descLabel, priceLabel, buyBtn);
+        VBox box = new VBox(14, tagLabel, nameLabel, descLabel, priceLabel, buyBtn);
         box.setAlignment(Pos.CENTER);
-        box.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 14;"
-                + "-fx-border-color: " + color + "; -fx-border-radius: 14; -fx-border-width: 2;"
-                + "-fx-padding: 24; -fx-pref-width: 210; -fx-pref-height: 300;"
-                + "-fx-effect: dropshadow(gaussian, " + color + ", 10, 0.15, 0, 0);");
+        box.setStyle("-fx-background-color: rgba(30,30,58,0.88); -fx-background-radius: 18;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 18; -fx-border-width: 2;"
+                + "-fx-padding: 36 30; -fx-pref-width: 270; -fx-pref-height: 390;"
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 18, 0.25, 0, 0);");
         return box;
     }
 
@@ -121,7 +140,7 @@ public class ShopController {
 
     private void openUpgradeView() {
         try {
-            Stage stage = (Stage) shopItemList.getScene().getWindow();
+            Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
@@ -135,9 +154,9 @@ public class ShopController {
     }
 
     @FXML
-    private void onLeave() {
+    private void onContinue() {
         try {
-            Stage stage = (Stage) shopItemList.getScene().getWindow();
+            Stage stage = (Stage) itemsBox.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
             MapController ctrl = loader.getController();
