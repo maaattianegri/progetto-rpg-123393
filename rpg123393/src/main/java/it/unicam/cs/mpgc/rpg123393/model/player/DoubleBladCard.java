@@ -3,14 +3,14 @@ package it.unicam.cs.mpgc.rpg123393.model.player;
 import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 
-/**
- * 🟢 ASSASSINO — Doppia Lama
- * Costo: 2 mana
- * Effetto: Infligge 2 colpi da 4 danni ciascuno (totale 8 danni).
- * Stats: ATK 4+4 = 8 totali
- */
+/** Doppia Lama — base: 4+4 dmg (2 colpi), 2 mana; upgraded: 6+6 dmg (2 colpi), 2 mana. */
 public class DoubleBladCard implements ICard {
-    @Override public String getName()      { return "Doppia Lama"; }
+    private final boolean upgraded;
+
+    public DoubleBladCard()                  { this(false); }
+    public DoubleBladCard(boolean upgraded)  { this.upgraded = upgraded; }
+
+    @Override public String getName()      { return upgraded ? "Doppia Lama+" : "Doppia Lama"; }
     @Override public int    getManaCost()  { return 2; }
     @Override public String getImagePath() { return null; }
 
@@ -18,8 +18,9 @@ public class DoubleBladCard implements ICard {
     public void play(GameCharacter user, GameCharacter target) {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
-            target.takeDamage(4);
-            target.takeDamage(4);
+            int hit = upgraded ? 6 : 4;
+            target.takeDamage(hit);
+            target.takeDamage(hit);
         }
     }
 }
