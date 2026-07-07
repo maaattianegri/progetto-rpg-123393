@@ -15,8 +15,8 @@ import java.util.List;
 public class AchievementController {
 
     @FXML private VBox  rootPane;
-    @FXML private VBox  achievementList;
     @FXML private Label progressLabel;
+    @FXML private VBox  achievementList;
 
     @FXML
     public void initialize() {
@@ -30,8 +30,7 @@ public class AchievementController {
 
         for (Achievement ach : all) {
             boolean isUnlocked = unlocked.contains(ach.getId());
-            HBox row = buildRow(ach, isUnlocked);
-            achievementList.getChildren().add(row);
+            achievementList.getChildren().add(buildRow(ach, isUnlocked));
         }
     }
 

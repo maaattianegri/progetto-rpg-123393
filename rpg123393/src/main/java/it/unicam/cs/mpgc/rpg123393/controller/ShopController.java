@@ -9,8 +9,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -19,9 +17,9 @@ import java.util.List;
 
 public class ShopController {
 
-    @FXML private StackPane rootPane;
-    @FXML private Label     goldLabel;
-    @FXML private HBox      itemsBox;
+    @FXML private VBox  rootPane;
+    @FXML private Label goldLabel;
+    @FXML private VBox  shopItemList;
 
     private GameService    gameService;
     private String         playerName;
@@ -44,8 +42,8 @@ public class ShopController {
 
     private void refresh() {
         goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
-        itemsBox.getChildren().clear();
-        for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
+        shopItemList.getChildren().clear();
+        for (ShopItem item : items) shopItemList.getChildren().add(buildItemTile(item));
     }
 
     private String itemColor(ShopItem item) {
@@ -123,7 +121,7 @@ public class ShopController {
 
     private void openUpgradeView() {
         try {
-            Stage stage = (Stage) itemsBox.getScene().getWindow();
+            Stage stage = (Stage) shopItemList.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
@@ -137,9 +135,9 @@ public class ShopController {
     }
 
     @FXML
-    private void onContinue() {
+    private void onLeave() {
         try {
-            Stage stage = (Stage) itemsBox.getScene().getWindow();
+            Stage stage = (Stage) shopItemList.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
             MapController ctrl = loader.getController();

@@ -12,7 +12,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -20,9 +20,9 @@ import java.util.Optional;
 
 public class MainMenuController {
 
-    @FXML private StackPane rootPane;
-    @FXML private Button    continueBtn;
-    @FXML private Label     saveInfoLabel;
+    @FXML private VBox   rootPane;
+    @FXML private Button continueBtn;
+    @FXML private Label  saveInfoLabel;
 
     private final JsonSaveRepository saveRepo = new JsonSaveRepository();
     private GameState loadedState = null;
@@ -82,6 +82,15 @@ public class MainMenuController {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             SceneNavigator.navigateTo(stage,
                     "/it/unicam/cs/mpgc/rpg123393/view/collection-view.fxml");
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    @FXML
+    private void onAchievements(ActionEvent event) {
+        try {
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/achievement-view.fxml");
         } catch (IOException e) { e.printStackTrace(); }
     }
 
