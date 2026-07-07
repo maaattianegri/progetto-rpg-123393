@@ -1,7 +1,6 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
-import it.unicam.cs.mpgc.rpgchoice.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
 import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
@@ -14,14 +13,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 public class HelloController {
@@ -125,6 +122,7 @@ public class HelloController {
         }
 
         refreshBossFlag();
+        loadEnemyImage();
         startPlayerTurnUI();
     }
 
@@ -138,7 +136,6 @@ public class HelloController {
         enemyKilledByPoison   = false;
         refreshBossFlag();
         loadEnemyImage();
-        updateCombatantLabels();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurnUI();
@@ -303,19 +300,19 @@ public class HelloController {
 
     /**
      * Converte il nome display del nemico nella chiave del file immagine.
-     * Es. "Ratto Gigante" → "ratto_gigante"
+     * Es. "Ratto Gigante" -> "ratto_gigante"
      */
     private String toImageKey(String displayName) {
         return displayName
                 .toLowerCase()
                 .replace(" ", "_")
                 .replace("'", "_")
-                .replace("à", "a")
-                .replace("è", "e")
-                .replace("é", "e")
-                .replace("ì", "i")
-                .replace("ò", "o")
-                .replace("ù", "u");
+                .replace("\u00e0", "a")
+                .replace("\u00e8", "e")
+                .replace("\u00e9", "e")
+                .replace("\u00ec", "i")
+                .replace("\u00f2", "o")
+                .replace("\u00f9", "u");
     }
 
     // -------------------------------------------------------
