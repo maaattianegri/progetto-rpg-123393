@@ -192,9 +192,15 @@ public class GameService {
     // Battaglia
     // -------------------------------------------------------
 
+    /**
+     * Avvia la battaglia usando il nodo corrente per selezionare
+     * il nemico dedicato a quel nodo specifico.
+     */
     public void startBattle() {
-        EncounterType type = mapService.currentEncounterType();
-        enemy = enemyFactory.createForEncounter(type, playerLevel);
+        String nodeId = mapService.getMap().getCurrentNode()
+                .map(MapNode::getId)
+                .orElse("");
+        enemy = enemyFactory.createForNode(nodeId, playerLevel);
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
     }
@@ -366,7 +372,6 @@ public class GameService {
                 .collect(java.util.stream.Collectors.toList());
         s.setClearedNodeIds(cleared);
         s.setVoidHeartObtained(this.voidHeartObtained);
-        // Preserva i dati achievement cross-run
         List<String> prevUnlocked = achievementService.getUnlocked();
         s.setUnlockedAchievements(new ArrayList<>(prevUnlocked));
         return s;
