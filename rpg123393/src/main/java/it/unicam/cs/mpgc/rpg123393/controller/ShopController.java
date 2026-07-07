@@ -9,7 +9,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -18,8 +17,9 @@ import java.util.List;
 
 public class ShopController {
 
+    @FXML private VBox  rootPane;
     @FXML private Label goldLabel;
-    @FXML private HBox  itemsBox;
+    @FXML private VBox  shopItemList;
 
     private GameService    gameService;
     private String         playerName;
@@ -35,16 +35,15 @@ public class ShopController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-        // Genera sempre una lista fresca: ShopPool escludera' la Fucina
-        // se gs.isUpgradeAvailable() == false (cioe' markUpgradeUsed() e' stato chiamato)
+        ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath("shop"));
         items = gs.generateShopItems();
         refresh();
     }
 
     private void refresh() {
         goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
-        itemsBox.getChildren().clear();
-        for (ShopItem item : items) itemsBox.getChildren().add(buildItemTile(item));
+        shopItemList.getChildren().clear();
+        for (ShopItem item : items) shopItemList.getChildren().add(buildItemTile(item));
     }
 
     private String itemColor(ShopItem item) {
@@ -122,12 +121,12 @@ public class ShopController {
 
     private void openUpgradeView() {
         try {
-            Stage stage = (Stage) itemsBox.getScene().getWindow();
+            Stage stage = (Stage) shopItemList.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/upgrade-view.fxml");
             UpgradeController ctrl = loader.getController();
             if (ctrl == null) throw new IllegalStateException(
-                    "UpgradeController non inizializzato: controllare fx:controller in upgrade-view.fxml");
+                    "UpgradeController non inizializzato");
             ctrl.initDataWithPrice(gameService, playerName, vigore, arcano, imagePath,
                     items, gameService.getUpgradePrice());
         } catch (IOException e) {
@@ -136,14 +135,14 @@ public class ShopController {
     }
 
     @FXML
-    private void onContinue() {
+    private void onLeave() {
         try {
-            Stage stage = (Stage) itemsBox.getScene().getWindow();
+            Stage stage = (Stage) shopItemList.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
             MapController ctrl = loader.getController();
             if (ctrl == null) throw new IllegalStateException(
-                    "MapController non inizializzato: controllare fx:controller in map-view.fxml");
+                    "MapController non inizializzato");
             ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
         } catch (IOException e) {
             throw new RuntimeException("Impossibile aprire map-view.fxml", e);

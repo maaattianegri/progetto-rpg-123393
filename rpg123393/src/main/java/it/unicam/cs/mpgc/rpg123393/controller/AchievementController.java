@@ -19,6 +19,7 @@ import java.util.List;
 
 public class AchievementController {
 
+    @FXML private VBox  rootPane;
     @FXML private VBox  contentBox;
     @FXML private Label progressLabel;
 
@@ -26,6 +27,8 @@ public class AchievementController {
 
     @FXML
     public void initialize() {
+        ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath("menu"));
+
         AchievementStore.AchievementData data = null;
         try { data = store.load(); } catch (IOException e) { /* nessun file */ }
 

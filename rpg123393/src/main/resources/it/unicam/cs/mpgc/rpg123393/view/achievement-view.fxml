@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="TOP_CENTER" spacing="0"
+<VBox fx:id="rootPane" alignment="TOP_CENTER" spacing="0"
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.AchievementController"
@@ -31,7 +31,7 @@
               style="-fx-background-color: transparent; -fx-padding: 0 0 20 0;"/>
     </ScrollPane>
 
-    <!-- Bottone indietro in fondo (coerente con collection-view) -->
+    <!-- Bottone indietro -->
     <HBox alignment="CENTER" style="-fx-padding: 12;">
         <Button text="&#x2190; Menu Principale" onAction="#onBack"
                 style="-fx-background-color: #1e1e3a; -fx-text-fill: #e0c97f;

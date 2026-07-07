@@ -13,17 +13,18 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 public class HelloController {
+
+    @FXML private BorderPane rootPane;
 
     @FXML private Label       enemyNameLabel;
     @FXML private Label       enemyStatsLabel;
@@ -44,19 +45,20 @@ public class HelloController {
     @FXML private Button    cardBtn1;
     @FXML private Button    cardBtn2;
     @FXML private TextArea  consoleArea;
+
     @FXML private ImageView playerImage;
+    @FXML private ImageView enemyImage;
+    @FXML private Label     playerNameCenterLabel;
+    @FXML private Label     enemyNameCenterLabel;
 
     private GameService gameService;
-    private String      imagePath;
+    private String      classKey;
     private String      playerName;
     private int         vigore;
     private int         arcano;
 
-    // HP del giocatore a inizio battaglia
     private int     playerHpAtBattleStart;
-    // true se il nemico e' morto per veleno (rilevato tramite HP nemico a 0 e veleno attivo)
     private boolean enemyKilledByPoison;
-    // true se il nodo corrente e' un boss (letto prima che lo stato avanzi)
     private boolean currentEnemyIsBoss;
 
     // -------------------------------------------------------
@@ -67,36 +69,37 @@ public class HelloController {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.imagePath   = imagePath;
+        this.classKey    = null;
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano);
         gameService.setImagePath(imagePath);
-        loadPlayerImage(imagePath);
+        loadPlayerBattleImage();
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
 
     public void initData(String name, int vigore, int arcano,
-                         String imagePath, String className) {
+                         String classKey, String className) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.imagePath   = imagePath;
+        this.classKey    = classKey;
         this.gameService = new GameService();
-        gameService.createPlayer(name, vigore, arcano, className, imagePath);
-        loadPlayerImage(imagePath);
+        gameService.createPlayer(name, vigore, arcano, className,
+                ImageLoaderHelper.battleImagePath(classKey));
+        loadPlayerBattleImage();
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
 
     public void initData(String name, int vigore, int arcano,
-                         String imagePath, GameService existingService) {
+                         String classKey, GameService existingService) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.imagePath   = imagePath;
+        this.classKey    = classKey;
         this.gameService = existingService;
-        loadPlayerImage(imagePath);
+        loadPlayerBattleImage();
 
         NodeType nodeType = existingService.getCurrentNode()
                 .map(MapNode::getType)
@@ -122,9 +125,24 @@ public class HelloController {
             gameService.startBattle();
         }
 
-        // Leggi il flag boss DOPO aver avviato la battaglia
         refreshBossFlag();
+        applyBattleBackground(nodeType);
+        loadEnemyImage();
         startPlayerTurnUI();
+    }
+
+    // -------------------------------------------------------
+    // Sfondo battaglia dinamico
+    // -------------------------------------------------------
+
+    private void applyBattleBackground(NodeType nodeType) {
+        if (rootPane == null) return;
+        String bgKey = switch (nodeType) {
+            case BOSS, VOID_BOSS -> "boss";
+            case ELITE           -> "elite";
+            default              -> "battle";
+        };
+        ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath(bgKey));
     }
 
     // -------------------------------------------------------
@@ -136,15 +154,16 @@ public class HelloController {
         playerHpAtBattleStart = gameService.getPlayer().getCurrentHp();
         enemyKilledByPoison   = false;
         refreshBossFlag();
+        NodeType nodeType = gameService.getCurrentNode()
+                .map(MapNode::getType)
+                .orElse(NodeType.BATTLE);
+        applyBattleBackground(nodeType);
+        loadEnemyImage();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
         startPlayerTurnUI();
     }
 
-    /**
-     * Aggiorna il flag boss leggendo il tipo del nodo corrente.
-     * Va chiamato subito dopo startBattle/startVoidBoss, quando il nodo e' ancora quello giusto.
-     */
     private void refreshBossFlag() {
         NodeType nodeType = gameService.getCurrentNode()
                 .map(MapNode::getType)
@@ -159,14 +178,8 @@ public class HelloController {
         String pending = gameService.getPendingMessage();
         if (pending != null && !pending.isEmpty()) {
             log(pending);
-            // Rileva morte per veleno: nemico a 0 HP durante il tick del veleno
-            // getPendingMessage() viene eseguito all'inizio del turno del giocatore,
-            // che e' quando il veleno ticks. Se la battaglia e' gia' finita qui
-            // significa che il veleno ha dato il colpo finale.
             if (gameService.isBattleOver() && gameService.isPlayerVictory()) {
                 int enemyPoison = gameService.getEnemy().getPoison();
-                // Il veleno era attivo prima del tick (ancora > 0 o appena sceso a 0)
-                // Usiamo il messaggio come segnale aggiuntivo di conferma
                 boolean poisonMentioned = pending.toLowerCase().contains("velen");
                 enemyKilledByPoison = poisonMentioned || enemyPoison >= 0;
             }
@@ -175,7 +188,6 @@ public class HelloController {
         updateEnemyIntent();
         refreshCardButtons();
         updateUI();
-        // Se la battaglia e' finita nel tick veleno, gestiamo subito la fine
         if (gameService.isBattleOver()) handleBattleEnd();
     }
 
@@ -188,14 +200,12 @@ public class HelloController {
             log("[!] Mana insufficiente per questa carta!");
             return;
         }
-        // Controlla veleno attivo PRIMA di giocare la carta
         int enemyPoisonBefore = gameService.getEnemy().getPoison();
 
         if (button.getGraphic() instanceof VBox cardGraphic) {
             animateCardPlay(cardGraphic, button, () -> {
                 String result = gameService.playCard(index);
                 log(result);
-                // Se il nemico e' morto e aveva veleno attivo = kill da veleno (o combo veleno+carta)
                 if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
                     enemyKilledByPoison = true;
                 }
@@ -239,7 +249,7 @@ public class HelloController {
             ach.onEnemyDefeated(
                     gameService.getEnemy().getName(),
                     tookNoDamage,
-                    currentEnemyIsBoss,       // flag letto prima che lo stato avanzi
+                    currentEnemyIsBoss,
                     atFullHp,
                     enemyKilledByPoison,
                     belowTenHp,
@@ -249,7 +259,6 @@ public class HelloController {
                     currentMana
             );
 
-            // Cavaliere Vacuo
             NodeType nodeType = gameService.getCurrentNode()
                     .map(MapNode::getType).orElse(NodeType.BATTLE);
             if (nodeType == NodeType.VOID_BOSS) {
@@ -276,7 +285,7 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/victory-view.fxml");
             VictoryController ctrl = loader.getController();
-            ctrl.initData(gameService, xpGained, levelUpMsgs, playerName, vigore, arcano, imagePath);
+            ctrl.initData(gameService, xpGained, levelUpMsgs, playerName, vigore, arcano, classKey);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -286,9 +295,45 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml");
             GameOverController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath,
+            ctrl.initData(gameService, playerName, vigore, arcano, classKey,
                     gameService.getClassName());
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    // -------------------------------------------------------
+    // Caricamento immagini
+    // -------------------------------------------------------
+
+    private void loadPlayerBattleImage() {
+        if (classKey != null) {
+            ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
+        }
+        if (playerNameCenterLabel != null && playerName != null) {
+            playerNameCenterLabel.setText(playerName);
+        }
+    }
+
+    private void loadEnemyImage() {
+        if (gameService == null || gameService.getEnemy() == null) return;
+        String enemyName = gameService.getEnemy().getName();
+        String key = toImageKey(enemyName);
+        ImageLoaderHelper.load(enemyImage, ImageLoaderHelper.enemyImagePath(key));
+        if (enemyNameCenterLabel != null) {
+            enemyNameCenterLabel.setText(enemyName);
+        }
+    }
+
+    private String toImageKey(String displayName) {
+        return displayName
+                .toLowerCase()
+                .replace(" ", "_")
+                .replace("'", "_")
+                .replace("\u00e0", "a")
+                .replace("\u00e8", "e")
+                .replace("\u00e9", "e")
+                .replace("\u00ec", "i")
+                .replace("\u00f2", "o")
+                .replace("\u00f9", "u");
     }
 
     // -------------------------------------------------------
@@ -417,14 +462,6 @@ public class HelloController {
 
     private void disableAllCardButtons() {
         cardBtn0.setDisable(true); cardBtn1.setDisable(true); cardBtn2.setDisable(true);
-    }
-
-    private void loadPlayerImage(String path) {
-        if (path == null) return;
-        InputStream stream = getClass().getResourceAsStream(path);
-        if (stream == null)
-            stream = getClass().getClassLoader().getResourceAsStream(path.replaceFirst("^/", ""));
-        if (stream != null) playerImage.setImage(new Image(stream));
     }
 
     private void log(String msg) { consoleArea.appendText(msg + "\n"); }

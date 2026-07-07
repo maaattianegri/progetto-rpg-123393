@@ -12,6 +12,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 public class MainMenuController {
 
+    @FXML private VBox   rootPane;
     @FXML private Button continueBtn;
     @FXML private Label  saveInfoLabel;
 
@@ -27,6 +29,8 @@ public class MainMenuController {
 
     @FXML
     public void initialize() {
+        ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath("menu"));
+
         if (saveRepo.saveExists()) {
             try { loadedState = saveRepo.load(); }
             catch (IOException e) { System.err.println("[WARN] " + e.getMessage()); }
