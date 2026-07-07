@@ -65,12 +65,10 @@
         <StackPane>
 
             <!-- Personaggi in campo -->
-            <!-- padding: top right bottom left -->
-            <!-- più padding top = scendono le immagini; leftAnchor player ridotto = va più a sinistra -->
-            <HBox alignment="BOTTOM_CENTER" spacing="60"
-                  style="-fx-padding: 60 40 280 0; -fx-background-color: transparent;">
+            <HBox alignment="BOTTOM_CENTER" spacing="120"
+                  style="-fx-padding: 0 40 310 0; -fx-background-color: transparent;">
 
-                <!-- Player: spinto a sinistra con margine negativo -->
+                <!-- Player: spinto a sinistra -->
                 <VBox alignment="CENTER" spacing="10"
                       style="-fx-translate-x: -60;">
                     <ImageView fx:id="playerImage"
@@ -80,7 +78,7 @@
                            style="-fx-text-fill: #4ecca3; -fx-font-size: 15px; -fx-font-weight: bold;"/>
                 </VBox>
 
-                <!-- Nemico: rimane centrato-destra -->
+                <!-- Nemico -->
                 <VBox alignment="CENTER" spacing="10">
                     <ImageView fx:id="enemyImage"
                                fitWidth="410" fitHeight="410" preserveRatio="true"
