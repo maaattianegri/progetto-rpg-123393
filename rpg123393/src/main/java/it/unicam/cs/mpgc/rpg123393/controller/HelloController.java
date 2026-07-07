@@ -51,6 +51,10 @@ public class HelloController {
     @FXML private Label     playerNameCenterLabel;
     @FXML private Label     enemyNameCenterLabel;
 
+    // Altezza fissa del viewport immagine: entrambe le ImageView
+    // hanno sempre questo fitHeight, cosi' i bordi inferiori sono allineati.
+    private static final double IMAGE_VIEWPORT_HEIGHT = 480;
+
     private GameService gameService;
     private String      classKey;
     private String      playerName;
@@ -308,6 +312,10 @@ public class HelloController {
         if (classKey != null) {
             ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
         }
+        // Il player usa sempre il viewport fisso: fitWidth uguale, immagine
+        // si posiziona in basso grazie all'alignment BOTTOM_CENTER nel VBox FXML.
+        playerImage.setFitWidth(IMAGE_VIEWPORT_HEIGHT);
+        playerImage.setFitHeight(IMAGE_VIEWPORT_HEIGHT);
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -321,20 +329,22 @@ public class HelloController {
         if (enemyNameCenterLabel != null) {
             enemyNameCenterLabel.setText(enemyName);
         }
-        double size = enemySizeFor(key);
-        enemyImage.setFitWidth(size);
-        enemyImage.setFitHeight(size);
+        // fitWidth varia per dare senso di scala; fitHeight e' sempre il viewport
+        // fisso cosi' il bordo inferiore di player e nemico sono sempre allineati.
+        double width = enemySizeFor(key);
+        enemyImage.setFitWidth(width);
+        enemyImage.setFitHeight(IMAGE_VIEWPORT_HEIGHT);
     }
 
     private double enemySizeFor(String key) {
         return switch (key) {
             // Boss finali — enormi
-            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 520;
+            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 560;
             // Boss intermedi
-            case "negromante", "vampiro_lord", "re_ombra"               -> 460;
-            // Elite
+            case "negromante", "vampiro_lord", "re_ombra"               -> 500;
+            // Elite — ben visibili
             case "custode_delle_ombre", "sentinella_abissale",
-                 "sentinella_cremisi", "troll_rigenerante"               -> 420;
+                 "sentinella_cremisi", "troll_rigenerante"               -> 470;
             // Nemici base
             default                                                      -> 370;
         };
