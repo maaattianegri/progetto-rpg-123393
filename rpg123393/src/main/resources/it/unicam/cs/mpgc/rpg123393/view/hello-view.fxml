@@ -6,10 +6,11 @@
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
@@ -18,6 +19,7 @@
             fx:controller="it.unicam.cs.mpgc.rpg123393.controller.HelloController"
             style="-fx-background-color: #1a1a2e;">
 
+    <!-- TOP: barra nemico -->
     <top>
         <VBox alignment="CENTER" spacing="6"
               style="-fx-background-color: rgba(22,33,62,0.85); -fx-padding: 14 20 14 20;
@@ -36,100 +38,152 @@
         </VBox>
     </top>
 
+    <!-- LEFT: console di gioco con box dedicata -->
     <left>
-        <TextArea fx:id="consoleArea"
-                  editable="false" wrapText="true"
-                  prefWidth="220" maxWidth="220"
-                  style="-fx-control-inner-background: rgba(13,27,42,0.80);
-                         -fx-text-fill: #c8d8e8;
-                         -fx-font-family: 'Consolas', monospace;
-                         -fx-font-size: 11px;
-                         -fx-border-color: #2a3a4a;
-                         -fx-border-width: 0 1 0 0;
-                         -fx-background-color: rgba(13,27,42,0.80);"/>
+        <VBox style="-fx-padding: 10 8 10 10;">
+            <Label text="&#x1F4DC; LOG"
+                   style="-fx-text-fill: #7ecfb3; -fx-font-size: 11px; -fx-font-weight: bold;
+                          -fx-padding: 0 0 4 2;"/>
+            <TextArea fx:id="consoleArea"
+                      editable="false" wrapText="true"
+                      prefWidth="260" maxWidth="260"
+                      VBox.vgrow="ALWAYS"
+                      style="-fx-control-inner-background: rgba(10,20,35,0.88);
+                             -fx-text-fill: #c8d8e8;
+                             -fx-font-family: 'Consolas', monospace;
+                             -fx-font-size: 11px;
+                             -fx-background-color: rgba(10,20,35,0.88);
+                             -fx-border-color: #2a5a4a;
+                             -fx-border-width: 1;
+                             -fx-background-radius: 8;
+                             -fx-border-radius: 8;"/>
+        </VBox>
     </left>
 
+    <!-- CENTER: personaggi + overlay stats e carte -->
     <center>
-        <HBox alignment="CENTER" spacing="80"
-              style="-fx-padding: 24; -fx-background-color: transparent;">
-            <VBox alignment="CENTER" spacing="10">
-                <ImageView fx:id="playerImage"
-                           fitWidth="410" fitHeight="410" preserveRatio="true"
-                           style="-fx-effect: dropshadow(gaussian, #4ecca3, 22, 0.5, 0, 0);"/>
-                <Label fx:id="playerNameCenterLabel" text=""
-                       style="-fx-text-fill: #4ecca3; -fx-font-size: 15px; -fx-font-weight: bold;"/>
-            </VBox>
-            <VBox alignment="CENTER" spacing="10">
-                <ImageView fx:id="enemyImage"
-                           fitWidth="410" fitHeight="410" preserveRatio="true"
-                           style="-fx-effect: dropshadow(gaussian, #e63946, 22, 0.5, 0, 0);"/>
-                <Label fx:id="enemyNameCenterLabel" text=""
-                       style="-fx-text-fill: #ff6b6b; -fx-font-size: 15px; -fx-font-weight: bold;"/>
-            </VBox>
-        </HBox>
-    </center>
+        <StackPane>
 
-    <bottom>
-        <VBox style="-fx-background-color: rgba(22,33,62,0.90); -fx-border-color: #4ecca3; -fx-border-width: 2 0 0 0;">
-            <HBox alignment="CENTER_LEFT" spacing="16" style="-fx-padding: 12 20 8 20;">
-                <VBox spacing="5" HBox.hgrow="ALWAYS">
-                    <HBox spacing="12" alignment="CENTER_LEFT">
+            <!-- Personaggi in campo -->
+            <HBox alignment="BOTTOM_CENTER" spacing="120"
+                  style="-fx-padding: 120 40 290 0; -fx-background-color: transparent;">
+
+                <!-- Player: StackPane a altezza fissa, immagine cresce verso l'alto, nome sempre in basso -->
+                <StackPane prefHeight="460" prefWidth="420"
+                           alignment="BOTTOM_CENTER"
+                           style="-fx-translate-x: -60; -fx-background-color: transparent;">
+                    <ImageView fx:id="playerImage"
+                               fitWidth="410" preserveRatio="true"
+                               StackPane.alignment="BOTTOM_CENTER"
+                               style="-fx-effect: dropshadow(gaussian, #4ecca3, 22, 0.5, 0, 0);"/>
+                    <Label fx:id="playerNameCenterLabel" text=""
+                           StackPane.alignment="BOTTOM_CENTER"
+                           style="-fx-text-fill: #4ecca3; -fx-font-size: 15px; -fx-font-weight: bold;
+                                  -fx-translate-y: 0;"/>
+                </StackPane>
+
+                <!-- Nemico: stesso StackPane fisso, immagine piu' grande sale verso l'alto -->
+                <StackPane fx:id="enemyViewport" prefHeight="460" prefWidth="700"
+                           alignment="BOTTOM_CENTER"
+                           style="-fx-background-color: transparent;">
+                    <ImageView fx:id="enemyImage"
+                               fitWidth="410" preserveRatio="true"
+                               StackPane.alignment="BOTTOM_CENTER"
+                               style="-fx-effect: dropshadow(gaussian, #e63946, 22, 0.5, 0, 0);"/>
+                    <Label fx:id="enemyNameCenterLabel" text=""
+                           StackPane.alignment="BOTTOM_CENTER"
+                           style="-fx-text-fill: #ff6b6b; -fx-font-size: 15px; -fx-font-weight: bold;"/>
+                </StackPane>
+            </HBox>
+
+            <!-- OVERLAY BASSO: stats (sinistra) + carte (centro) + fine turno (destra) -->
+            <AnchorPane style="-fx-background-color: transparent;" pickOnBounds="false">
+
+                <!-- Pannello stats galleggiante, basso sinistra -->
+                <VBox spacing="8"
+                      style="-fx-background-color: rgba(10,20,40,0.82);
+                             -fx-border-color: #4ecca3;
+                             -fx-border-width: 1.5;
+                             -fx-border-radius: 12;
+                             -fx-background-radius: 12;
+                             -fx-padding: 14 18 14 18;"
+                      AnchorPane.bottomAnchor="18"
+                      AnchorPane.leftAnchor="16">
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
                         <Label fx:id="playerNameLabel" text="Eroe"
-                               style="-fx-text-fill: #4ecca3; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                               style="-fx-text-fill: #4ecca3; -fx-font-size: 18px; -fx-font-weight: bold;"/>
                         <Label fx:id="levelLabel" text="Lv. 1"
-                               style="-fx-text-fill: #c77dff; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                        <Label fx:id="playerBlockLabel" text="&#x1F6E1; 0"
-                               style="-fx-text-fill: #a0c4ff; -fx-font-size: 13px;"/>
+                               style="-fx-text-fill: #c77dff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
                     </HBox>
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="HP" style="-fx-text-fill: #4ecca3; -fx-font-size: 11px; -fx-min-width: 32;"/>
+
+                    <Label fx:id="playerBlockLabel" text="&#x1F6E1; 0"
+                           style="-fx-text-fill: #a0c4ff; -fx-font-size: 13px;"/>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="HP"
+                               style="-fx-text-fill: #4ecca3; -fx-font-size: 13px; -fx-font-weight: bold; -fx-min-width: 28;"/>
                         <ProgressBar fx:id="playerHpBar" progress="1.0"
-                                     style="-fx-accent: #4ecca3; -fx-pref-height: 10; -fx-pref-width: 220;"/>
+                                     style="-fx-accent: #4ecca3; -fx-pref-height: 13; -fx-pref-width: 200;"/>
                         <Label fx:id="playerHpLabel" text="--/--"
-                               style="-fx-text-fill: #a0d8b3; -fx-font-size: 11px;"/>
+                               style="-fx-text-fill: #a0d8b3; -fx-font-size: 12px;"/>
                     </HBox>
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="MP" style="-fx-text-fill: #a78bfa; -fx-font-size: 11px; -fx-min-width: 32;"/>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="MP"
+                               style="-fx-text-fill: #a78bfa; -fx-font-size: 13px; -fx-font-weight: bold; -fx-min-width: 28;"/>
                         <ProgressBar fx:id="playerManaBar" progress="1.0"
-                                     style="-fx-accent: #7c3aed; -fx-pref-height: 10; -fx-pref-width: 220;"/>
+                                     style="-fx-accent: #7c3aed; -fx-pref-height: 13; -fx-pref-width: 200;"/>
                         <Label fx:id="playerManaLabel" text="--/--"
-                               style="-fx-text-fill: #c4b5fd; -fx-font-size: 11px;"/>
+                               style="-fx-text-fill: #c4b5fd; -fx-font-size: 12px;"/>
                     </HBox>
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <Label text="XP" style="-fx-text-fill: #fbbf24; -fx-font-size: 11px; -fx-min-width: 32;"/>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="XP"
+                               style="-fx-text-fill: #fbbf24; -fx-font-size: 13px; -fx-font-weight: bold; -fx-min-width: 28;"/>
                         <ProgressBar fx:id="playerXpBar" progress="0.0"
-                                     style="-fx-accent: #f59e0b; -fx-pref-height: 8; -fx-pref-width: 220;"/>
+                                     style="-fx-accent: #f59e0b; -fx-pref-height: 10; -fx-pref-width: 200;"/>
                         <Label fx:id="playerXpLabel" text="0/100"
-                               style="-fx-text-fill: #fde68a; -fx-font-size: 11px;"/>
+                               style="-fx-text-fill: #fde68a; -fx-font-size: 12px;"/>
                     </HBox>
                 </VBox>
-            </HBox>
-            <HBox alignment="CENTER" spacing="14" style="-fx-padding: 0 20 14 20;">
-                <Button fx:id="cardBtn0" text="Carta 1" onAction="#onCard0Click"
-                        prefWidth="190" prefHeight="260"
-                        style="-fx-background-color: #2a2a4a; -fx-text-fill: white;
-                               -fx-background-radius: 10; -fx-cursor: hand;
-                               -fx-border-color: #444466; -fx-border-radius: 10; -fx-border-width: 1;"/>
-                <Button fx:id="cardBtn1" text="Carta 2" onAction="#onCard1Click"
-                        prefWidth="190" prefHeight="260"
-                        style="-fx-background-color: #2a2a4a; -fx-text-fill: white;
-                               -fx-background-radius: 10; -fx-cursor: hand;
-                               -fx-border-color: #444466; -fx-border-radius: 10; -fx-border-width: 1;"/>
-                <Button fx:id="cardBtn2" text="Carta 3" onAction="#onCard2Click"
-                        prefWidth="190" prefHeight="260"
-                        style="-fx-background-color: #2a2a4a; -fx-text-fill: white;
-                               -fx-background-radius: 10; -fx-cursor: hand;
-                               -fx-border-color: #444466; -fx-border-radius: 10; -fx-border-width: 1;"/>
-                <VBox alignment="CENTER" spacing="8" style="-fx-padding: 0 0 0 16;">
-                    <Button text="Fine Turno &#9654;" onAction="#onEndTurnClick"
-                            prefWidth="140"
-                            style="-fx-background-color: #e63946; -fx-text-fill: white;
-                                   -fx-font-size: 14px; -fx-font-weight: bold;
-                                   -fx-padding: 14 20; -fx-background-radius: 8;
-                                   -fx-cursor: hand;"/>
-                </VBox>
-            </HBox>
-        </VBox>
-    </bottom>
+
+                <!-- Carte galleggianti, centrate in basso -->
+                <HBox alignment="CENTER" spacing="14"
+                      style="-fx-background-color: transparent; -fx-padding: 0 0 10 0;"
+                      AnchorPane.bottomAnchor="0"
+                      AnchorPane.leftAnchor="0"
+                      AnchorPane.rightAnchor="0">
+                    <Button fx:id="cardBtn0" text="Carta 1" onAction="#onCard0Click"
+                            prefWidth="190" prefHeight="260"
+                            style="-fx-background-color: transparent; -fx-text-fill: white;
+                                   -fx-background-radius: 10; -fx-cursor: hand;
+                                   -fx-border-color: transparent; -fx-border-radius: 10; -fx-border-width: 0;"/>
+                    <Button fx:id="cardBtn1" text="Carta 2" onAction="#onCard1Click"
+                            prefWidth="190" prefHeight="260"
+                            style="-fx-background-color: transparent; -fx-text-fill: white;
+                                   -fx-background-radius: 10; -fx-cursor: hand;
+                                   -fx-border-color: transparent; -fx-border-radius: 10; -fx-border-width: 0;"/>
+                    <Button fx:id="cardBtn2" text="Carta 3" onAction="#onCard2Click"
+                            prefWidth="190" prefHeight="260"
+                            style="-fx-background-color: transparent; -fx-text-fill: white;
+                                   -fx-background-radius: 10; -fx-cursor: hand;
+                                   -fx-border-color: transparent; -fx-border-radius: 10; -fx-border-width: 0;"/>
+
+                    <!-- Fine turno -->
+                    <VBox alignment="CENTER" spacing="8" style="-fx-padding: 0 0 0 16;">
+                        <Button text="Fine Turno &#9654;" onAction="#onEndTurnClick"
+                                prefWidth="140"
+                                style="-fx-background-color: #e63946; -fx-text-fill: white;
+                                       -fx-font-size: 14px; -fx-font-weight: bold;
+                                       -fx-padding: 14 20; -fx-background-radius: 8;
+                                       -fx-cursor: hand;
+                                       -fx-effect: dropshadow(gaussian, #e63946, 12, 0.4, 0, 0);"/>
+                    </VBox>
+                </HBox>
+
+            </AnchorPane>
+        </StackPane>
+    </center>
 
 </BorderPane>

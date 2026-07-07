@@ -15,6 +15,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -46,10 +47,13 @@ public class HelloController {
     @FXML private Button    cardBtn2;
     @FXML private TextArea  consoleArea;
 
-    @FXML private ImageView playerImage;
-    @FXML private ImageView enemyImage;
-    @FXML private Label     playerNameCenterLabel;
-    @FXML private Label     enemyNameCenterLabel;
+    @FXML private ImageView  playerImage;
+    @FXML private ImageView  enemyImage;
+    @FXML private StackPane  enemyViewport;
+    @FXML private Label      playerNameCenterLabel;
+    @FXML private Label      enemyNameCenterLabel;
+
+    private static final double PLAYER_SIZE = 410;
 
     private GameService gameService;
     private String      classKey;
@@ -308,6 +312,8 @@ public class HelloController {
         if (classKey != null) {
             ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
         }
+        playerImage.setFitWidth(PLAYER_SIZE);
+        playerImage.setFitHeight(0); // 0 = libero, scala da fitWidth con preserveRatio
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -321,6 +327,27 @@ public class HelloController {
         if (enemyNameCenterLabel != null) {
             enemyNameCenterLabel.setText(enemyName);
         }
+        double fitW = enemySizeFor(key);
+        enemyImage.setFitWidth(fitW);
+        enemyImage.setFitHeight(0); // 0 = libero, scala da fitWidth con preserveRatio
+        // Aggiorna larghezza viewport nemico in modo che non tagli l'immagine grande
+        if (enemyViewport != null) {
+            enemyViewport.setPrefWidth(fitW + 40);
+        }
+    }
+
+    private double enemySizeFor(String key) {
+        return switch (key) {
+            // Boss finali
+            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 660;
+            // Boss intermedi
+            case "negromante", "vampiro_lord", "re_ombra"               -> 580;
+            // Elite
+            case "custode_delle_ombre", "sentinella_abissale",
+                 "sentinella_cremisi", "troll_rigenerante"               -> 520;
+            // Nemici base
+            default -> PLAYER_SIZE;
+        };
     }
 
     private String toImageKey(String displayName) {
