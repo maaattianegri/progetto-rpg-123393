@@ -1,43 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.FlowPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
-
-<VBox fx:id="rootPane" alignment="TOP_CENTER" spacing="0"
-      xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
+<HBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.CollectionController"
-      style="-fx-background-color: #1a1a2e; -fx-padding: 0;">
+      prefWidth="1200" prefHeight="720"
+      style="-fx-background-color: #0f0f23;">
 
-    <VBox alignment="CENTER" spacing="6"
-          style="-fx-background-color: rgba(22,33,62,0.85); -fx-padding: 24 20 16 20;
-                 -fx-border-color: #e0c97f; -fx-border-width: 0 0 2 0;">
-        <Label text="&#x1F4D6; Collezione Carte"
-               style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;"/>
-        <HBox alignment="CENTER" spacing="12">
-            <Label text="Filtra per classe:"
-                   style="-fx-text-fill: #a0a0c0; -fx-font-size: 13px;"/>
-            <ComboBox fx:id="classFilter" onAction="#onFilterChange"
-                      style="-fx-background-color: rgba(42,42,74,0.9); -fx-text-fill: white;"/>
+    <!-- ═══════════════════════════════════════════
+         SINISTRA — griglia carte (~65%)
+    ═══════════════════════════════════════════ -->
+    <VBox prefWidth="780" spacing="0"
+          style="-fx-background-color: #0f0f23; -fx-border-color: #1e1e3a; -fx-border-width: 0 2 0 0;">
+
+        <!-- Header -->
+        <VBox alignment="CENTER" spacing="4" style="-fx-padding: 18 20 10 20;">
+            <Label text="&#x1F4DA; Collezione"
+                   style="-fx-text-fill: #e0c97f; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+            <Label fx:id="progressLabel"
+                   style="-fx-text-fill: #7a7a9a; -fx-font-size: 12px;"/>
+        </VBox>
+
+        <!-- Filtri classe -->
+        <HBox fx:id="filterBox" alignment="CENTER" spacing="6"
+              style="-fx-padding: 0 16 12 16;"/>
+
+        <!-- Griglia carte scrollabile -->
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS"
+                    style="-fx-background: transparent; -fx-background-color: transparent; -fx-padding: 0 0 0 0;">
+            <FlowPane fx:id="cardsFlow" hgap="10" vgap="10"
+                      style="-fx-background-color: transparent; -fx-padding: 10 16;"/>
+        </ScrollPane>
+
+        <!-- Back -->
+        <HBox alignment="CENTER" style="-fx-padding: 10;">
+            <Button text="&#x2190; Menu Principale" onAction="#onBack"
+                    style="-fx-background-color: #1e1e3a; -fx-text-fill: #e0c97f;
+                           -fx-border-color: #e0c97f; -fx-border-radius: 20; -fx-border-width: 1;
+                           -fx-padding: 6 20; -fx-cursor: hand; -fx-background-radius: 20;"/>
         </HBox>
     </VBox>
 
-    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
-                style="-fx-background: transparent; -fx-background-color: transparent;">
-        <FlowPane fx:id="cardFlow" hgap="14" vgap="14"
-                  style="-fx-padding: 20 24; -fx-background-color: transparent;"/>
-    </ScrollPane>
+    <!-- ═══════════════════════════════════════════
+         DESTRA — pannello dettaglio (~35%)
+    ═══════════════════════════════════════════ -->
+    <StackPane fx:id="detailPane" HBox.hgrow="ALWAYS"
+               style="-fx-background-color: #13132b;">
 
-    <VBox alignment="CENTER" style="-fx-padding: 14 0 20 0; -fx-background-color: rgba(22,33,62,0.80);">
-        <Button text="&#x2190; Torna al Menu" onAction="#onBack"
-                style="-fx-background-color: transparent; -fx-text-fill: #6a6a9a;
-                       -fx-font-size: 13px; -fx-border-color: #3a3a6a;
-                       -fx-border-radius: 8; -fx-padding: 8 24; -fx-cursor: hand;"/>
-    </VBox>
+        <!-- Placeholder iniziale -->
+        <VBox fx:id="detailPlaceholder" alignment="CENTER" spacing="14">
+            <Label text="&#x1F446;" style="-fx-font-size: 48px;"/>
+            <Label text="Clicca una carta"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+            <Label text="per vedere i dettagli"
+                   style="-fx-text-fill: #3a3a5a; -fx-font-size: 13px;"/>
+        </VBox>
 
-</VBox>
+        <!-- Carta dettaglio grande -->
+        <VBox fx:id="detailCard" alignment="CENTER" spacing="18" visible="false"
+              maxWidth="340" maxHeight="560"
+              style="-fx-background-color: #1e1e3a; -fx-background-radius: 22;
+                     -fx-border-radius: 22; -fx-border-width: 3;
+                     -fx-padding: 36 32;">
+
+            <Label fx:id="detailSymbol" style="-fx-font-size: 70px;"/>
+
+            <Label fx:id="detailName"
+                   style="-fx-text-fill: white; -fx-font-size: 21px; -fx-font-weight: bold;"
+                   wrapText="true" maxWidth="280" alignment="CENTER"/>
+
+            <Label fx:id="detailClass"
+                   style="-fx-font-size: 13px; -fx-font-weight: bold;"
+                   wrapText="true" maxWidth="280" alignment="CENTER"/>
+
+            <Separator prefWidth="260"
+                       style="-fx-background-color: #3a3a5a;"/>
+
+            <VBox fx:id="detailStatsBox" spacing="8" alignment="CENTER_LEFT"
+                  maxWidth="280"/>
+
+            <Separator prefWidth="260"
+                       style="-fx-background-color: #3a3a5a;"/>
+
+            <Label fx:id="detailDesc"
+                   style="-fx-text-fill: #b0b0d0; -fx-font-size: 12px; -fx-font-style: italic;"
+                   wrapText="true" maxWidth="280" alignment="CENTER"/>
+        </VBox>
+    </StackPane>
+
+</HBox>

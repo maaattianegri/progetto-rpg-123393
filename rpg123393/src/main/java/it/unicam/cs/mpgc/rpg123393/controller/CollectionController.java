@@ -5,12 +5,11 @@ import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.persistence.GameState;
 import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
-import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -21,11 +20,21 @@ import java.util.List;
 
 public class CollectionController {
 
-    @FXML private VBox      rootPane;
-    @FXML private ComboBox<String> classFilter;
-    @FXML private FlowPane  cardFlow;
+    @FXML private Label     progressLabel;
+    @FXML private HBox      filterBox;
+    @FXML private FlowPane  cardsFlow;
+    @FXML private StackPane detailPane;
+    @FXML private VBox      detailPlaceholder;
+    @FXML private VBox      detailCard;
+    @FXML private Label     detailSymbol;
+    @FXML private Label     detailName;
+    @FXML private Label     detailClass;
+    @FXML private VBox      detailStatsBox;
+    @FXML private Label     detailDesc;
 
     private List<String> unlockedCards = new ArrayList<>();
+    private String       activeFilter  = "Tutte";
+    private VBox         selectedTile  = null;
 
     private static final List<String> FILTERS =
             List.of("Tutte", "Starter", "Guerriero", "Paladino", "Mago", "Dracomante", "Assassino", "Neutro");
@@ -43,10 +52,10 @@ public class CollectionController {
 
     @FXML
     public void initialize() {
-        ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath("menu"));
+        // Sfondo applicato al detailPane (StackPane disponibile via @FXML)
+        ImageLoaderHelper.applyBackground(detailPane, ImageLoaderHelper.backgroundPath("menu"));
         loadUnlocked();
-        classFilter.setItems(FXCollections.observableArrayList(FILTERS));
-        classFilter.setValue("Tutte");
+        buildFilters();
         showCards("Tutte");
     }
 
@@ -67,14 +76,27 @@ public class CollectionController {
         } catch (IOException ignored) {}
     }
 
-    @FXML
-    private void onFilterChange() {
-        String selected = classFilter.getValue();
-        if (selected != null) showCards(selected);
+    private void buildFilters() {
+        filterBox.getChildren().clear();
+        for (String f : FILTERS) {
+            Button btn = new Button(f);
+            String color  = FILTER_COLORS.getOrDefault(f, "#aaa");
+            boolean active = f.equals(activeFilter);
+            btn.setStyle(active
+                ? "-fx-background-color:" + color + "; -fx-text-fill:#1a1a2e;"
+                  + "-fx-font-weight:bold; -fx-padding:5 14; -fx-background-radius:20; -fx-cursor:hand;"
+                : "-fx-background-color:transparent; -fx-text-fill:" + color + ";"
+                  + "-fx-border-color:" + color + "; -fx-border-radius:20; -fx-border-width:1;"
+                  + "-fx-padding:5 14; -fx-cursor:hand;"
+            );
+            btn.setOnAction(e -> { activeFilter = f; buildFilters(); showCards(f); clearDetail(); });
+            filterBox.getChildren().add(btn);
+        }
     }
 
     private void showCards(String filter) {
-        cardFlow.getChildren().clear();
+        cardsFlow.getChildren().clear();
+        selectedTile = null;
 
         List<ICard> pool = switch (filter) {
             case "Tutte"   -> CardPool.getAllCards();
@@ -89,14 +111,17 @@ public class CollectionController {
             if (!seen.contains(c.getName())) { seen.add(c.getName()); deduped.add(c); }
         }
 
-        String color = FILTER_COLORS.getOrDefault(filter, "#e0c97f");
+        int total    = deduped.size();
+        int unlocked = (int) deduped.stream().filter(c -> unlockedCards.contains(c.getName())).count();
+        progressLabel.setText(unlocked + " / " + total + " carte sbloccate");
+
         for (ICard card : deduped) {
             boolean isUnlocked = unlockedCards.contains(card.getName());
-            cardFlow.getChildren().add(buildTile(card, isUnlocked, color));
+            cardsFlow.getChildren().add(buildTile(card, isUnlocked));
         }
     }
 
-    private VBox buildTile(ICard card, boolean unlocked, String filterColor) {
+    private VBox buildTile(ICard card, boolean unlocked) {
         String color  = unlocked ? CardStyleHelper.borderColor(card.getName()) : "#2a2a4a";
         String symbol = unlocked ? CardStyleHelper.symbol(card.getName()) : "\uD83D\uDD12";
 
@@ -120,7 +145,108 @@ public class CollectionController {
                 + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
                 + (unlocked ? "-fx-cursor: hand;" : "-fx-opacity: 0.45;")
                 + (unlocked ? " -fx-effect: dropshadow(gaussian," + color + ",6,0.1,0,0);" : ""));
+
+        if (unlocked) {
+            tile.setOnMouseEntered(e -> {
+                if (tile != selectedTile)
+                    tile.setStyle("-fx-background-color: #22224a; -fx-background-radius: 12;"
+                            + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                            + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                            + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",14,0.3,0,0);");
+            });
+            tile.setOnMouseExited(e -> {
+                if (tile != selectedTile)
+                    tile.setStyle("-fx-background-color: #1a1a30; -fx-background-radius: 12;"
+                            + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                            + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                            + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",6,0.1,0,0);");
+            });
+            tile.setOnMouseClicked(e -> selectCard(card, tile, color));
+        }
         return tile;
+    }
+
+    private void selectCard(ICard card, VBox tile, String color) {
+        if (selectedTile != null) {
+            String prevColor = CardStyleHelper.borderColor(
+                    ((Label) selectedTile.getChildren().get(1)).getText());
+            selectedTile.setStyle("-fx-background-color: #1a1a30; -fx-background-radius: 12;"
+                    + "-fx-border-color: " + prevColor + "; -fx-border-radius: 12; -fx-border-width: 2;"
+                    + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                    + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + prevColor + ",6,0.1,0,0);");
+        }
+        selectedTile = tile;
+        tile.setStyle("-fx-background-color: #22224a; -fx-background-radius: 12;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 12; -fx-border-width: 3;"
+                + "-fx-padding: 12 10; -fx-pref-width: 115; -fx-pref-height: 130;"
+                + "-fx-cursor: hand; -fx-effect: dropshadow(gaussian," + color + ",20,0.5,0,0);");
+
+        detailSymbol.setText(CardStyleHelper.symbol(card.getName()));
+        detailName.setText(card.getName());
+
+        String cls = switch (color) {
+            case "#9aaaba" -> "\u2605 Starter multiclasse";
+            case "#e74c3c" -> "\u2694 Guerriero";
+            case "#f1c40f" -> "\uD83D\uDEE1 Paladino";
+            case "#9b59b6" -> "\uD83D\uDD2E Mago";
+            case "#e67e22" -> "\uD83D\uDC09 Dracomante";
+            case "#27ae60" -> "\u2620 Assassino";
+            case "#00bcd4" -> "\u2665 Neutrale";
+            default        -> "";
+        };
+        detailClass.setText(cls);
+        detailClass.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        detailStatsBox.getChildren().clear();
+        detailStatsBox.getChildren().add(makeStatRow("\u2728 Costo mana", card.getManaCost() + " mana", "#a78bfa"));
+
+        String raw = CardStyleHelper.description(card.getName());
+        java.util.regex.Matcher mAtk = java.util.regex.Pattern
+                .compile("(\\d[\\d\u00d7+]*\\s*danni)").matcher(raw);
+        if (mAtk.find())
+            detailStatsBox.getChildren().add(makeStatRow("\u2694 Attacco", mAtk.group(1), "#e74c3c"));
+        java.util.regex.Matcher mShld = java.util.regex.Pattern
+                .compile("\\+(\\d+)\\s*scudo").matcher(raw);
+        if (mShld.find())
+            detailStatsBox.getChildren().add(makeStatRow("\uD83D\uDEE1 Scudo", "+" + mShld.group(1), "#f1c40f"));
+        java.util.regex.Matcher mHeal = java.util.regex.Pattern
+                .compile("(?:cura\\s*(\\d+)|(\\d+)\\s*cura)").matcher(raw);
+        if (mHeal.find()) {
+            String hv = mHeal.group(1) != null ? mHeal.group(1) : mHeal.group(2);
+            detailStatsBox.getChildren().add(makeStatRow("\u2764 Cura", hv + " HP", "#2ecc71"));
+        }
+        java.util.regex.Matcher mPsn = java.util.regex.Pattern
+                .compile("(\\d+)\\s*veleno").matcher(raw);
+        if (mPsn.find())
+            detailStatsBox.getChildren().add(makeStatRow("\u2620 Veleno", mPsn.group(1) + " stack", "#27ae60"));
+
+        detailDesc.setText(raw);
+        detailCard.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 22;"
+                + "-fx-border-color: " + color + "; -fx-border-radius: 22; -fx-border-width: 3;"
+                + "-fx-padding: 36 32;"
+                + "-fx-effect: dropshadow(gaussian, " + color + ", 32, 0.4, 0, 0);");
+
+        detailPlaceholder.setVisible(false);
+        detailCard.setVisible(true);
+    }
+
+    private HBox makeStatRow(String label, String value, String color) {
+        Label lbl = new Label(label);
+        lbl.setStyle("-fx-text-fill: #7a7a9a; -fx-font-size: 12px;");
+        HBox.setHgrow(lbl, Priority.ALWAYS);
+        Label val = new Label(value);
+        val.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 13px; -fx-font-weight: bold;");
+        HBox row = new HBox(lbl, val);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setSpacing(8);
+        row.setMaxWidth(280);
+        return row;
+    }
+
+    private void clearDetail() {
+        detailCard.setVisible(false);
+        detailPlaceholder.setVisible(true);
+        selectedTile = null;
     }
 
     @FXML
