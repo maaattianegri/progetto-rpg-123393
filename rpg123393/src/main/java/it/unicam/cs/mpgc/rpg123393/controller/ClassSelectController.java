@@ -34,10 +34,10 @@ public class ClassSelectController {
 
     @FXML
     private void initialize() {
-        // Carica le immagini delle classi (fallback silenzioso se il file non c'è ancora)
-        ImageLoaderHelper.load(imgWarrior,  ImageLoaderHelper.classImagePath("warrior"));
+        // Carica le immagini delle card (fallback silenzioso se il file non c'è ancora)
+        ImageLoaderHelper.load(imgWarrior,  ImageLoaderHelper.classImagePath("knight"));
         ImageLoaderHelper.load(imgMage,     ImageLoaderHelper.classImagePath("mage"));
-        ImageLoaderHelper.load(imgDragon,   ImageLoaderHelper.classImagePath("dragon"));
+        ImageLoaderHelper.load(imgDragon,   ImageLoaderHelper.classImagePath("draco"));
         ImageLoaderHelper.load(imgPaladin,  ImageLoaderHelper.classImagePath("paladin"));
         ImageLoaderHelper.load(imgAssassin, ImageLoaderHelper.classImagePath("assassin"));
 
@@ -74,9 +74,9 @@ public class ClassSelectController {
         });
     }
 
-    @FXML private void selectWarrior(ActionEvent e)  { startGame(e, 8, 3, "warrior",  "Cavaliere"); }
+    @FXML private void selectWarrior(ActionEvent e)  { startGame(e, 8, 3, "knight",   "Cavaliere"); }
     @FXML private void selectMage(ActionEvent e)     { startGame(e, 3, 8, "mage",     "Mago"); }
-    @FXML private void selectDragon(ActionEvent e)   { startGame(e, 6, 6, "dragon",   "Dracomante"); }
+    @FXML private void selectDragon(ActionEvent e)   { startGame(e, 6, 6, "draco",    "Dracomante"); }
     @FXML private void selectPaladin(ActionEvent e)  { startGame(e, 7, 5, "paladin",  "Paladino"); }
     @FXML private void selectAssassin(ActionEvent e) { startGame(e, 4, 6, "assassin", "Assassino"); }
 
@@ -94,12 +94,11 @@ public class ClassSelectController {
         try {
             String name = nameField.getText().trim();
             if (name.isEmpty()) name = "Eroe Sconosciuto";
-            String imagePath = ImageLoaderHelper.classImagePath(classKey);
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
             HelloController ctrl = loader.getController();
-            ctrl.initData(name, vigore, arcano, imagePath, className);
+            ctrl.initData(name, vigore, arcano, classKey, className);
         } catch (IOException ex) { ex.printStackTrace(); }
     }
 }

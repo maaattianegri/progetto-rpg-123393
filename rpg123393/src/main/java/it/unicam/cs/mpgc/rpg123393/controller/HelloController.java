@@ -49,7 +49,8 @@ public class HelloController {
     @FXML private Label     enemyNameCenterLabel;
 
     private GameService gameService;
-    private String      imagePath;
+    // classKey es. "knight", "mage", ecc. — usata per caricare l'immagine battaglia
+    private String      classKey;
     private String      playerName;
     private int         vigore;
     private int         arcano;
@@ -62,40 +63,44 @@ public class HelloController {
     // Inizializzazione
     // -------------------------------------------------------
 
+    /** Overload legacy — riceve imagePath diretto (es. da percorsi precedenti). */
     public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.imagePath   = imagePath;
+        this.classKey    = null;
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano);
         gameService.setImagePath(imagePath);
-        loadPlayerImage(imagePath);
+        loadPlayerBattleImage();
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
 
+    /** Chiamato da ClassSelectController — riceve classKey (es. "knight") e className (es. "Cavaliere"). */
     public void initData(String name, int vigore, int arcano,
-                         String imagePath, String className) {
+                         String classKey, String className) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.imagePath   = imagePath;
+        this.classKey    = classKey;
         this.gameService = new GameService();
-        gameService.createPlayer(name, vigore, arcano, className, imagePath);
-        loadPlayerImage(imagePath);
+        gameService.createPlayer(name, vigore, arcano, className,
+                ImageLoaderHelper.battleImagePath(classKey));
+        loadPlayerBattleImage();
         log("Benvenuto, " + name + "! Preparati a combattere.");
         startBattle();
     }
 
+    /** Chiamato dalla mappa per continuare una run esistente. */
     public void initData(String name, int vigore, int arcano,
-                         String imagePath, GameService existingService) {
+                         String classKey, GameService existingService) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.imagePath   = imagePath;
+        this.classKey    = classKey;
         this.gameService = existingService;
-        loadPlayerImage(imagePath);
+        loadPlayerBattleImage();
 
         NodeType nodeType = existingService.getCurrentNode()
                 .map(MapNode::getType)
@@ -262,7 +267,7 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/victory-view.fxml");
             VictoryController ctrl = loader.getController();
-            ctrl.initData(gameService, xpGained, levelUpMsgs, playerName, vigore, arcano, imagePath);
+            ctrl.initData(gameService, xpGained, levelUpMsgs, playerName, vigore, arcano, classKey);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -272,7 +277,7 @@ public class HelloController {
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/gameover-view.fxml");
             GameOverController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath,
+            ctrl.initData(gameService, playerName, vigore, arcano, classKey,
                     gameService.getClassName());
         } catch (IOException e) { e.printStackTrace(); }
     }
@@ -281,8 +286,10 @@ public class HelloController {
     // Caricamento immagini
     // -------------------------------------------------------
 
-    private void loadPlayerImage(String path) {
-        ImageLoaderHelper.load(playerImage, path);
+    private void loadPlayerBattleImage() {
+        if (classKey != null) {
+            ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
+        }
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -299,7 +306,7 @@ public class HelloController {
     }
 
     /**
-     * Converte il nome display del nemico nella chiave del file immagine.
+     * Converte il nome display del nemico nella chiave snake_case del file immagine.
      * Es. "Ratto Gigante" -> "ratto_gigante"
      */
     private String toImageKey(String displayName) {
