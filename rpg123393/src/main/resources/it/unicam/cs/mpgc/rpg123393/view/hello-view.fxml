@@ -51,15 +51,15 @@
                          -fx-background-color: #0d1b2a;"/>
     </left>
 
-    <!-- CENTER: immagini combattenti -->
+    <!-- CENTER: immagini combattenti, padding-left 0 per spingere a sinistra -->
     <center>
         <HBox alignment="CENTER" spacing="80"
-              style="-fx-background-color: #1a1a2e; -fx-padding: 24;">
+              style="-fx-background-color: #1a1a2e; -fx-padding: 24 24 24 0;">
 
             <!-- Player -->
             <VBox alignment="CENTER" spacing="10">
                 <ImageView fx:id="playerImage"
-                           fitWidth="380" fitHeight="380"
+                           fitWidth="410" fitHeight="410"
                            preserveRatio="true"
                            style="-fx-effect: dropshadow(gaussian, #4ecca3, 22, 0.5, 0, 0);"/>
                 <Label fx:id="playerNameCenterLabel" text=""
@@ -69,7 +69,7 @@
             <!-- Nemico -->
             <VBox alignment="CENTER" spacing="10">
                 <ImageView fx:id="enemyImage"
-                           fitWidth="380" fitHeight="380"
+                           fitWidth="410" fitHeight="410"
                            preserveRatio="true"
                            style="-fx-effect: dropshadow(gaussian, #e63946, 22, 0.5, 0, 0);"/>
                 <Label fx:id="enemyNameCenterLabel" text=""
