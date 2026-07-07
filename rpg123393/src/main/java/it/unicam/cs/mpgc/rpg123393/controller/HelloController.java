@@ -51,9 +51,8 @@ public class HelloController {
     @FXML private Label     playerNameCenterLabel;
     @FXML private Label     enemyNameCenterLabel;
 
-    // Altezza fissa del viewport immagine: entrambe le ImageView
-    // hanno sempre questo fitHeight, cosi' i bordi inferiori sono allineati.
-    private static final double IMAGE_VIEWPORT_HEIGHT = 480;
+    // Viewport fisso del player: bordo inferiore di riferimento
+    private static final double PLAYER_SIZE = 410;
 
     private GameService gameService;
     private String      classKey;
@@ -312,10 +311,8 @@ public class HelloController {
         if (classKey != null) {
             ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
         }
-        // Il player usa sempre il viewport fisso: fitWidth uguale, immagine
-        // si posiziona in basso grazie all'alignment BOTTOM_CENTER nel VBox FXML.
-        playerImage.setFitWidth(IMAGE_VIEWPORT_HEIGHT);
-        playerImage.setFitHeight(IMAGE_VIEWPORT_HEIGHT);
+        playerImage.setFitWidth(PLAYER_SIZE);
+        playerImage.setFitHeight(PLAYER_SIZE);
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -329,24 +326,30 @@ public class HelloController {
         if (enemyNameCenterLabel != null) {
             enemyNameCenterLabel.setText(enemyName);
         }
-        // fitWidth varia per dare senso di scala; fitHeight e' sempre il viewport
-        // fisso cosi' il bordo inferiore di player e nemico sono sempre allineati.
-        double width = enemySizeFor(key);
-        enemyImage.setFitWidth(width);
-        enemyImage.setFitHeight(IMAGE_VIEWPORT_HEIGHT);
+        double[] size = enemySizeFor(key);
+        enemyImage.setFitWidth(size[0]);
+        enemyImage.setFitHeight(size[1]);
     }
 
-    private double enemySizeFor(String key) {
+    /**
+     * Restituisce {fitWidth, fitHeight} per ogni nemico.
+     * Entrambe le dimensioni crescono proporzionalmente cosi' preserveRatio
+     * scala davvero l'immagine e non viene mai bloccata dal lato piu' corto.
+     */
+    private double[] enemySizeFor(String key) {
         return switch (key) {
             // Boss finali — enormi
-            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 560;
+            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo"
+                    -> new double[]{680, 680};
             // Boss intermedi
-            case "negromante", "vampiro_lord", "re_ombra"               -> 500;
-            // Elite — ben visibili
+            case "negromante", "vampiro_lord", "re_ombra"
+                    -> new double[]{600, 600};
+            // Elite — chiaramente piu' grandi del player
             case "custode_delle_ombre", "sentinella_abissale",
-                 "sentinella_cremisi", "troll_rigenerante"               -> 470;
+                 "sentinella_cremisi", "troll_rigenerante"
+                    -> new double[]{540, 540};
             // Nemici base
-            default                                                      -> 370;
+            default -> new double[]{PLAYER_SIZE, PLAYER_SIZE};
         };
     }
 
