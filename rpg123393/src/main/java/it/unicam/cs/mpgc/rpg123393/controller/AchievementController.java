@@ -1,9 +1,9 @@
 package it.unicam.cs.mpgc.rpg123393.controller;
 
-import it.unicam.cs.mpgc.rpg123393.model.Achievement;
+import it.unicam.cs.mpgc.rpg123393.model.achievement.Achievement;
+import it.unicam.cs.mpgc.rpg123393.model.achievement.AchievementRegistry;
 import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -23,28 +23,30 @@ public class AchievementController {
         ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath("menu"));
 
         AchievementService service = new AchievementService();
-        List<Achievement> all = service.getAllAchievements();
-        long unlocked = all.stream().filter(Achievement::isUnlocked).count();
-        progressLabel.setText(unlocked + " / " + all.size() + " sbloccati");
+        List<String> unlocked = service.getUnlocked();
+        List<Achievement> all = AchievementRegistry.getAll();
+
+        progressLabel.setText(unlocked.size() + " / " + all.size() + " sbloccati");
 
         for (Achievement ach : all) {
-            HBox row = buildRow(ach);
+            boolean isUnlocked = unlocked.contains(ach.getId());
+            HBox row = buildRow(ach, isUnlocked);
             achievementList.getChildren().add(row);
         }
     }
 
-    private HBox buildRow(Achievement ach) {
-        String icon   = ach.isUnlocked() ? "\u2705" : "\u26AA";
-        String color  = ach.isUnlocked() ? "#e0c97f" : "#5a5a7a";
-        String opacity = ach.isUnlocked() ? "1.0" : "0.5";
+    private HBox buildRow(Achievement ach, boolean isUnlocked) {
+        String icon    = isUnlocked ? ach.getIcon() : "\u26AA";
+        String color   = isUnlocked ? "#e0c97f" : "#5a5a7a";
+        String opacity = isUnlocked ? "1.0" : "0.5";
 
         Label iconLabel = new Label(icon);
         iconLabel.setStyle("-fx-font-size: 20px;");
 
-        Label nameLabel = new Label(ach.getName());
+        Label nameLabel = new Label(ach.getDisplayName(isUnlocked));
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
 
-        Label descLabel = new Label(ach.getDescription());
+        Label descLabel = new Label(ach.getDisplayDescription(isUnlocked));
         descLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
 
         VBox textBox = new VBox(2, nameLabel, descLabel);
