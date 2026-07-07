@@ -18,16 +18,16 @@ public class BattleService {
         if (player.getCurrentMana() < card.getManaCost()) {
             return "Mana insufficiente per giocare " + card.getName() + "!";
         }
+        // NON chiamare useMana qui: ogni carta lo gestisce internamente in play()
         int hpBefore    = enemy.getCurrentHp();
         int blockBefore = enemy.getBlock();
         card.play(player, enemy);
 
-        int dmgDealt    = hpBefore    - enemy.getCurrentHp();
-        int blockGained = player.getBlock() - 0; // scudo guadagnato dal giocatore
+        int dmgDealt = hpBefore - enemy.getCurrentHp();
         StringBuilder msg = new StringBuilder();
         msg.append(player.getName()).append(" usa ").append(card.getName()).append("!");
         if (dmgDealt > 0)    msg.append(" [Danno: ").append(dmgDealt).append("]");
-        if (enemy.getPoison() > blockBefore) // veleno applicato
+        if (enemy.getPoison() > blockBefore)
             msg.append(" [Avvelena: ").append(enemy.getPoison()).append(" stack]");
         return msg.toString();
     }

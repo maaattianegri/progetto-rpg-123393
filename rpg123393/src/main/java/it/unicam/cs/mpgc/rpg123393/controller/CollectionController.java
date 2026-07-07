@@ -52,6 +52,8 @@ public class CollectionController {
 
     @FXML
     public void initialize() {
+        // Sfondo applicato al detailPane (StackPane disponibile via @FXML)
+        ImageLoaderHelper.applyBackground(detailPane, ImageLoaderHelper.backgroundPath("menu"));
         loadUnlocked();
         buildFilters();
         showCards("Tutte");
@@ -121,7 +123,7 @@ public class CollectionController {
 
     private VBox buildTile(ICard card, boolean unlocked) {
         String color  = unlocked ? CardStyleHelper.borderColor(card.getName()) : "#2a2a4a";
-        String symbol = unlocked ? CardStyleHelper.symbol(card.getName()) : "🔒";
+        String symbol = unlocked ? CardStyleHelper.symbol(card.getName()) : "\uD83D\uDD12";
 
         Label symLbl = new Label(symbol);
         symLbl.setStyle("-fx-font-size: 26px;");
@@ -133,7 +135,7 @@ public class CollectionController {
         nameLbl.setMaxWidth(100);
         nameLbl.setAlignment(Pos.CENTER);
 
-        Label manaLbl = new Label("✨ " + card.getManaCost());
+        Label manaLbl = new Label("\u2728 " + card.getManaCost());
         manaLbl.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 10px;");
 
         VBox tile = new VBox(6, symLbl, nameLbl, manaLbl);
@@ -183,40 +185,40 @@ public class CollectionController {
         detailName.setText(card.getName());
 
         String cls = switch (color) {
-            case "#9aaaba" -> "★ Starter multiclasse";
-            case "#e74c3c" -> "⚔ Guerriero";
-            case "#f1c40f" -> "🛡 Paladino";
-            case "#9b59b6" -> "🔮 Mago";
-            case "#e67e22" -> "🐉 Dracomante";
-            case "#27ae60" -> "☠ Assassino";
-            case "#00bcd4" -> "♥ Neutrale";
+            case "#9aaaba" -> "\u2605 Starter multiclasse";
+            case "#e74c3c" -> "\u2694 Guerriero";
+            case "#f1c40f" -> "\uD83D\uDEE1 Paladino";
+            case "#9b59b6" -> "\uD83D\uDD2E Mago";
+            case "#e67e22" -> "\uD83D\uDC09 Dracomante";
+            case "#27ae60" -> "\u2620 Assassino";
+            case "#00bcd4" -> "\u2665 Neutrale";
             default        -> "";
         };
         detailClass.setText(cls);
         detailClass.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 14px; -fx-font-weight: bold;");
 
         detailStatsBox.getChildren().clear();
-        detailStatsBox.getChildren().add(makeStatRow("✨ Costo mana", card.getManaCost() + " mana", "#a78bfa"));
+        detailStatsBox.getChildren().add(makeStatRow("\u2728 Costo mana", card.getManaCost() + " mana", "#a78bfa"));
 
         String raw = CardStyleHelper.description(card.getName());
         java.util.regex.Matcher mAtk = java.util.regex.Pattern
-                .compile("(\\d[\\d×+]*\\s*danni)").matcher(raw);
+                .compile("(\\d[\\d\u00d7+]*\\s*danni)").matcher(raw);
         if (mAtk.find())
-            detailStatsBox.getChildren().add(makeStatRow("⚔ Attacco", mAtk.group(1), "#e74c3c"));
+            detailStatsBox.getChildren().add(makeStatRow("\u2694 Attacco", mAtk.group(1), "#e74c3c"));
         java.util.regex.Matcher mShld = java.util.regex.Pattern
                 .compile("\\+(\\d+)\\s*scudo").matcher(raw);
         if (mShld.find())
-            detailStatsBox.getChildren().add(makeStatRow("🛡 Scudo", "+" + mShld.group(1), "#f1c40f"));
+            detailStatsBox.getChildren().add(makeStatRow("\uD83D\uDEE1 Scudo", "+" + mShld.group(1), "#f1c40f"));
         java.util.regex.Matcher mHeal = java.util.regex.Pattern
                 .compile("(?:cura\\s*(\\d+)|(\\d+)\\s*cura)").matcher(raw);
         if (mHeal.find()) {
             String hv = mHeal.group(1) != null ? mHeal.group(1) : mHeal.group(2);
-            detailStatsBox.getChildren().add(makeStatRow("❤ Cura", hv + " HP", "#2ecc71"));
+            detailStatsBox.getChildren().add(makeStatRow("\u2764 Cura", hv + " HP", "#2ecc71"));
         }
         java.util.regex.Matcher mPsn = java.util.regex.Pattern
                 .compile("(\\d+)\\s*veleno").matcher(raw);
         if (mPsn.find())
-            detailStatsBox.getChildren().add(makeStatRow("☠ Veleno", mPsn.group(1) + " stack", "#27ae60"));
+            detailStatsBox.getChildren().add(makeStatRow("\u2620 Veleno", mPsn.group(1) + " stack", "#27ae60"));
 
         detailDesc.setText(raw);
         detailCard.setStyle("-fx-background-color: #1e1e3a; -fx-background-radius: 22;"

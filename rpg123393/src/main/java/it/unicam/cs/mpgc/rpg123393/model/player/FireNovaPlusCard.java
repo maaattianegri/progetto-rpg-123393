@@ -9,6 +9,7 @@ public class FireNovaPlusCard implements ICard {
     @Override public int    getManaCost() { return 3; }
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
+        user.useMana(getManaCost());
         target.takeDamage(24);
     }
 }

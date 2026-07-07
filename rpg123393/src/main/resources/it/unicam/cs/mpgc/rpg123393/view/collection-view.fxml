@@ -16,7 +16,7 @@
 
         <!-- Header -->
         <VBox alignment="CENTER" spacing="4" style="-fx-padding: 18 20 10 20;">
-            <Label text="📚 Collezione"
+            <Label text="&#x1F4DA; Collezione"
                    style="-fx-text-fill: #e0c97f; -fx-font-size: 24px; -fx-font-weight: bold;"/>
             <Label fx:id="progressLabel"
                    style="-fx-text-fill: #7a7a9a; -fx-font-size: 12px;"/>
@@ -35,7 +35,7 @@
 
         <!-- Back -->
         <HBox alignment="CENTER" style="-fx-padding: 10;">
-            <Button text="← Menu Principale" onAction="#onBack"
+            <Button text="&#x2190; Menu Principale" onAction="#onBack"
                     style="-fx-background-color: #1e1e3a; -fx-text-fill: #e0c97f;
                            -fx-border-color: #e0c97f; -fx-border-radius: 20; -fx-border-width: 1;
                            -fx-padding: 6 20; -fx-cursor: hand; -fx-background-radius: 20;"/>
@@ -50,7 +50,7 @@
 
         <!-- Placeholder iniziale -->
         <VBox fx:id="detailPlaceholder" alignment="CENTER" spacing="14">
-            <Label text="👆" style="-fx-font-size: 48px;"/>
+            <Label text="&#x1F446;" style="-fx-font-size: 48px;"/>
             <Label text="Clicca una carta"
                    style="-fx-text-fill: #3a3a5a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
             <Label text="per vedere i dettagli"
@@ -77,14 +77,12 @@
             <Separator prefWidth="260"
                        style="-fx-background-color: #3a3a5a;"/>
 
-            <!-- Stats singole -->
             <VBox fx:id="detailStatsBox" spacing="8" alignment="CENTER_LEFT"
                   maxWidth="280"/>
 
             <Separator prefWidth="260"
                        style="-fx-background-color: #3a3a5a;"/>
 
-            <!-- Descrizione completa -->
             <Label fx:id="detailDesc"
                    style="-fx-text-fill: #b0b0d0; -fx-font-size: 12px; -fx-font-style: italic;"
                    wrapText="true" maxWidth="280" alignment="CENTER"/>

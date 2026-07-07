@@ -9,6 +9,7 @@ public class ShadowStepCard implements ICard {
     @Override public int    getManaCost() { return 2; }
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
+        user.useMana(getManaCost());
         target.takeDamage(4);
         target.addPoison(5);
     }

@@ -8,7 +8,7 @@ import java.util.List;
 
 public class JsonSaveRepository implements SaveRepository {
 
-    private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".eldoria";
+    private static final String SAVE_DIR  = System.getProperty("user.home") + File.separator + ".rpgsave";
     private static final String SAVE_FILE = SAVE_DIR + File.separator + "savegame.json";
 
     @Override
@@ -54,6 +54,7 @@ public class JsonSaveRepository implements SaveRepository {
         sb.append("  \"saveDate\": \"").append(escape(s.getSaveDate())).append("\",\n");
         sb.append("  \"className\": \"").append(escape(s.getClassName())).append("\",\n");
         sb.append("  \"imagePath\": \"").append(escape(s.getImagePath())).append("\",\n");
+        sb.append("  \"voidHeartObtained\": ").append(s.isVoidHeartObtained()).append(",\n");
         sb.append("  \"currentNodeId\": ");
         if (s.getCurrentNodeId() != null)
             sb.append("\"").append(escape(s.getCurrentNodeId())).append("\"");
@@ -62,7 +63,18 @@ public class JsonSaveRepository implements SaveRepository {
         sb.append(",\n");
         sb.append("  \"unlockedCards\": ").append(stringArrayToJson(s.getUnlockedCards())).append(",\n");
         sb.append("  \"deckCardNames\": ").append(stringArrayToJson(s.getDeckCardNames())).append(",\n");
-        sb.append("  \"clearedNodeIds\": ").append(stringArrayToJson(s.getClearedNodeIds())).append("\n");
+        sb.append("  \"clearedNodeIds\": ").append(stringArrayToJson(s.getClearedNodeIds())).append(",\n");
+        sb.append("  \"unlockedAchievements\": ").append(stringArrayToJson(s.getUnlockedAchievements())).append(",\n");
+        sb.append("  \"totalRunsStarted\": ").append(s.getTotalRunsStarted()).append(",\n");
+        sb.append("  \"totalRunsCompleted\": ").append(s.getTotalRunsCompleted()).append(",\n");
+        sb.append("  \"totalEnemiesKilled\": ").append(s.getTotalEnemiesKilled()).append(",\n");
+        sb.append("  \"totalBossesKilled\": ").append(s.getTotalBossesKilled()).append(",\n");
+        sb.append("  \"totalGoldEarned\": ").append(s.getTotalGoldEarned()).append(",\n");
+        sb.append("  \"totalForgeUses\": ").append(s.getTotalForgeUses()).append(",\n");
+        sb.append("  \"runShopCardsBought\": ").append(s.getRunShopCardsBought()).append(",\n");
+        sb.append("  \"runShopRelicsBought\": ").append(s.getRunShopRelicsBought()).append(",\n");
+        sb.append("  \"runForgeUses\": ").append(s.getRunForgeUses()).append(",\n");
+        sb.append("  \"runNodesVisited\": ").append(s.getRunNodesVisited()).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -81,14 +93,26 @@ public class JsonSaveRepository implements SaveRepository {
             else if (line.startsWith("\"saveDate\""))          s.setSaveDate(stringValue(line));
             else if (line.startsWith("\"className\""))         s.setClassName(stringValue(line));
             else if (line.startsWith("\"imagePath\""))         s.setImagePath(stringValue(line));
+            else if (line.startsWith("\"voidHeartObtained\"")) s.setVoidHeartObtained(boolValue(line));
             else if (line.startsWith("\"currentNodeId\"")) {
                 String raw = line.split(":", 2)[1].trim();
                 s.setCurrentNodeId(raw.equals("null") ? null : raw.replace("\"", ""));
             }
+            else if (line.startsWith("\"totalRunsStarted\""))   s.setTotalRunsStarted(intValue(line));
+            else if (line.startsWith("\"totalRunsCompleted\""))  s.setTotalRunsCompleted(intValue(line));
+            else if (line.startsWith("\"totalEnemiesKilled\""))  s.setTotalEnemiesKilled(intValue(line));
+            else if (line.startsWith("\"totalBossesKilled\""))   s.setTotalBossesKilled(intValue(line));
+            else if (line.startsWith("\"totalGoldEarned\""))     s.setTotalGoldEarned(intValue(line));
+            else if (line.startsWith("\"totalForgeUses\""))      s.setTotalForgeUses(intValue(line));
+            else if (line.startsWith("\"runShopCardsBought\""))  s.setRunShopCardsBought(intValue(line));
+            else if (line.startsWith("\"runShopRelicsBought\"")) s.setRunShopRelicsBought(intValue(line));
+            else if (line.startsWith("\"runForgeUses\""))        s.setRunForgeUses(intValue(line));
+            else if (line.startsWith("\"runNodesVisited\""))     s.setRunNodesVisited(intValue(line));
         }
         s.setUnlockedCards(parseStringArray(json, "unlockedCards"));
         s.setDeckCardNames(parseStringArray(json, "deckCardNames"));
         s.setClearedNodeIds(parseStringArray(json, "clearedNodeIds"));
+        s.setUnlockedAchievements(parseStringArray(json, "unlockedAchievements"));
         return s;
     }
 
@@ -127,6 +151,10 @@ public class JsonSaveRepository implements SaveRepository {
 
     private int intValue(String line) {
         return Integer.parseInt(line.split(":", 2)[1].trim());
+    }
+
+    private boolean boolValue(String line) {
+        return line.split(":", 2)[1].trim().equals("true");
     }
 
     private String stringValue(String line) {

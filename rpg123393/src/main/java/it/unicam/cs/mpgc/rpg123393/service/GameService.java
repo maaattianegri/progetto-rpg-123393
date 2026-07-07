@@ -18,9 +18,10 @@ public class GameService {
 
     private static final boolean DEBUG_UNLOCK_ALL = true;
 
-    private final BattleService battleService = new BattleService();
-    private final LevelService  levelService  = new LevelService();
-    private final EnemyFactory  enemyFactory  = new EnemyFactory();
+    private final BattleService      battleService      = new BattleService();
+    private final LevelService       levelService       = new LevelService();
+    private final EnemyFactory       enemyFactory       = new EnemyFactory();
+    private final AchievementService achievementService = new AchievementService();
 
     private final RunManager runManager = new RunManager();
     private final MapService mapService = new MapService();
@@ -44,17 +45,11 @@ public class GameService {
 
     private int gold = RunManager.startingGold();
 
-    /** Oro totale guadagnato durante la run (per le statistiche di fine run). */
     private int totalGoldEarned = 0;
-
-    /** Numero di potenziamenti eseguiti durante la run. */
     private int totalUpgradesUsed = 0;
-
-    /**
-     * true se la Fucina dell'Eroe e' gia' stata usata durante la visita
-     * allo shop corrente. Viene azzerato all'ingresso di ogni nuovo nodo SHOP.
-     */
     private boolean upgradeUsedThisShop = false;
+
+    private boolean voidHeartObtained = false;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -75,8 +70,8 @@ public class GameService {
         } else {
             loadUnlockedCardsFromSave();
         }
-        // Resetta l'anti-ripetizione degli eventi per questa nuova run
         EventPool.resetForNewRun();
+        achievementService.onRunStarted();
     }
 
     public void createPlayer(String name, int vigore, int arcano) {
@@ -87,12 +82,12 @@ public class GameService {
         deck.clear();
         if (className == null) className = "";
         switch (className) {
-            case "Guerriero"  -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
-            case "Mago"       -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
-            case "Dracomante" -> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
-            case "Paladino"   -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new ConsecrationCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
-            case "Assassino"  -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); } // ridotto da 3x a 2x PoisonBlade, aggiunta DefendCard
-            default           -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
+            case "Cavaliere" -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DevastatingStrikeCard()); deck.add(new DevastatingStrikeCard()); }
+            case "Mago"      -> { deck.add(new FireballCard()); deck.add(new FireballCard()); deck.add(new DefendCard()); deck.add(new ArcaneStormCard()); deck.add(new ArcaneStormCard()); }
+            case "Dracomante"-> { deck.add(new DragonFangCard()); deck.add(new DragonFangCard()); deck.add(new DefendCard()); deck.add(new DragonClawCard()); deck.add(new DragonClawCard()); }
+            case "Paladino"  -> { deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new ConsecrationCard()); deck.add(new HolyShieldCard()); deck.add(new HolyShieldCard()); }
+            case "Assassino" -> { deck.add(new PoisonBladeCard()); deck.add(new PoisonBladeCard()); deck.add(new DefendCard()); deck.add(new AcidPoisonCard()); deck.add(new DefendCard()); }
+            default          -> { deck.add(new StrikeCard()); deck.add(new StrikeCard()); deck.add(new DefendCard()); deck.add(new DefendCard()); deck.add(new FireballCard()); }
         }
     }
 
@@ -111,6 +106,24 @@ public class GameService {
     public void unlockCard(String cardName) { if (!unlockedCards.contains(cardName)) unlockedCards.add(cardName); }
 
     // -------------------------------------------------------
+    // Easter egg Hollow Knight
+    // -------------------------------------------------------
+
+    public boolean isVoidHeartObtained()  { return voidHeartObtained; }
+    public void    obtainVoidHeart()      {
+        this.voidHeartObtained = true;
+        achievementService.onVoidHeartObtained();
+    }
+    public void    rejectVoidHeart()      {
+        achievementService.onVoidHeartRejected();
+    }
+
+    public boolean hasVisitedVoidPath() {
+        return mapService.getMap().getAllNodes().stream()
+                .anyMatch(n -> n.getType() == NodeType.VOID && n.isCleared());
+    }
+
+    // -------------------------------------------------------
     // Navigazione mappa
     // -------------------------------------------------------
 
@@ -120,11 +133,14 @@ public class GameService {
 
     public EncounterType advanceEncounter() {
         Optional<MapNode> next = mapService.advance();
+        achievementService.onNodeVisited();
         return next.map(MapNode::toEncounterType).orElse(EncounterType.NORMAL);
     }
 
     public boolean moveToNode(String nodeId) {
-        return mapService.moveToNode(nodeId);
+        boolean moved = mapService.moveToNode(nodeId);
+        if (moved) achievementService.onNodeVisited();
+        return moved;
     }
 
     public List<MapNode> getReachableNodes() {
@@ -138,8 +154,7 @@ public class GameService {
     public int getEncounterIndex() {
         return mapService.getMap().getAllNodes().stream()
                 .filter(n -> n.isCleared() || n.isVisited())
-                .mapToInt(n -> 1)
-                .sum();
+                .mapToInt(n -> 1).sum();
     }
 
     public int getEncounterTotal() {
@@ -162,32 +177,42 @@ public class GameService {
     }
 
     // -------------------------------------------------------
-    // Upgrade flag (Fucina dell'Eroe)
+    // Upgrade flag
     // -------------------------------------------------------
 
-    /** Chiamato da MapController quando si entra in un nodo SHOP. */
-    public void resetUpgradeForNextShop() {
-        upgradeUsedThisShop = false;
-    }
-
-    /** Chiamato da UpgradeController dopo aver effettivamente potenziato una carta. */
+    public void resetUpgradeForNextShop() { upgradeUsedThisShop = false; }
     public void markUpgradeUsed() {
         upgradeUsedThisShop = true;
         totalUpgradesUsed++;
+        achievementService.onForgeUsed();
     }
-
-    /** Usato da ShopPool per decidere se includere la Fucina nella lista items. */
-    public boolean isUpgradeAvailable() {
-        return !upgradeUsedThisShop;
-    }
+    public boolean isUpgradeAvailable()   { return !upgradeUsedThisShop; }
 
     // -------------------------------------------------------
     // Battaglia
     // -------------------------------------------------------
 
+    /**
+     * Avvia la battaglia usando il nodo corrente per selezionare
+     * il nemico dedicato a quel nodo specifico.
+     */
     public void startBattle() {
-        EncounterType type = mapService.currentEncounterType();
-        enemy = enemyFactory.createForEncounter(type, playerLevel);
+        String nodeId = mapService.getMap().getCurrentNode()
+                .map(MapNode::getId)
+                .orElse("");
+        enemy = enemyFactory.createForNode(nodeId, playerLevel);
+        for (Relic relic : relics) relic.onBattleStart(player);
+        startPlayerTurn();
+    }
+
+    public void startVoidBattle() {
+        enemy = enemyFactory.createVoidEnemy(playerLevel);
+        for (Relic relic : relics) relic.onBattleStart(player);
+        startPlayerTurn();
+    }
+
+    public void startVoidBoss() {
+        enemy = enemyFactory.createVoidBoss(playerLevel);
         for (Relic relic : relics) relic.onBattleStart(player);
         startPlayerTurn();
     }
@@ -202,8 +227,12 @@ public class GameService {
     public String getPendingMessage() { String m = pendingMessage; pendingMessage = ""; return m; }
 
     private void drawHand() {
-        for (int i = 0; i < hand.length; i++)
-            hand[i] = deck.get(random.nextInt(deck.size()));
+        List<ICard> pool = new ArrayList<>(deck);
+        for (int i = 0; i < hand.length; i++) {
+            if (pool.isEmpty()) pool = new ArrayList<>(deck);
+            int idx = random.nextInt(pool.size());
+            hand[i] = pool.remove(idx);
+        }
     }
 
     public String playCard(int handIndex) {
@@ -246,14 +275,13 @@ public class GameService {
 
     public boolean buyItem(ShopItem item) {
         if (gold < item.getPrice()) return false;
-        if (item.getType() != ShopItem.ItemType.UPGRADE) {
-            gold -= item.getPrice();
-        }
+        if (item.getType() != ShopItem.ItemType.UPGRADE) gold -= item.getPrice();
         switch (item.getType()) {
-            case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName()); }
+            case CARD       -> { ICard c = (ICard) item.getPayload(); addCardToDeck(c); unlockCard(c.getName());
+                                 achievementService.onShopCardBought(); }
             case RELIC      -> relics.add((Relic) item.getPayload());
             case CONSUMABLE -> applyConsumable((String) item.getPayload());
-            case UPGRADE    -> { /* oro scalato in UpgradeController dopo la scelta */ }
+            case UPGRADE    -> { }
         }
         return true;
     }
@@ -284,9 +312,7 @@ public class GameService {
     // Upgrade carte
     // -------------------------------------------------------
 
-    public static String upgradedName(String name) {
-        return name.endsWith("+") ? name : name + "+";
-    }
+    public static String upgradedName(String name) { return name.endsWith("+") ? name : name + "+"; }
 
     public static String getUpgradedCardName(String name) {
         if (name == null || name.endsWith("+")) return null;
@@ -340,13 +366,14 @@ public class GameService {
         List<String> deckNames = new ArrayList<>();
         for (ICard card : deck) deckNames.add(card.getName());
         s.setDeckCardNames(deckNames);
-        mapService.getMap().getCurrentNode()
-                .ifPresent(n -> s.setCurrentNodeId(n.getId()));
+        mapService.getMap().getCurrentNode().ifPresent(n -> s.setCurrentNodeId(n.getId()));
         List<String> cleared = mapService.getMap().getAllNodes().stream()
-                .filter(MapNode::isCleared)
-                .map(MapNode::getId)
+                .filter(MapNode::isCleared).map(MapNode::getId)
                 .collect(java.util.stream.Collectors.toList());
         s.setClearedNodeIds(cleared);
+        s.setVoidHeartObtained(this.voidHeartObtained);
+        List<String> prevUnlocked = achievementService.getUnlocked();
+        s.setUnlockedAchievements(new ArrayList<>(prevUnlocked));
         return s;
     }
 
@@ -357,6 +384,7 @@ public class GameService {
         this.imagePath   = state.getImagePath();
         this.playerLevel = state.getPlayerLevel();
         this.playerXp    = state.getPlayerXp();
+        this.voidHeartObtained = state.isVoidHeartObtained();
         if (state.getUnlockedCards() != null)
             this.unlockedCards = new ArrayList<>(state.getUnlockedCards());
         player = new GameCharacter(
@@ -378,32 +406,33 @@ public class GameService {
     }
 
     // -------------------------------------------------------
-    // Getter
+    // Getter / Setter
     // -------------------------------------------------------
 
-    public GameCharacter getPlayer()           { return player; }
-    public GameCharacter getEnemy()            { return enemy; }
-    public ICard[]       getHand()             { return hand; }
-    public int           getPlayerLevel()      { return playerLevel; }
-    public int           getPlayerXp()         { return playerXp; }
-    public int           getXpRequired()       { return levelService.xpRequiredForNextLevel(playerLevel); }
-    public int           getVigore()           { return vigore; }
-    public int           getArcano()           { return arcano; }
-    public String        getClassName()        { return className; }
-    public String        getImagePath()        { return imagePath; }
-    public List<ICard>   getDeck()             { return deck; }
-    public List<String>  getUnlockedCards()    { return unlockedCards; }
-    public List<Relic>   getRelics()           { return relics; }
-    public int           getGold()             { return gold; }
-    public int           getTotalGoldEarned()  { return totalGoldEarned; }
-    public int           getTotalUpgradesUsed(){ return totalUpgradesUsed; }
-    public void setClassName(String c)   { this.className = c; }
-    public void setImagePath(String p)   { this.imagePath = p; }
-    public void addGold(int amount)      { this.gold += amount; totalGoldEarned += amount; }
-    public MapService getMapService()    { return mapService; }
+    public GameCharacter     getPlayer()            { return player; }
+    public GameCharacter     getEnemy()             { return enemy; }
+    public ICard[]           getHand()              { return hand; }
+    public int               getPlayerLevel()       { return playerLevel; }
+    public int               getPlayerXp()          { return playerXp; }
+    public int               getXpRequired()        { return levelService.xpRequiredForNextLevel(playerLevel); }
+    public int               getVigore()            { return vigore; }
+    public int               getArcano()            { return arcano; }
+    public String            getClassName()         { return className; }
+    public String            getImagePath()         { return imagePath; }
+    public List<ICard>       getDeck()              { return deck; }
+    public List<String>      getUnlockedCards()     { return unlockedCards; }
+    public List<Relic>       getRelics()            { return relics; }
+    public int               getGold()              { return gold; }
+    public int               getTotalGoldEarned()   { return totalGoldEarned; }
+    public int               getTotalUpgradesUsed() { return totalUpgradesUsed; }
+    public void setClassName(String c)    { this.className = c; }
+    public void setImagePath(String p)    { this.imagePath = p; }
+    public void addGold(int amount)       { this.gold += amount; totalGoldEarned += amount; }
+    public MapService        getMapService()        { return mapService; }
+    public AchievementService getAchievementService() { return achievementService; }
 
     @Deprecated
-    public RunManager getRunManager()    { return runManager; }
+    public RunManager getRunManager()     { return runManager; }
 
     public static boolean isDebugUnlockAll() { return DEBUG_UNLOCK_ALL; }
 }

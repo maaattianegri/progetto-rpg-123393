@@ -9,6 +9,7 @@ public class WhirlwindPlusCard implements ICard {
     @Override public int    getManaCost() { return 2; }
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
+        user.useMana(getManaCost());
         target.takeDamage(7);
         user.heal(7);
     }

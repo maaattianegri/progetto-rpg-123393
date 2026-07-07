@@ -9,6 +9,7 @@ public class TauntPlusCard implements ICard {
     @Override public int    getManaCost() { return 1; }
     @Override public String getImagePath(){ return null; }
     @Override public void play(GameCharacter user, GameCharacter target) {
+        user.useMana(getManaCost());
         user.addBlock(12);
     }
 }
