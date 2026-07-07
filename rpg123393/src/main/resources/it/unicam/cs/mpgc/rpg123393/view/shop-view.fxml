@@ -10,7 +10,7 @@
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.ShopController"
-      style="-fx-background-color: #1a1a2e; -fx-padding: 0;">
+      style="-fx-background-color: transparent; -fx-padding: 0;">
 
     <!-- Header -->
     <VBox alignment="CENTER" spacing="6" style="-fx-padding: 36 0 10 0;">
@@ -18,25 +18,26 @@
                style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;
                       -fx-effect: dropshadow(gaussian, #e0c97f, 16, 0.3, 0, 0);"/>
         <Label text="Acquista saggiamente, avventuriero..."
-               style="-fx-font-size: 14px; -fx-text-fill: #6a6a9a;"/>
+               style="-fx-font-size: 14px; -fx-text-fill: #c0b080;"/>
         <Label fx:id="goldLabel" text="Oro: 0"
                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;
-                      -fx-background-color: #2a2010; -fx-padding: 6 20;
+                      -fx-background-color: rgba(42,32,16,0.80); -fx-padding: 6 20;
                       -fx-background-radius: 16;"/>
     </VBox>
 
     <!-- Slot shop -->
-    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
-                style="-fx-background: #1a1a2e; -fx-background-color: #1a1a2e;
-                       -fx-border-color: transparent; -fx-pref-height: 500;">
-        <HBox fx:id="itemsBox" spacing="20" alignment="CENTER"
-              style="-fx-background-color: #1a1a2e; -fx-padding: 30;"/>
+    <ScrollPane fitToWidth="false" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
+                VBox.vgrow="ALWAYS"
+                style="-fx-background: transparent; -fx-background-color: transparent;
+                       -fx-border-color: transparent; -fx-padding: 0;">
+        <HBox fx:id="itemsBox" spacing="28" alignment="CENTER"
+              style="-fx-background-color: transparent; -fx-padding: 40 60;"/>
     </ScrollPane>
 
     <!-- Bottone esci -->
-    <HBox alignment="CENTER" style="-fx-padding: 16 0 24 0;">
+    <HBox alignment="CENTER" style="-fx-padding: 16 0 28 0; -fx-background-color: transparent;">
         <Button text="Continua il viaggio" onAction="#onContinue"
-                prefWidth="260"
+                prefWidth="280"
                 style="-fx-background-color: #4ecca3; -fx-text-fill: #1a1a2e;
                        -fx-font-size: 16px; -fx-font-weight: bold;
                        -fx-padding: 14 32; -fx-background-radius: 10; -fx-cursor: hand;
