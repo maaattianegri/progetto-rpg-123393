@@ -9,9 +9,9 @@ import java.io.InputStream;
 /**
  * Helper centralizzato per il caricamento di immagini da resources.
  *
- * Convenzione nomi file:
- *   images/classes/      knight.jpg | mage.jpg | draco.jpg | paladin.jpg | assassin.jpg
- *   images/battle/       knight_battle.jpg | ...
+ * Convenzione nomi file (png ha priorità su jpg):
+ *   images/classes/      knight.png/.jpg | mage.png/.jpg | ...
+ *   images/battle/       knight_battle.png/.jpg | ...
  *   images/enemies/      <nome_nemico_snake_case>.png
  *   images/backgrounds/  menu.jpg | battle.jpg | elite.jpg | boss.jpg | shop.jpg | rest.jpg
  */
@@ -22,11 +22,7 @@ public final class ImageLoaderHelper {
     /** Carica un'immagine su un ImageView; se il file manca non lancia eccezioni. */
     public static void load(ImageView view, String resourcePath) {
         if (view == null || resourcePath == null) return;
-        InputStream stream = ImageLoaderHelper.class.getResourceAsStream(resourcePath);
-        if (stream == null) {
-            stream = ImageLoaderHelper.class.getClassLoader()
-                    .getResourceAsStream(resourcePath.replaceFirst("^/", ""));
-        }
+        InputStream stream = openStream(resourcePath);
         if (stream != null) {
             view.setImage(new Image(stream));
         }
@@ -35,21 +31,11 @@ public final class ImageLoaderHelper {
     /**
      * Applica un'immagine di sfondo (cover) a qualsiasi Region JavaFX.
      * Se il file manca non fa nulla.
-     *
-     * @param region       nodo radice o contenitore a cui applicare lo sfondo
-     * @param resourcePath path assoluto dalla root delle resources, es. "/images/backgrounds/menu.jpg"
      */
     public static void applyBackground(Region region, String resourcePath) {
         if (region == null || resourcePath == null) return;
-        InputStream stream = ImageLoaderHelper.class.getResourceAsStream(resourcePath);
-        if (stream == null) {
-            stream = ImageLoaderHelper.class.getClassLoader()
-                    .getResourceAsStream(resourcePath.replaceFirst("^/", ""));
-        }
+        InputStream stream = openStream(resourcePath);
         if (stream != null) {
-            Image img = new Image(stream);
-            String url = img.getUrl();
-            // fallback: usiamo -fx-background-image via setStyle
             region.setStyle(region.getStyle()
                     + "-fx-background-image: url('" + resourcePath + "');"
                     + "-fx-background-size: cover;"
@@ -58,24 +44,49 @@ public final class ImageLoaderHelper {
         }
     }
 
+    /**
+     * Apre uno stream per un resource path.
+     * Prova prima il path esatto, poi come classpath senza slash iniziale.
+     */
+    private static InputStream openStream(String resourcePath) {
+        InputStream stream = ImageLoaderHelper.class.getResourceAsStream(resourcePath);
+        if (stream == null) {
+            stream = ImageLoaderHelper.class.getClassLoader()
+                    .getResourceAsStream(resourcePath.replaceFirst("^/", ""));
+        }
+        return stream;
+    }
+
+    /**
+     * Risolve il path provando prima .png poi .jpg.
+     * Restituisce il path della versione trovata, o il path .png di default.
+     */
+    private static String resolveWithFallback(String basePath) {
+        String pngPath = basePath + ".png";
+        String jpgPath = basePath + ".jpg";
+        if (openStream(pngPath) != null) return pngPath;
+        if (openStream(jpgPath) != null) return jpgPath;
+        return pngPath; // default: png (mostrerd niente se assente, senza crash)
+    }
+
     // -------------------------------------------------------
     // Path helpers
     // -------------------------------------------------------
 
     public static String classImagePath(String classKey) {
-        return "/images/classes/" + classKey + ".jpg";
+        return resolveWithFallback("/images/classes/" + classKey);
     }
 
     public static String battleImagePath(String classKey) {
-        return "/images/battle/" + classKey + "_battle.jpg";
+        return resolveWithFallback("/images/battle/" + classKey + "_battle");
     }
 
     public static String enemyImagePath(String enemyKey) {
-        return "/images/enemies/" + enemyKey + ".png";
+        return resolveWithFallback("/images/enemies/" + enemyKey);
     }
 
     public static String backgroundPath(String key) {
-        return "/images/backgrounds/" + key + ".jpg";
+        return resolveWithFallback("/images/backgrounds/" + key);
     }
 
     public static String classKey(String className) {
