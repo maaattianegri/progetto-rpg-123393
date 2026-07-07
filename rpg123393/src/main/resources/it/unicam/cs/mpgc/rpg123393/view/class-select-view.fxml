@@ -50,7 +50,7 @@
             minWidth="200" minHeight="440">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgWarrior"
-                     fitWidth="160" fitHeight="160"
+                     fitWidth="240" fitHeight="240"
                      preserveRatio="true"
                      style="-fx-effect: dropshadow(gaussian, #e74c3c, 12, 0.4, 0, 0);"/>
         </VBox>
@@ -93,7 +93,7 @@
             minWidth="200" minHeight="440">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgMage"
-                     fitWidth="160" fitHeight="160"
+                     fitWidth="240" fitHeight="240"
                      preserveRatio="true"
                      style="-fx-effect: dropshadow(gaussian, #9b59b6, 12, 0.4, 0, 0);"/>
         </VBox>
@@ -132,7 +132,7 @@
             minWidth="200" minHeight="440">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgDragon"
-                     fitWidth="160" fitHeight="160"
+                     fitWidth="240" fitHeight="240"
                      preserveRatio="true"
                      style="-fx-effect: dropshadow(gaussian, #e67e22, 12, 0.4, 0, 0);"/>
         </VBox>
@@ -171,7 +171,7 @@
             minWidth="200" minHeight="440">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgPaladin"
-                     fitWidth="160" fitHeight="160"
+                     fitWidth="240" fitHeight="240"
                      preserveRatio="true"
                      style="-fx-effect: dropshadow(gaussian, #f1c40f, 12, 0.4, 0, 0);"/>
         </VBox>
@@ -210,7 +210,7 @@
             minWidth="200" minHeight="440">
         <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
           <ImageView fx:id="imgAssassin"
-                     fitWidth="160" fitHeight="160"
+                     fitWidth="240" fitHeight="240"
                      preserveRatio="true"
                      style="-fx-effect: dropshadow(gaussian, #27ae60, 12, 0.4, 0, 0);"/>
         </VBox>

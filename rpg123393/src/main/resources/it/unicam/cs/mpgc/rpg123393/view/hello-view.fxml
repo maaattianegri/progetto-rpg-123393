@@ -36,47 +36,46 @@
         </VBox>
     </top>
 
-    <!-- CENTER -->
+    <!-- LEFT: log testuale -->
+    <left>
+        <TextArea fx:id="consoleArea"
+                  editable="false"
+                  wrapText="true"
+                  prefWidth="220" maxWidth="220"
+                  style="-fx-control-inner-background: #0d1b2a;
+                         -fx-text-fill: #c8d8e8;
+                         -fx-font-family: 'Consolas', monospace;
+                         -fx-font-size: 11px;
+                         -fx-border-color: #2a3a4a;
+                         -fx-border-width: 0 1 0 0;
+                         -fx-background-color: #0d1b2a;"/>
+    </left>
+
+    <!-- CENTER: immagini combattenti -->
     <center>
-        <HBox alignment="CENTER" style="-fx-background-color: #1a1a2e;">
+        <HBox alignment="CENTER" spacing="60"
+              style="-fx-background-color: #1a1a2e; -fx-padding: 24;">
 
-            <!-- Log testuale stretto -->
-            <TextArea fx:id="consoleArea"
-                      editable="false"
-                      wrapText="true"
-                      prefWidth="220" maxWidth="220"
-                      style="-fx-control-inner-background: #0d1b2a;
-                             -fx-text-fill: #c8d8e8;
-                             -fx-font-family: 'Consolas', monospace;
-                             -fx-font-size: 11px;
-                             -fx-border-color: transparent;
-                             -fx-background-color: transparent;"/>
+            <!-- Player -->
+            <VBox alignment="CENTER" spacing="8">
+                <ImageView fx:id="playerImage"
+                           fitWidth="320" fitHeight="320"
+                           preserveRatio="true"
+                           style="-fx-effect: dropshadow(gaussian, #4ecca3, 18, 0.5, 0, 0);"/>
+                <Label fx:id="playerNameCenterLabel" text=""
+                       style="-fx-text-fill: #4ecca3; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            </VBox>
 
-            <!-- Immagini combattenti -->
-            <HBox alignment="CENTER" spacing="24" HBox.hgrow="ALWAYS"
-                  style="-fx-padding: 16;">
+            <!-- Nemico -->
+            <VBox alignment="CENTER" spacing="8">
+                <ImageView fx:id="enemyImage"
+                           fitWidth="320" fitHeight="320"
+                           preserveRatio="true"
+                           style="-fx-effect: dropshadow(gaussian, #e63946, 18, 0.5, 0, 0);"/>
+                <Label fx:id="enemyNameCenterLabel" text=""
+                       style="-fx-text-fill: #ff6b6b; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            </VBox>
 
-                <!-- Player -->
-                <VBox alignment="CENTER" spacing="6">
-                    <ImageView fx:id="playerImage"
-                               fitWidth="200" fitHeight="200"
-                               preserveRatio="true"
-                               style="-fx-effect: dropshadow(gaussian, #4ecca3, 14, 0.5, 0, 0);"/>
-                    <Label fx:id="playerNameCenterLabel" text=""
-                           style="-fx-text-fill: #4ecca3; -fx-font-size: 12px; -fx-font-weight: bold;"/>
-                </VBox>
-
-                <!-- Nemico -->
-                <VBox alignment="CENTER" spacing="6">
-                    <ImageView fx:id="enemyImage"
-                               fitWidth="200" fitHeight="200"
-                               preserveRatio="true"
-                               style="-fx-effect: dropshadow(gaussian, #e63946, 14, 0.5, 0, 0);"/>
-                    <Label fx:id="enemyNameCenterLabel" text=""
-                           style="-fx-text-fill: #ff6b6b; -fx-font-size: 12px; -fx-font-weight: bold;"/>
-                </VBox>
-
-            </HBox>
         </HBox>
     </center>
 
