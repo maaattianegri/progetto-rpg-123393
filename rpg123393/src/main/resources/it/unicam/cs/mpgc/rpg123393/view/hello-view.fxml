@@ -65,8 +65,9 @@
         <StackPane>
 
             <!-- Personaggi in campo -->
-            <HBox alignment="BOTTOM_CENTER" spacing="120"
-                  style="-fx-padding: 0 40 310 0; -fx-background-color: transparent;">
+            <!-- translate-y positivo = sposta in basso rispetto alla posizione naturale -->
+            <HBox alignment="CENTER" spacing="120"
+                  style="-fx-padding: 120 40 0 0; -fx-background-color: transparent;">
 
                 <!-- Player: spinto a sinistra -->
                 <VBox alignment="CENTER" spacing="10"
