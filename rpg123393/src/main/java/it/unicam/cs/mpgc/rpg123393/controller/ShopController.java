@@ -41,6 +41,18 @@ public class ShopController {
         refresh();
     }
 
+    @FXML
+    public void initialize() {
+        // Forza l'HBox a espandersi quanto il viewport del ScrollPane
+        itemsBox.prefWidthProperty().bind(
+            itemsBox.parentProperty().flatMap(p ->
+                p instanceof javafx.scene.layout.Region r
+                    ? r.widthProperty().map(w -> w)
+                    : javafx.beans.binding.Bindings.createObjectBinding(() -> 0.0)
+            )
+        );
+    }
+
     private void refresh() {
         goldLabel.setText("\uD83E\uDE99  " + gameService.getGold() + " oro");
         itemsBox.getChildren().clear();
@@ -76,15 +88,15 @@ public class ShopController {
                 + "-fx-background-radius: 10;");
 
         Label nameLabel = new Label(item.getName());
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 17px; -fx-font-weight: bold;");
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
         nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(210);
+        nameLabel.setMaxWidth(230);
         nameLabel.setAlignment(Pos.CENTER);
 
         Label descLabel = new Label(item.getDescription());
         descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 13px;");
         descLabel.setWrapText(true);
-        descLabel.setMaxWidth(210);
+        descLabel.setMaxWidth(230);
         descLabel.setAlignment(Pos.CENTER);
 
         Label priceLabel = new Label("\uD83E\uDE99 " + item.getPrice() + " oro");
@@ -93,7 +105,7 @@ public class ShopController {
         boolean canAfford = gameService.getGold() >= item.getPrice();
         Button buyBtn = new Button("Acquista");
         buyBtn.setDisable(!canAfford);
-        buyBtn.setPrefWidth(200);
+        buyBtn.setPrefWidth(210);
         buyBtn.setStyle("-fx-background-color: " + (canAfford ? color : "#3a3a5a") + ";"
                 + "-fx-text-fill: " + (canAfford ? "#1a1a2e" : "#6a6a9a") + ";"
                 + "-fx-font-weight: bold; -fx-font-size: 14px;"
@@ -104,7 +116,7 @@ public class ShopController {
         box.setAlignment(Pos.CENTER);
         box.setStyle("-fx-background-color: rgba(30,30,58,0.88); -fx-background-radius: 18;"
                 + "-fx-border-color: " + color + "; -fx-border-radius: 18; -fx-border-width: 2;"
-                + "-fx-padding: 32 28; -fx-pref-width: 250; -fx-pref-height: 360;"
+                + "-fx-padding: 36 30; -fx-pref-width: 270; -fx-pref-height: 390;"
                 + "-fx-effect: dropshadow(gaussian, " + color + ", 18, 0.25, 0, 0);");
         return box;
     }

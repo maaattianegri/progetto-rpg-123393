@@ -26,12 +26,13 @@
     </VBox>
 
     <!-- Slot shop -->
-    <ScrollPane fitToWidth="false" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
+    <ScrollPane fitToWidth="true" fitToHeight="false"
+                hbarPolicy="NEVER" vbarPolicy="NEVER"
                 VBox.vgrow="ALWAYS"
                 style="-fx-background: transparent; -fx-background-color: transparent;
                        -fx-border-color: transparent; -fx-padding: 0;">
-        <HBox fx:id="itemsBox" spacing="28" alignment="CENTER"
-              style="-fx-background-color: transparent; -fx-padding: 40 60;"/>
+        <HBox fx:id="itemsBox" spacing="32" alignment="CENTER"
+              style="-fx-background-color: transparent; -fx-padding: 50 60;"/>
     </ScrollPane>
 
     <!-- Bottone esci -->
