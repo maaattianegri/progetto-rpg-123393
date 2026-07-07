@@ -14,6 +14,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -22,6 +23,8 @@ import java.io.IOException;
 import java.util.List;
 
 public class HelloController {
+
+    @FXML private BorderPane rootPane;
 
     @FXML private Label       enemyNameLabel;
     @FXML private Label       enemyStatsLabel;
@@ -49,7 +52,6 @@ public class HelloController {
     @FXML private Label     enemyNameCenterLabel;
 
     private GameService gameService;
-    // classKey es. "knight", "mage", ecc. — usata per caricare l'immagine battaglia
     private String      classKey;
     private String      playerName;
     private int         vigore;
@@ -63,7 +65,6 @@ public class HelloController {
     // Inizializzazione
     // -------------------------------------------------------
 
-    /** Overload legacy — riceve imagePath diretto (es. da percorsi precedenti). */
     public void initData(String name, int vigore, int arcano, String imagePath) {
         this.playerName  = name;
         this.vigore      = vigore;
@@ -77,7 +78,6 @@ public class HelloController {
         startBattle();
     }
 
-    /** Chiamato da ClassSelectController — riceve classKey (es. "knight") e className (es. "Cavaliere"). */
     public void initData(String name, int vigore, int arcano,
                          String classKey, String className) {
         this.playerName  = name;
@@ -92,7 +92,6 @@ public class HelloController {
         startBattle();
     }
 
-    /** Chiamato dalla mappa per continuare una run esistente. */
     public void initData(String name, int vigore, int arcano,
                          String classKey, GameService existingService) {
         this.playerName  = name;
@@ -127,8 +126,23 @@ public class HelloController {
         }
 
         refreshBossFlag();
+        applyBattleBackground(nodeType);
         loadEnemyImage();
         startPlayerTurnUI();
+    }
+
+    // -------------------------------------------------------
+    // Sfondo battaglia dinamico
+    // -------------------------------------------------------
+
+    private void applyBattleBackground(NodeType nodeType) {
+        if (rootPane == null) return;
+        String bgKey = switch (nodeType) {
+            case BOSS, VOID_BOSS -> "boss";
+            case ELITE           -> "elite";
+            default              -> "battle";
+        };
+        ImageLoaderHelper.applyBackground(rootPane, ImageLoaderHelper.backgroundPath(bgKey));
     }
 
     // -------------------------------------------------------
@@ -140,6 +154,10 @@ public class HelloController {
         playerHpAtBattleStart = gameService.getPlayer().getCurrentHp();
         enemyKilledByPoison   = false;
         refreshBossFlag();
+        NodeType nodeType = gameService.getCurrentNode()
+                .map(MapNode::getType)
+                .orElse(NodeType.BATTLE);
+        applyBattleBackground(nodeType);
         loadEnemyImage();
         log("\n=== NUOVO SCONTRO ===");
         log("Il tuo avversario e': " + gameService.getEnemy().getName());
@@ -305,10 +323,6 @@ public class HelloController {
         }
     }
 
-    /**
-     * Converte il nome display del nemico nella chiave snake_case del file immagine.
-     * Es. "Ratto Gigante" -> "ratto_gigante"
-     */
     private String toImageKey(String displayName) {
         return displayName
                 .toLowerCase()
