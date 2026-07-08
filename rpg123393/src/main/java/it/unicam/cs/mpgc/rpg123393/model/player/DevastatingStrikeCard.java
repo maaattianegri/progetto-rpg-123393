@@ -3,9 +3,14 @@ package it.unicam.cs.mpgc.rpg123393.model.player;
 import it.unicam.cs.mpgc.rpg123393.model.GameCharacter;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 
-/** Guerriero — Colpo Devastante: 12 danni, 2 mana. Alto burst. */
+/** Colpo Devastante — base: 12 dmg/2 mana; upgraded: 16 dmg/2 mana. */
 public class DevastatingStrikeCard implements ICard {
-    @Override public String getName()      { return "Colpo Devastante"; }
+    private final boolean upgraded;
+
+    public DevastatingStrikeCard()                  { this(false); }
+    public DevastatingStrikeCard(boolean upgraded)  { this.upgraded = upgraded; }
+
+    @Override public String getName()      { return upgraded ? "Colpo Devastante+" : "Colpo Devastante"; }
     @Override public int    getManaCost()  { return 2; }
     @Override public String getImagePath() { return "/images/player/devastating_strike.svg"; }
 
@@ -13,7 +18,7 @@ public class DevastatingStrikeCard implements ICard {
     public void play(GameCharacter user, GameCharacter target) {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
-            target.takeDamage(12);
+            target.takeDamage(upgraded ? 16 : 12);
         }
     }
 }

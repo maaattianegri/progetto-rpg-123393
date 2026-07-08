@@ -1,20 +1,21 @@
 package it.unicam.cs.mpgc.rpg123393.model;
 
+/** Scudo di Legno — base: +6 scudo/1 mana; upgraded: +9 scudo/1 mana. */
 public class DefendCard implements ICard {
-    @Override
-    public String getName() { return "Scudo di Legno"; }
+    private final boolean upgraded;
 
-    @Override
-    public int getManaCost() { return 1; }
+    public DefendCard()                  { this(false); }
+    public DefendCard(boolean upgraded)  { this.upgraded = upgraded; }
+
+    @Override public String getName()      { return upgraded ? "Scudo di Legno+" : "Scudo di Legno"; }
+    @Override public int    getManaCost()  { return 1; }
+    @Override public String getImagePath() { return "/images/defend.svg"; }
 
     @Override
     public void play(GameCharacter user, GameCharacter target) {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
-            user.addBlock(6);
+            user.addBlock(upgraded ? 9 : 6);
         }
     }
-
-    @Override
-    public String getImagePath() { return "/images/defend.svg"; }
 }
