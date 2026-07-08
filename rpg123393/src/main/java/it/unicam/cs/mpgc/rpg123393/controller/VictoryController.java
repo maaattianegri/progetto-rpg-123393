@@ -69,7 +69,6 @@ public class VictoryController {
         xpProgressLabel.setText("XP verso prossimo livello: " + gs.getPlayerXp() + " / " + gs.getXpRequired());
 
         if (wasLastBoss) {
-            // Cambia testo bottone per l'ultimo boss
             nextButton.setText("\u2727  Vedi il Riepilogo Finale");
             nextButton.setStyle(
                     "-fx-background-color: #ffd700; -fx-text-fill: #0d0d1a;"
@@ -77,7 +76,6 @@ public class VictoryController {
                     + "-fx-padding: 14 32; -fx-background-radius: 10; -fx-cursor: hand;"
                     + "-fx-effect: dropshadow(gaussian, #ffd700, 14, 0.5, 0, 0);");
 
-            // Mostra statistiche run
             long total   = gs.getMapService().getMap().getAllNodes().size();
             long cleared = gs.getMapService().getMap().getAllNodes().stream()
                     .filter(n -> n.isCleared()).count();
@@ -87,7 +85,23 @@ public class VictoryController {
             upgradesStatLabel.setText("\u2B50 Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
             runStatsPanel.setVisible(true);
             runStatsPanel.setManaged(true);
-            // Cancella il save: la run è finita
+
+            // Fix bug #3: valuta gli achievement di fine run qui, indipendentemente
+            // da quale schermata viene visitata dopo (Riepilogo o Menu principale).
+            // RunVictoryController NON deve piu' chiamare onRunCompleted() per evitare
+            // il doppio incremento di totalRunsCompleted.
+            long clearedNodes = gs.getMapService().getMap().getAllNodes().stream()
+                    .filter(n -> n.isCleared()).count();
+            gs.getAchievementService().onRunCompleted(
+                    gs.getClassName(),
+                    (int) clearedNodes,
+                    gs.getGold(),
+                    gs.getTotalGoldEarned(),
+                    gs.getUnlockedCards().size(),
+                    p.getCurrentHp() == p.getMaxHp()
+            );
+
+            // Cancella il save: la run e' finita
             new JsonSaveRepository().deleteSave();
         } else {
             // Run in corso: salva normalmente
