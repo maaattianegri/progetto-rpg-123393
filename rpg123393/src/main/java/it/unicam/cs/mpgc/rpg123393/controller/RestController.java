@@ -40,10 +40,16 @@ public class RestController {
         var p = gameService.getPlayer();
         int healAmount = (int) (p.getMaxHp() * 0.30);
         p.heal(healAmount);
-        resultLabel.setText("\u2764 Hai recuperato " + healAmount + " HP!");
-        refreshHp();
         // Avanza il nodo correttamente tramite GameService (notifica onNodeVisited)
         gameService.advanceEncounter();
+        // Naviga subito alla mappa, simmetrico alla Forgia
+        try {
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+            FXMLLoader loader = SceneNavigator.navigateTo(
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+            MapController ctrl = loader.getController();
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     @FXML
@@ -52,8 +58,6 @@ public class RestController {
         choiceMade = true;
         // NON chiamare advance() qui: l'avanzamento avviene quando
         // UpgradeController.navigateBack() porta direttamente alla mappa.
-        // Chiamarlo qui causava un doppio avanzamento se il giocatore
-        // cliccava anche 'Continua' dopo.
         try {
             Stage stage = (Stage) rootPane.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
@@ -65,8 +69,6 @@ public class RestController {
 
     @FXML
     private void onContinue() {
-        // Permette di continuare solo se non e' gia' stata fatta una scelta
-        // (es. dopo aver riposato); impedisce avanzamenti doppi.
         if (choiceMade) {
             try {
                 Stage stage = (Stage) rootPane.getScene().getWindow();
