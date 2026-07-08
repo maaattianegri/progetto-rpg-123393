@@ -26,6 +26,9 @@ public class AchievementToastManager {
     private static final double MARGIN_BOTTOM = 24;
     private static final double SHOW_SECONDS  = 3.5;
 
+    private static final String EMOJI_FONT_STYLE =
+            "-fx-font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;";
+
     private Stage     primaryStage;
     private StackPane rootPane;
     private boolean   showing = false;
@@ -38,7 +41,6 @@ public class AchievementToastManager {
     public void init(Stage stage, StackPane rootPane) {
         this.primaryStage = stage;
         this.rootPane     = rootPane;
-        // Il rootPane stesso non deve mai bloccare i click sul contenuto sottostante
         rootPane.setPickOnBounds(false);
     }
 
@@ -58,7 +60,6 @@ public class AchievementToastManager {
 
         VBox toast = buildToast(a);
 
-        // Il toast non deve intercettare nessun evento mouse
         toast.setMouseTransparent(true);
 
         StackPane.setAlignment(toast, Pos.BOTTOM_RIGHT);
@@ -92,7 +93,7 @@ public class AchievementToastManager {
 
     private VBox buildToast(Achievement a) {
         Label icon = new Label(a.getIcon());
-        icon.setStyle("-fx-font-size: 28px;");
+        icon.setStyle("-fx-font-size: 28px; " + EMOJI_FONT_STYLE);
 
         Label header = new Label("Achievement sbloccato!");
         header.setStyle("-fx-font-size: 11px; -fx-text-fill: #4ecca3; -fx-font-weight: bold;");
