@@ -40,16 +40,24 @@ public class RestController {
         var p = gameService.getPlayer();
         int healAmount = (int) (p.getMaxHp() * 0.30);
         p.heal(healAmount);
-        resultLabel.setText("\u2764 Hai recuperato " + healAmount + " HP!");
-        refreshHp();
-        gameService.getMapService().advance();
+        // Avanza il nodo correttamente tramite GameService (notifica onNodeVisited)
+        gameService.advanceEncounter();
+        // Naviga subito alla mappa, simmetrico alla Forgia
+        try {
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+            FXMLLoader loader = SceneNavigator.navigateTo(
+                    stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+            MapController ctrl = loader.getController();
+            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
     @FXML
     private void onForge() {
         if (choiceMade) return;
         choiceMade = true;
-        gameService.getMapService().advance();
+        // NON chiamare advance() qui: l'avanzamento avviene quando
+        // UpgradeController.navigateBack() porta direttamente alla mappa.
         try {
             Stage stage = (Stage) rootPane.getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
@@ -61,13 +69,15 @@ public class RestController {
 
     @FXML
     private void onContinue() {
-        try {
-            Stage stage = (Stage) rootPane.getScene().getWindow();
-            FXMLLoader loader = SceneNavigator.navigateTo(
-                    stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
-            MapController ctrl = loader.getController();
-            ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
-        } catch (IOException e) { e.printStackTrace(); }
+        if (choiceMade) {
+            try {
+                Stage stage = (Stage) rootPane.getScene().getWindow();
+                FXMLLoader loader = SceneNavigator.navigateTo(
+                        stage, "/it/unicam/cs/mpgc/rpg123393/view/map-view.fxml");
+                MapController ctrl = loader.getController();
+                ctrl.initData(gameService, playerName, vigore, arcano, imagePath);
+            } catch (IOException e) { e.printStackTrace(); }
+        }
     }
 
     private void refreshHp() {
