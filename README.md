@@ -1,6 +1,6 @@
 # Progetto RPG — 123393
 
-Gioco RPG a turni con meccanica deck-building, sviluppato come progetto per il corso di **Metodologie di Produzione del Software** presso l'Università di Camerino (UniCam).
+Gioco RPG a turni con meccanica deck-building, sviluppato come progetto per il corso di Modellazione e gestione della conoscenza.
 
 Il giocatore sceglie un personaggio, esplora una mappa a bivi, combatte nemici usando carte, acquista potenziamenti al negozio e affronta boss sempre più difficili.
 
