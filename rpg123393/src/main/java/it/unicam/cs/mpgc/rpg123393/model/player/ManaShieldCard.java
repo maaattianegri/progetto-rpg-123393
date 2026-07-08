@@ -5,8 +5,8 @@ import it.unicam.cs.mpgc.rpg123393.model.ICard;
 
 /**
  * Scudo di Mana
- * base:     +10 scudo + 1 mana recuperato, costo 1 mana
- * upgraded: +14 scudo + 1 mana recuperato, costo 2 mana
+ * base:     +10 scudo, costo 1 mana
+ * upgraded: +14 scudo, costo 2 mana
  */
 public class ManaShieldCard implements ICard {
     private final boolean upgraded;
@@ -23,7 +23,6 @@ public class ManaShieldCard implements ICard {
         if (user.getCurrentMana() >= getManaCost()) {
             user.useMana(getManaCost());
             user.addBlock(upgraded ? 14 : 10);
-            user.addMana(1);
         }
     }
 }
