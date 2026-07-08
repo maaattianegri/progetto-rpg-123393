@@ -19,12 +19,12 @@ public final class AchievementRegistry {
         register(new Achievement(
                 "first_steps", "Primi Passi",
                 "Inizia la tua prima run.",
-                "\u2694\uFE0F", AchievementCategory.COMBATTIMENTO));
+                "\u2694", AchievementCategory.COMBATTIMENTO));
 
         register(new Achievement(
                 "no_damage_fight", "Intoccabile",
                 "Vinci un combattimento senza subire danni.",
-                "\uD83D\uDEE1\uFE0F", AchievementCategory.COMBATTIMENTO));
+                "\uD83D\uDEE1", AchievementCategory.COMBATTIMENTO));
 
         register(new Achievement(
                 "boss_slayer", "Cacciatore di Boss",
@@ -34,7 +34,7 @@ public final class AchievementRegistry {
         register(new Achievement(
                 "hundred_enemies", "Carneficina",
                 "Sconfiggi 100 nemici in totale tra tutte le run.",
-                "\u2620\uFE0F", AchievementCategory.COMBATTIMENTO));
+                "\u2620", AchievementCategory.COMBATTIMENTO));
 
         register(new Achievement(
                 "poison_master", "Maestro del Veleno",
@@ -44,7 +44,7 @@ public final class AchievementRegistry {
         register(new Achievement(
                 "survivor", "Sopravvissuto per un pelo",
                 "Vinci un combattimento con meno di 10 HP rimanenti.",
-                "\uD83E\uDE78", AchievementCategory.COMBATTIMENTO));
+                "\u2665", AchievementCategory.COMBATTIMENTO));
 
         register(new Achievement(
                 "full_hp_boss", "Senza un graffio",
@@ -95,12 +95,12 @@ public final class AchievementRegistry {
         register(new Achievement(
                 "cavaliere_run", "Il Cavaliere",
                 "Completa una run con il Cavaliere.",
-                "\uD83D\uDEE1\uFE0F", AchievementCategory.CLASSI));
+                "\uD83D\uDEE1", AchievementCategory.CLASSI));
 
         register(new Achievement(
                 "mago_run", "Il Mago",
                 "Completa una run con il Mago.",
-                "\uD83E\uDDD9", AchievementCategory.CLASSI));
+                "\u2726", AchievementCategory.CLASSI));
 
         register(new Achievement(
                 "paladino_run", "Il Paladino",
@@ -110,7 +110,7 @@ public final class AchievementRegistry {
         register(new Achievement(
                 "assassino_run", "L'Assassino",
                 "Completa una run con l'Assassino.",
-                "\uD83D\uDDE1\uFE0F", AchievementCategory.CLASSI));
+                "\uD83D\uDDE1", AchievementCategory.CLASSI));
 
         register(new Achievement(
                 "dracomante_run", "Il Dracomante",
