@@ -313,7 +313,7 @@ public class HelloController {
             ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
         }
         playerImage.setFitWidth(PLAYER_SIZE);
-        playerImage.setFitHeight(0); // 0 = libero, scala da fitWidth con preserveRatio
+        playerImage.setFitHeight(0);
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -329,8 +329,7 @@ public class HelloController {
         }
         double fitW = enemySizeFor(key);
         enemyImage.setFitWidth(fitW);
-        enemyImage.setFitHeight(0); // 0 = libero, scala da fitWidth con preserveRatio
-        // Aggiorna larghezza viewport nemico in modo che non tagli l'immagine grande
+        enemyImage.setFitHeight(0);
         if (enemyViewport != null) {
             enemyViewport.setPrefWidth(fitW + 40);
         }
@@ -338,14 +337,10 @@ public class HelloController {
 
     private double enemySizeFor(String key) {
         return switch (key) {
-            // Boss finali
             case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 660;
-            // Boss intermedi
             case "negromante", "vampiro_lord", "re_ombra"               -> 580;
-            // Elite
             case "custode_delle_ombre", "sentinella_abissale",
                  "sentinella_cremisi", "troll_rigenerante"               -> 520;
-            // Nemici base
             default -> PLAYER_SIZE;
         };
     }
@@ -460,13 +455,10 @@ public class HelloController {
         descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
         descLabel.setMaxWidth(160); descLabel.setWrapText(true); descLabel.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Label costLabel = new Label("Mana: " + card.getManaCost());
-        costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 11px;");
-
         Label manaBarLabel = new Label(manaStr);
         manaBarLabel.setStyle("-fx-text-fill: #7c3aed; -fx-font-size: 10px; -fx-font-family: monospace;");
 
-        VBox cardBox = new VBox(8, symbolLabel, nameLabel, descLabel, costLabel, manaBarLabel);
+        VBox cardBox = new VBox(8, symbolLabel, nameLabel, descLabel, manaBarLabel);
         cardBox.setAlignment(Pos.CENTER);
         cardBox.setStyle(
                 "-fx-background-color: #1e1e3a;"
