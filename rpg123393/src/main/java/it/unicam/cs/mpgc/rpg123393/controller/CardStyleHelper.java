@@ -109,7 +109,7 @@ public class CardStyleHelper {
             case "Palla di Fuoco+"          -> "\ud83d\udd2e 18 danni  |  2 mana";
             case "Nova di Fuoco"            -> "\ud83d\udd2e 18 danni  |  3 mana";
             case "Nova di Fuoco+"           -> "\ud83d\udd2e 24 danni  |  3 mana";
-            case "Tempesta Arcana"          -> "\ud83d\udd2e 10 + 2\u00d7veleno danni  |  2 mana";
+            case "Tempesta Arcana"          -> "\ud83d\udd2e 10 + 2\u00d7veleno danni  |  3 mana";
             case "Tempesta Arcana+"         -> "\ud83d\udd2e 13 + 3\u00d7veleno danni  |  2 mana";
             case "Dardo di Ghiaccio"        -> "\ud83d\udd2e 7 danni + \u2620 2 veleno  |  2 mana";
             case "Dardo di Ghiaccio+"       -> "\ud83d\udd2e 9 danni + \u2620 3 veleno  |  2 mana";
