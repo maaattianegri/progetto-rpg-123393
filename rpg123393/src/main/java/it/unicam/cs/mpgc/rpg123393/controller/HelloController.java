@@ -428,11 +428,15 @@ public class HelloController {
         ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
         for (int i = 0; i < buttons.length; i++) {
+            // FIX bug #7: reset esplicito di disabled e opacità prima di
+            // ricostruire il graphic, per evitare che lo stile 'disabled'
+            // di JavaFX persista sul nodo anche dopo setDisable(false).
+            buttons[i].setDisable(false);
+            buttons[i].setOpacity(1.0);
             VBox cardGraphic = buildCardGraphic(hand[i]);
             attachHoverAnimation(cardGraphic);
             buttons[i].setGraphic(cardGraphic);
             buttons[i].setText("");
-            buttons[i].setDisable(false);
         }
     }
 
