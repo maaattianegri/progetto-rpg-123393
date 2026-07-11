@@ -65,6 +65,9 @@ public class HelloController {
     private boolean enemyKilledByPoison;
     private boolean currentEnemyIsBoss;
 
+    // Tracking slot giocati nel turno corrente (fix bug #7)
+    private final boolean[] playedThisTurn = new boolean[3];
+
     // -------------------------------------------------------
     // Inizializzazione
     // -------------------------------------------------------
@@ -178,6 +181,9 @@ public class HelloController {
     }
 
     private void startPlayerTurnUI() {
+        // Reset tracking slot a inizio turno (fix bug #7)
+        for (int i = 0; i < playedThisTurn.length; i++) playedThisTurn[i] = false;
+
         gameService.startPlayerTurn();
         String pending = gameService.getPendingMessage();
         if (pending != null && !pending.isEmpty()) {
@@ -200,6 +206,9 @@ public class HelloController {
     @FXML private void onCard2Click() { playCard(2, cardBtn2); }
 
     private void playCard(int index, Button button) {
+        // Guard slot: blocca se già giocata in questo turno (fix bug #7)
+        if (playedThisTurn[index]) return;
+
         if (!gameService.canPlayCard(index)) {
             log("[!] Mana insufficiente per questa carta!");
             return;
@@ -213,7 +222,9 @@ public class HelloController {
                 if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
                     enemyKilledByPoison = true;
                 }
-                button.setDisable(true);
+                // Segna slot come giocato e aggiorna bottoni (fix bug #7)
+                playedThisTurn[index] = true;
+                refreshCardButtons();
                 updateUI();
                 if (gameService.isBattleOver()) handleBattleEnd();
             });
@@ -223,7 +234,9 @@ public class HelloController {
             if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
                 enemyKilledByPoison = true;
             }
-            button.setDisable(true);
+            // Segna slot come giocato e aggiorna bottoni (fix bug #7)
+            playedThisTurn[index] = true;
+            refreshCardButtons();
             updateUI();
             if (gameService.isBattleOver()) handleBattleEnd();
         }
@@ -428,13 +441,16 @@ public class HelloController {
         ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
         for (int i = 0; i < buttons.length; i++) {
-            // FIX bug #7: reset esplicito di disabled e opacità prima di
-            // ricostruire il graphic, per evitare che lo stile 'disabled'
-            // di JavaFX persista sul nodo anche dopo setDisable(false).
-            buttons[i].setDisable(false);
-            buttons[i].setOpacity(1.0);
+            // Disable basato su stato slot e mana — fonte unica di verità (fix bug #7)
+            boolean slotGiocato    = playedThisTurn[i];
+            boolean manaInsuff     = !gameService.canPlayCard(i);
+            boolean deveEssereDisabilitato = slotGiocato || manaInsuff;
+
+            buttons[i].setDisable(deveEssereDisabilitato);
+            buttons[i].setOpacity(deveEssereDisabilitato ? 0.45 : 1.0);
+
             VBox cardGraphic = buildCardGraphic(hand[i]);
-            attachHoverAnimation(cardGraphic);
+            if (!deveEssereDisabilitato) attachHoverAnimation(cardGraphic);
             buttons[i].setGraphic(cardGraphic);
             buttons[i].setText("");
         }
