@@ -56,8 +56,8 @@ public class MapService {
                 "L'Orco ruggisce e si avventa su di te.", NodeType.ELITE);
         MapNode nA4 = node("nA4", "Fal\u00f2 Antico",
                 "Le fiamme danzano sul pietrisco consumato dal tempo.", NodeType.REST);
-        MapNode nA5 = node("nA5", "Guardiani della Soglia",
-                "Due soldati non-morti proteggono il passaggio.", NodeType.BATTLE);
+        MapNode nA5 = node("nA5", "Guardiano della Soglia",
+                "Uno scheletro in armatura arrugginita sbarra il passaggio in silenzio.", NodeType.BATTLE);
         MapNode nA6 = node("nA6", "Guardia del Negromante",
                 "Un campione non-morto sbarra la porta del boss.", NodeType.ELITE);
         MapNode nAB = node("nAB", "Negromante",
