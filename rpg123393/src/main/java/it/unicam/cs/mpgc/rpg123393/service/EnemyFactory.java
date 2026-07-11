@@ -18,8 +18,8 @@ import java.util.List;
  *
  * Trunk:   n00/n01 NORMAL (pool Goblin / Ratto Gigante)
  *
- * Ramo A:  nA1/nA5 NORMAL (pool), nA3 ELITE (Orco Berserker),
- *          nA6 ELITE (Scheletro Arcano), nAB BOSS (Negromante)
+ * Ramo A:  nA1 NORMAL (pool), nA5 BATTLE (Scheletro Arcano — coerente con "Guardiano della Soglia"),
+ *          nA3 ELITE (Orco Berserker), nA6 ELITE (Scheletro Arcano), nAB BOSS (Negromante)
  *
  * Ramo B:  nB1 ELITE (Troll Rigenerante), nB2 ELITE (Scheletro Arcano),
  *          nB4 ELITE (Cavaliere Vampiro), nB5 ELITE (Sentinella Cremisi),
@@ -45,7 +45,8 @@ public class EnemyFactory {
             case "n00", "n01"  -> roundRobinNormal(playerLevel);
 
             // --- RAMO A ---
-            case "nA1", "nA5" -> roundRobinNormal(playerLevel);
+            case "nA1"         -> roundRobinNormal(playerLevel);
+            case "nA5"         -> new GameCharacter("Scheletro Arcano",     45 + playerLevel * 5,  3);
             case "nA3"         -> new GameCharacter("Orco Berserker",       70 + playerLevel * 8,  4);
             case "nA6"         -> new GameCharacter("Scheletro Arcano",     58 + playerLevel * 7,  5);
             case "nAB"         -> new GameCharacter("Negromante",          130 + playerLevel * 14, 6);
