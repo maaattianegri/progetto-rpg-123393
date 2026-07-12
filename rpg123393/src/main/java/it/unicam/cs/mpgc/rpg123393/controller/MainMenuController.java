@@ -66,13 +66,16 @@ public class MainMenuController {
         try {
             GameService gs = new GameService();
             gs.restoreFromState(loadedState);
+            // Ricava classKey dalla className salvata (es. "Guerriero" → "guerriero")
+            // in modo che HelloController carichi correttamente l'immagine battle.
+            String classKey = ImageLoaderHelper.classKey(loadedState.getClassName());
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             FXMLLoader loader = SceneNavigator.navigateTo(
                     stage, "/it/unicam/cs/mpgc/rpg123393/view/hello-view.fxml");
             HelloController ctrl = loader.getController();
             ctrl.initData(loadedState.getPlayerName(),
                     gs.getVigore(), gs.getArcano(),
-                    loadedState.getImagePath(), gs);
+                    classKey, gs);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
