@@ -3,6 +3,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
+import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.animation.*;
@@ -45,6 +46,7 @@ public class HelloController {
     @FXML private Button    cardBtn0;
     @FXML private Button    cardBtn1;
     @FXML private Button    cardBtn2;
+    @FXML private Button    saveMenuBtn;
     @FXML private TextArea  consoleArea;
 
     @FXML private ImageView  playerImage;
@@ -60,6 +62,7 @@ public class HelloController {
     private String      playerName;
     private int         vigore;
     private int         arcano;
+    private String      imagePath;
 
     private int     playerHpAtBattleStart;
     private boolean enemyKilledByPoison;
@@ -67,6 +70,9 @@ public class HelloController {
 
     // Tracking slot giocati nel turno corrente (fix bug #7)
     private final boolean[] playedThisTurn = new boolean[3];
+
+    // Flag turno nemico attivo: blocca il tasto salva durante le animazioni nemico (Bug #8)
+    private boolean enemyTurnActive = false;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -76,6 +82,7 @@ public class HelloController {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
+        this.imagePath   = imagePath;
         this.classKey    = null;
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano);
@@ -91,6 +98,7 @@ public class HelloController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.classKey    = classKey;
+        this.imagePath   = ImageLoaderHelper.battleImagePath(classKey);
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano, className,
                 ImageLoaderHelper.battleImagePath(classKey));
@@ -99,12 +107,23 @@ public class HelloController {
         startBattle();
     }
 
+    /**
+     * Overload usato da MainMenuController (Continua) e da MapController (battaglia successiva).
+     * Il parametro classKey deve essere già la chiave immagine (es. "guerriero", "mage"),
+     * non il nome display (es. "Guerriero"). Se non fornito o blank, viene derivato da
+     * existingService.getClassName() tramite ImageLoaderHelper.classKey().
+     */
     public void initData(String name, int vigore, int arcano,
                          String classKey, GameService existingService) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.classKey    = classKey;
+        this.imagePath   = imagePath;
+        // Fix: usa il classKey passato dal chiamante (già convertito in chiave immagine);
+        // ricava da getClassName() solo come fallback per compatibilità con chiamanti legacy.
+        this.classKey    = (classKey != null && !classKey.isBlank())
+                ? classKey
+                : ImageLoaderHelper.classKey(existingService.getClassName());
         this.gameService = existingService;
         loadPlayerBattleImage();
 
@@ -136,6 +155,28 @@ public class HelloController {
         applyBattleBackground(nodeType);
         loadEnemyImage();
         startPlayerTurnUI();
+    }
+
+    // -------------------------------------------------------
+    // Salva e torna al menu (Bug #8)
+    // -------------------------------------------------------
+
+    @FXML
+    private void onSaveAndMenu() {
+        // Non interrompere durante il turno nemico
+        if (enemyTurnActive) return;
+        try {
+            new JsonSaveRepository().save(gameService.toGameState());
+        } catch (Exception e) {
+            System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
+        }
+        try {
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // -------------------------------------------------------
@@ -181,6 +222,9 @@ public class HelloController {
     }
 
     private void startPlayerTurnUI() {
+        enemyTurnActive = false;
+        if (saveMenuBtn != null) saveMenuBtn.setDisable(false);
+
         // Reset tracking slot a inizio turno (fix bug #7)
         for (int i = 0; i < playedThisTurn.length; i++) playedThisTurn[i] = false;
 
@@ -245,6 +289,8 @@ public class HelloController {
     @FXML
     private void onEndTurnClick() {
         if (gameService.isBattleOver()) return;
+        enemyTurnActive = true;
+        if (saveMenuBtn != null) saveMenuBtn.setDisable(true);
         log("\n--- TURNO DEL NEMICO ---");
         log(gameService.doEnemyTurn());
         updateUI();

@@ -3,6 +3,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 import it.unicam.cs.mpgc.rpg123393.model.EncounterType;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
+import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -16,6 +17,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.effect.ColorAdjust;
@@ -66,6 +68,7 @@ public class MapController {
     @FXML private Label      selectedNodeLabel;
     @FXML private HBox       legendBox;
     @FXML private HBox       controlsLegendBox;
+    @FXML private Button     saveMenuBtn;
 
     private Pane   canvas;
     private Group  canvasWrapper;
@@ -115,6 +118,26 @@ public class MapController {
         setupPanAndZoom();
 
         Platform.runLater(() -> Platform.runLater(this::applyInitialZoomAndCenter));
+    }
+
+    // -------------------------------------------------------
+    // Salva e torna al menu (Bug #8)
+    // -------------------------------------------------------
+
+    @FXML
+    private void onSaveAndMenu() {
+        try {
+            new JsonSaveRepository().save(gameService.toGameState());
+        } catch (Exception e) {
+            System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
+        }
+        try {
+            Stage stage = (Stage) mapScroll.getScene().getWindow();
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -512,7 +535,6 @@ public class MapController {
                                        boolean secretHidden) {
         boolean revealed, midFog, farFog;
         if (secretHidden) {
-            // Nodo segreto non ancora scoperto: quasi invisibile, non interagibile
             revealed = false;
             midFog   = false;
             farFog   = true;

@@ -32,6 +32,19 @@
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="enemyIntentLabel" text=""
                        style="-fx-text-fill: #ffd166; -fx-font-size: 12px; -fx-font-style: italic;"/>
+                <!-- Tasto salva: nell'angolo in alto a destra, fuori dal flusso carte -->
+                <Button fx:id="saveMenuBtn"
+                        text="&#x1F4BE; Menu"
+                        onAction="#onSaveAndMenu"
+                        style="-fx-background-color: #1e293b;
+                               -fx-text-fill: #94a3b8;
+                               -fx-font-size: 11px;
+                               -fx-padding: 4 10;
+                               -fx-background-radius: 5;
+                               -fx-border-color: #334155;
+                               -fx-border-radius: 5;
+                               -fx-border-width: 1;
+                               -fx-cursor: hand;"/>
             </HBox>
             <ProgressBar fx:id="enemyHpBar" progress="1.0" maxWidth="Infinity"
                          style="-fx-accent: #e63946; -fx-pref-height: 12; -fx-background-radius: 6;"/>
