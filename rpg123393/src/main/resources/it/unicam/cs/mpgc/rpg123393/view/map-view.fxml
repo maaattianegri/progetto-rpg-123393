@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx"
@@ -51,13 +53,27 @@
     <!-- Label stato -->
     <HBox alignment="CENTER" style="-fx-padding: 10 32 8 32; -fx-background-color: #0d0d1e;">
         <Label fx:id="selectedNodeLabel"
-               text="Trascina per muoverti • Rotella per zoomare • Clicca un nodo raggiungibile per avanzare"
+               text="Trascina per muoverti &#x2022; Rotella per zoomare &#x2022; Clicca un nodo raggiungibile per avanzare"
                style="-fx-font-size: 13px; -fx-text-fill: #9ca3af;"
                wrapText="true" maxWidth="900" alignment="CENTER"/>
     </HBox>
 
-    <!-- Legenda controlli -->
+    <!-- Barra inferiore: legenda controlli + tasto salva -->
     <HBox fx:id="controlsLegendBox" alignment="CENTER" spacing="16"
-          style="-fx-padding: 0 20 18 20; -fx-background-color: #0d0d1e;"/>
+          style="-fx-padding: 0 20 18 20; -fx-background-color: #0d0d1e;">
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="saveMenuBtn"
+                text="&#x1F4BE; Salva e torna al menu"
+                onAction="#onSaveAndMenu"
+                style="-fx-background-color: #1e293b;
+                       -fx-text-fill: #94a3b8;
+                       -fx-font-size: 12px;
+                       -fx-padding: 6 14;
+                       -fx-background-radius: 6;
+                       -fx-border-color: #334155;
+                       -fx-border-radius: 6;
+                       -fx-border-width: 1;
+                       -fx-cursor: hand;"/>
+    </HBox>
 
 </VBox>
