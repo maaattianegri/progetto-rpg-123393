@@ -207,24 +207,34 @@ class CardTest {
         assertEquals(8, player.getBlock());
     }
 
-    @Test @DisplayName("SmiteCard base: 8 dmg + resetBlock nemico (costo 2 mana)")
+    @Test @DisplayName("SmiteCard base: 8 dmg (costo 2 mana) + resetBlock dopo il danno")
     void smiteBase() {
-        // SmiteCard costa 2 mana. Player ha 10 mana di default → la carta si gioca.
-        // resetBlock() viene chiamato prima di takeDamage, quindi lo scudo nemico non assorbe.
-        enemy.addBlock(20);
+        // Ordine reale in SmiteCard.play(): useMana → takeDamage → resetBlock.
+        // Con enemy senza scudo: 100 - 8 = 92 HP. Block nemico = 0 dopo resetBlock.
         new SmiteCard().play(player, enemy);
-        assertEquals(92, enemy.getCurrentHp());  // 100 - 8, lo scudo è già stato azzerato
+        assertEquals(92, enemy.getCurrentHp());
         assertEquals(0, enemy.getBlock());
         assertEquals(8, player.getCurrentMana()); // 10 - 2
     }
 
-    @Test @DisplayName("SmiteCard upgraded: 11 dmg + resetBlock nemico (costo 2 mana)")
+    @Test @DisplayName("SmiteCard upgraded: 11 dmg (costo 2 mana) + resetBlock dopo il danno")
     void smiteUpgraded() {
-        enemy.addBlock(20);
+        // Con enemy senza scudo: 100 - 11 = 89 HP. Block nemico = 0 dopo resetBlock.
         new SmiteCard(true).play(player, enemy);
-        assertEquals(89, enemy.getCurrentHp());  // 100 - 11
+        assertEquals(89, enemy.getCurrentHp());
         assertEquals(0, enemy.getBlock());
         assertEquals(8, player.getCurrentMana()); // 10 - 2
+    }
+
+    @Test @DisplayName("SmiteCard base: con scudo nemico (20), danno assorbito dallo scudo poi resetBlock")
+    void smiteBaseWithEnemyBlock() {
+        // Ordine: takeDamage(8) → scudo assorbe tutto (20 >= 8) → HP = 100, block = 12.
+        // Poi resetBlock() → block = 0. HP rimane 100.
+        enemy.addBlock(20);
+        new SmiteCard().play(player, enemy);
+        assertEquals(100, enemy.getCurrentHp()); // danno assorbito dallo scudo
+        assertEquals(0, enemy.getBlock());        // resetBlock fa comunque 0
+        assertEquals(8, player.getCurrentMana());
     }
 
     @Test @DisplayName("HammerOfJusticeCard base: 14 dmg")
