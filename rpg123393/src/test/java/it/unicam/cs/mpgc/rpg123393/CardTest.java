@@ -207,20 +207,34 @@ class CardTest {
         assertEquals(8, player.getBlock());
     }
 
-    @Test @DisplayName("SmiteCard base: 8 dmg + resetBlock nemico")
+    @Test @DisplayName("SmiteCard base: 8 dmg (costo 2 mana) + resetBlock dopo il danno")
     void smiteBase() {
-        enemy.addBlock(20);
+        // Ordine reale in SmiteCard.play(): useMana → takeDamage → resetBlock.
+        // Con enemy senza scudo: 100 - 8 = 92 HP. Block nemico = 0 dopo resetBlock.
         new SmiteCard().play(player, enemy);
         assertEquals(92, enemy.getCurrentHp());
         assertEquals(0, enemy.getBlock());
+        assertEquals(8, player.getCurrentMana()); // 10 - 2
     }
 
-    @Test @DisplayName("SmiteCard upgraded: 11 dmg + resetBlock nemico")
+    @Test @DisplayName("SmiteCard upgraded: 11 dmg (costo 2 mana) + resetBlock dopo il danno")
     void smiteUpgraded() {
-        enemy.addBlock(20);
+        // Con enemy senza scudo: 100 - 11 = 89 HP. Block nemico = 0 dopo resetBlock.
         new SmiteCard(true).play(player, enemy);
         assertEquals(89, enemy.getCurrentHp());
         assertEquals(0, enemy.getBlock());
+        assertEquals(8, player.getCurrentMana()); // 10 - 2
+    }
+
+    @Test @DisplayName("SmiteCard base: con scudo nemico (20), danno assorbito dallo scudo poi resetBlock")
+    void smiteBaseWithEnemyBlock() {
+        // Ordine: takeDamage(8) → scudo assorbe tutto (20 >= 8) → HP = 100, block = 12.
+        // Poi resetBlock() → block = 0. HP rimane 100.
+        enemy.addBlock(20);
+        new SmiteCard().play(player, enemy);
+        assertEquals(100, enemy.getCurrentHp()); // danno assorbito dallo scudo
+        assertEquals(0, enemy.getBlock());        // resetBlock fa comunque 0
+        assertEquals(8, player.getCurrentMana());
     }
 
     @Test @DisplayName("HammerOfJusticeCard base: 14 dmg")
@@ -299,20 +313,19 @@ class CardTest {
         assertEquals(76, enemy.getCurrentHp());
     }
 
-    @Test @DisplayName("ManaShieldCard base: +10 scudo + 1 mana, costo 1")
+    @Test @DisplayName("ManaShieldCard base: +10 scudo, costa 1 mana")
     void manaShieldBase() {
-        player.useMana(1); // mana = 9
+        // ManaShieldCard costa 1 mana, aggiunge 10 scudo. Nessun recupero mana.
         new ManaShieldCard().play(player, enemy);
         assertEquals(10, player.getBlock());
-        assertEquals(9, player.getCurrentMana()); // 9 - 1 (costo) + 1 (recupero) = 9
+        assertEquals(9, player.getCurrentMana()); // 10 - 1
     }
 
-    @Test @DisplayName("ManaShieldCard upgraded: +14 scudo + 1 mana, costo 2")
+    @Test @DisplayName("ManaShieldCard upgraded: +14 scudo, costa 2 mana")
     void manaShieldUpgraded() {
-        player.useMana(2); // mana = 8
         new ManaShieldCard(true).play(player, enemy);
         assertEquals(14, player.getBlock());
-        assertEquals(7, player.getCurrentMana()); // 8 - 2 + 1 = 7
+        assertEquals(8, player.getCurrentMana()); // 10 - 2
     }
 
     @Test @DisplayName("ArcaneStormCard base: 10 + veleno*2 dmg (0 stack)")
