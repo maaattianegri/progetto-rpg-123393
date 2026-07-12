@@ -107,13 +107,23 @@ public class HelloController {
         startBattle();
     }
 
+    /**
+     * Overload usato da MainMenuController (Continua) e da MapController (battaglia successiva).
+     * Il parametro classKey deve essere già la chiave immagine (es. "guerriero", "mage"),
+     * non il nome display (es. "Guerriero"). Se non fornito o blank, viene derivato da
+     * existingService.getClassName() tramite ImageLoaderHelper.classKey().
+     */
     public void initData(String name, int vigore, int arcano,
-                         String imagePath, GameService existingService) {
+                         String classKey, GameService existingService) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.imagePath   = imagePath;
-        this.classKey    = existingService.getClassName();
+        // Fix: usa il classKey passato dal chiamante (già convertito in chiave immagine);
+        // ricava da getClassName() solo come fallback per compatibilità con chiamanti legacy.
+        this.classKey    = (classKey != null && !classKey.isBlank())
+                ? classKey
+                : ImageLoaderHelper.classKey(existingService.getClassName());
         this.gameService = existingService;
         loadPlayerBattleImage();
 
