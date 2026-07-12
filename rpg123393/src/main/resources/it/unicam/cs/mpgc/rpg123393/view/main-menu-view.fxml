@@ -9,67 +9,66 @@
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.MainMenuController"
-      style="-fx-background-color: #1a1a2e; -fx-padding: 60; -fx-max-width: 520;">
+      style="-fx-background-color: #1a1a2e; -fx-padding: 60;">
 
-    <!-- Titolo principale: Bug #6 nome aggiornato a 'Echi del Vuoto' -->
-    <Label text="&#x2736;  Echi del Vuoto  &#x2736;"
-           style="-fx-font-size: 54px; -fx-font-weight: bold; -fx-text-fill: #c8a8e8;
-                  -fx-effect: dropshadow(gaussian, #9b59b6, 28, 0.5, 0, 0);"/>
+    <!-- Titolo: font ridotto e wrap abilitato per evitare il troncamento -->
+    <Label text="Echi del Vuoto"
+           style="-fx-font-size: 44px; -fx-font-weight: bold; -fx-text-fill: #c8a8e8;
+                  -fx-effect: dropshadow(gaussian, #9b59b6, 28, 0.5, 0, 0);
+                  -fx-wrap-text: true; -fx-text-alignment: center;"/>
 
-    <Label text="Un abisso ti attende. Le carte decidono il tuo destino."
-           style="-fx-font-size: 15px; -fx-text-fill: #aaaacc; -fx-font-style: italic;
+    <Label text="&#x2736;  Un abisso ti attende. Le carte decidono il tuo destino.  &#x2736;"
+           style="-fx-font-size: 13px; -fx-text-fill: #aaaacc; -fx-font-style: italic;
                   -fx-wrap-text: true; -fx-text-alignment: center;"/>
 
     <Region prefHeight="18"/>
 
-    <!-- Bottone primario: Nuova Partita -->
-    <Button text="&#x2694;  Nuova Partita" onAction="#onNewGame"
-            prefWidth="320"
+    <!-- Bottoni primari -->
+    <Button text="\u2694  Nuova Partita" onAction="#onNewGame"
+            prefWidth="280"
             style="-fx-background-color: #4ecca3; -fx-text-fill: #0e0e1f;
-                   -fx-font-size: 18px; -fx-font-weight: bold;
-                   -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;
+                   -fx-font-size: 17px; -fx-font-weight: bold;
+                   -fx-padding: 14 28; -fx-background-radius: 10; -fx-cursor: hand;
                    -fx-border-color: #3db88a; -fx-border-radius: 10; -fx-border-width: 1.5;
                    -fx-effect: dropshadow(gaussian, #4ecca3, 18, 0.38, 0, 0);"/>
 
-    <!-- Bottone primario: Continua -->
     <VBox alignment="CENTER" spacing="6">
-        <Button fx:id="continueBtn" text="&#x25B6;  Continua" onAction="#onContinue"
-                prefWidth="320"
+        <Button fx:id="continueBtn" text="\u25B6  Continua" onAction="#onContinue"
+                prefWidth="280"
                 style="-fx-background-color: #4ecca3; -fx-text-fill: #0e0e1f;
-                       -fx-font-size: 18px; -fx-font-weight: bold;
-                       -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;
+                       -fx-font-size: 17px; -fx-font-weight: bold;
+                       -fx-padding: 14 28; -fx-background-radius: 10; -fx-cursor: hand;
                        -fx-border-color: #3db88a; -fx-border-radius: 10; -fx-border-width: 1.5;
                        -fx-effect: dropshadow(gaussian, #4ecca3, 18, 0.38, 0, 0);"/>
-        <!-- Bug #10: era #5a5a7a (quasi invisibile) -->
         <Label fx:id="saveInfoLabel" text=""
                style="-fx-font-size: 12px; -fx-text-fill: #aaaacc; -fx-font-style: italic;"/>
     </VBox>
 
     <Region prefHeight="6"/>
 
-    <!-- Bottoni secondari: leggibilità migliorata (Bug #10) -->
-    <Button text="&#x1F4D6;  Collezione" onAction="#onCollection"
-            prefWidth="320"
-            style="-fx-background-color: rgba(80,50,120,0.35); -fx-text-fill: #f0dc9a;
-                   -fx-font-size: 17px; -fx-font-weight: bold;
+    <!-- Bottoni secondari: sfondo più scuro e testo più luminoso per leggibilità -->
+    <Button text="\uD83D\uDCD6  Collezione" onAction="#onCollection"
+            prefWidth="280"
+            style="-fx-background-color: #2a1a4a; -fx-text-fill: #f5e6a0;
+                   -fx-font-size: 16px; -fx-font-weight: bold;
                    -fx-border-color: #c4a84f; -fx-border-radius: 10; -fx-border-width: 1.5;
-                   -fx-padding: 14 32; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                   -fx-padding: 13 28; -fx-background-radius: 10; -fx-cursor: hand;"/>
 
-    <Button text="&#x1F3C6;  Achievement" onAction="#onAchievements"
-            prefWidth="320"
-            style="-fx-background-color: rgba(80,50,120,0.35); -fx-text-fill: #f0dc9a;
-                   -fx-font-size: 17px; -fx-font-weight: bold;
+    <Button text="\uD83C\uDFC6  Achievement" onAction="#onAchievements"
+            prefWidth="280"
+            style="-fx-background-color: #2a1a4a; -fx-text-fill: #f5e6a0;
+                   -fx-font-size: 16px; -fx-font-weight: bold;
                    -fx-border-color: #c4a84f; -fx-border-radius: 10; -fx-border-width: 1.5;
-                   -fx-padding: 14 32; -fx-background-radius: 10; -fx-cursor: hand;"/>
+                   -fx-padding: 13 28; -fx-background-radius: 10; -fx-cursor: hand;"/>
 
     <Region prefHeight="8"/>
 
-    <!-- Bottone Esci: Bug #10 era #8a3030 su nero = illeggibile -->
+    <!-- Bottone Esci -->
     <Button text="Esci" onAction="#onExit"
-            prefWidth="320"
-            style="-fx-background-color: rgba(80,15,15,0.45); -fx-text-fill: #e05555;
-                   -fx-font-size: 16px; -fx-font-weight: bold;
-                   -fx-padding: 12 32; -fx-background-radius: 10; -fx-cursor: hand;
+            prefWidth="280"
+            style="-fx-background-color: #3a0e0e; -fx-text-fill: #e05555;
+                   -fx-font-size: 15px; -fx-font-weight: bold;
+                   -fx-padding: 11 28; -fx-background-radius: 10; -fx-cursor: hand;
                    -fx-border-color: #c03030; -fx-border-radius: 10; -fx-border-width: 1.5;"/>
 
 </VBox>
