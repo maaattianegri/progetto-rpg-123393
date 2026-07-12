@@ -11,7 +11,6 @@
       fx:controller="it.unicam.cs.mpgc.rpg123393.controller.MainMenuController"
       style="-fx-background-color: #1a1a2e; -fx-padding: 60;">
 
-    <!-- Titolo: font ridotto e wrap abilitato per evitare il troncamento -->
     <Label text="Echi del Vuoto"
            style="-fx-font-size: 44px; -fx-font-weight: bold; -fx-text-fill: #c8a8e8;
                   -fx-effect: dropshadow(gaussian, #9b59b6, 28, 0.5, 0, 0);
@@ -23,8 +22,7 @@
 
     <Region prefHeight="18"/>
 
-    <!-- Bottoni primari -->
-    <Button text="\u2694  Nuova Partita" onAction="#onNewGame"
+    <Button text="&#x2694;  Nuova Partita" onAction="#onNewGame"
             prefWidth="280"
             style="-fx-background-color: #4ecca3; -fx-text-fill: #0e0e1f;
                    -fx-font-size: 17px; -fx-font-weight: bold;
@@ -33,7 +31,7 @@
                    -fx-effect: dropshadow(gaussian, #4ecca3, 18, 0.38, 0, 0);"/>
 
     <VBox alignment="CENTER" spacing="6">
-        <Button fx:id="continueBtn" text="\u25B6  Continua" onAction="#onContinue"
+        <Button fx:id="continueBtn" text="&#x25B6;  Continua" onAction="#onContinue"
                 prefWidth="280"
                 style="-fx-background-color: #4ecca3; -fx-text-fill: #0e0e1f;
                        -fx-font-size: 17px; -fx-font-weight: bold;
@@ -46,15 +44,14 @@
 
     <Region prefHeight="6"/>
 
-    <!-- Bottoni secondari: sfondo più scuro e testo più luminoso per leggibilità -->
-    <Button text="\uD83D\uDCD6  Collezione" onAction="#onCollection"
+    <Button text="&#x1F4D6;  Collezione" onAction="#onCollection"
             prefWidth="280"
             style="-fx-background-color: #2a1a4a; -fx-text-fill: #f5e6a0;
                    -fx-font-size: 16px; -fx-font-weight: bold;
                    -fx-border-color: #c4a84f; -fx-border-radius: 10; -fx-border-width: 1.5;
                    -fx-padding: 13 28; -fx-background-radius: 10; -fx-cursor: hand;"/>
 
-    <Button text="\uD83C\uDFC6  Achievement" onAction="#onAchievements"
+    <Button text="&#x1F3C6;  Achievement" onAction="#onAchievements"
             prefWidth="280"
             style="-fx-background-color: #2a1a4a; -fx-text-fill: #f5e6a0;
                    -fx-font-size: 16px; -fx-font-weight: bold;
@@ -63,7 +60,6 @@
 
     <Region prefHeight="8"/>
 
-    <!-- Bottone Esci -->
     <Button text="Esci" onAction="#onExit"
             prefWidth="280"
             style="-fx-background-color: #3a0e0e; -fx-text-fill: #e05555;
