@@ -3,6 +3,7 @@ package it.unicam.cs.mpgc.rpg123393.controller;
 import it.unicam.cs.mpgc.rpg123393.model.ICard;
 import it.unicam.cs.mpgc.rpg123393.model.MapNode;
 import it.unicam.cs.mpgc.rpg123393.model.NodeType;
+import it.unicam.cs.mpgc.rpg123393.persistence.JsonSaveRepository;
 import it.unicam.cs.mpgc.rpg123393.service.AchievementService;
 import it.unicam.cs.mpgc.rpg123393.service.GameService;
 import javafx.animation.*;
@@ -15,6 +16,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -44,22 +46,33 @@ public class HelloController {
     @FXML private Button    cardBtn0;
     @FXML private Button    cardBtn1;
     @FXML private Button    cardBtn2;
+    @FXML private Button    saveMenuBtn;
     @FXML private TextArea  consoleArea;
 
-    @FXML private ImageView playerImage;
-    @FXML private ImageView enemyImage;
-    @FXML private Label     playerNameCenterLabel;
-    @FXML private Label     enemyNameCenterLabel;
+    @FXML private ImageView  playerImage;
+    @FXML private ImageView  enemyImage;
+    @FXML private StackPane  enemyViewport;
+    @FXML private Label      playerNameCenterLabel;
+    @FXML private Label      enemyNameCenterLabel;
+
+    private static final double PLAYER_SIZE = 410;
 
     private GameService gameService;
     private String      classKey;
     private String      playerName;
     private int         vigore;
     private int         arcano;
+    private String      imagePath;
 
     private int     playerHpAtBattleStart;
     private boolean enemyKilledByPoison;
     private boolean currentEnemyIsBoss;
+
+    // Tracking slot giocati nel turno corrente (fix bug #7)
+    private final boolean[] playedThisTurn = new boolean[3];
+
+    // Flag turno nemico attivo: blocca il tasto salva durante le animazioni nemico (Bug #8)
+    private boolean enemyTurnActive = false;
 
     // -------------------------------------------------------
     // Inizializzazione
@@ -69,6 +82,7 @@ public class HelloController {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
+        this.imagePath   = imagePath;
         this.classKey    = null;
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano);
@@ -84,6 +98,7 @@ public class HelloController {
         this.vigore      = vigore;
         this.arcano      = arcano;
         this.classKey    = classKey;
+        this.imagePath   = ImageLoaderHelper.battleImagePath(classKey);
         this.gameService = new GameService();
         gameService.createPlayer(name, vigore, arcano, className,
                 ImageLoaderHelper.battleImagePath(classKey));
@@ -92,12 +107,23 @@ public class HelloController {
         startBattle();
     }
 
+    /**
+     * Overload usato da MainMenuController (Continua) e da MapController (battaglia successiva).
+     * Il parametro classKey deve essere già la chiave immagine (es. "guerriero", "mage"),
+     * non il nome display (es. "Guerriero"). Se non fornito o blank, viene derivato da
+     * existingService.getClassName() tramite ImageLoaderHelper.classKey().
+     */
     public void initData(String name, int vigore, int arcano,
                          String classKey, GameService existingService) {
         this.playerName  = name;
         this.vigore      = vigore;
         this.arcano      = arcano;
-        this.classKey    = classKey;
+        this.imagePath   = imagePath;
+        // Fix: usa il classKey passato dal chiamante (già convertito in chiave immagine);
+        // ricava da getClassName() solo come fallback per compatibilità con chiamanti legacy.
+        this.classKey    = (classKey != null && !classKey.isBlank())
+                ? classKey
+                : ImageLoaderHelper.classKey(existingService.getClassName());
         this.gameService = existingService;
         loadPlayerBattleImage();
 
@@ -129,6 +155,28 @@ public class HelloController {
         applyBattleBackground(nodeType);
         loadEnemyImage();
         startPlayerTurnUI();
+    }
+
+    // -------------------------------------------------------
+    // Salva e torna al menu (Bug #8)
+    // -------------------------------------------------------
+
+    @FXML
+    private void onSaveAndMenu() {
+        // Non interrompere durante il turno nemico
+        if (enemyTurnActive) return;
+        try {
+            new JsonSaveRepository().save(gameService.toGameState());
+        } catch (Exception e) {
+            System.err.println("[WARN] Salvataggio fallito: " + e.getMessage());
+        }
+        try {
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+            SceneNavigator.navigateTo(stage,
+                    "/it/unicam/cs/mpgc/rpg123393/view/main-menu-view.fxml");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // -------------------------------------------------------
@@ -174,6 +222,12 @@ public class HelloController {
     }
 
     private void startPlayerTurnUI() {
+        enemyTurnActive = false;
+        if (saveMenuBtn != null) saveMenuBtn.setDisable(false);
+
+        // Reset tracking slot a inizio turno (fix bug #7)
+        for (int i = 0; i < playedThisTurn.length; i++) playedThisTurn[i] = false;
+
         gameService.startPlayerTurn();
         String pending = gameService.getPendingMessage();
         if (pending != null && !pending.isEmpty()) {
@@ -196,6 +250,9 @@ public class HelloController {
     @FXML private void onCard2Click() { playCard(2, cardBtn2); }
 
     private void playCard(int index, Button button) {
+        // Guard slot: blocca se già giocata in questo turno (fix bug #7)
+        if (playedThisTurn[index]) return;
+
         if (!gameService.canPlayCard(index)) {
             log("[!] Mana insufficiente per questa carta!");
             return;
@@ -209,7 +266,9 @@ public class HelloController {
                 if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
                     enemyKilledByPoison = true;
                 }
-                button.setDisable(true);
+                // Segna slot come giocato e aggiorna bottoni (fix bug #7)
+                playedThisTurn[index] = true;
+                refreshCardButtons();
                 updateUI();
                 if (gameService.isBattleOver()) handleBattleEnd();
             });
@@ -219,7 +278,9 @@ public class HelloController {
             if (gameService.isBattleOver() && gameService.isPlayerVictory() && enemyPoisonBefore > 0) {
                 enemyKilledByPoison = true;
             }
-            button.setDisable(true);
+            // Segna slot come giocato e aggiorna bottoni (fix bug #7)
+            playedThisTurn[index] = true;
+            refreshCardButtons();
             updateUI();
             if (gameService.isBattleOver()) handleBattleEnd();
         }
@@ -228,6 +289,8 @@ public class HelloController {
     @FXML
     private void onEndTurnClick() {
         if (gameService.isBattleOver()) return;
+        enemyTurnActive = true;
+        if (saveMenuBtn != null) saveMenuBtn.setDisable(true);
         log("\n--- TURNO DEL NEMICO ---");
         log(gameService.doEnemyTurn());
         updateUI();
@@ -308,6 +371,8 @@ public class HelloController {
         if (classKey != null) {
             ImageLoaderHelper.load(playerImage, ImageLoaderHelper.battleImagePath(classKey));
         }
+        playerImage.setFitWidth(PLAYER_SIZE);
+        playerImage.setFitHeight(0);
         if (playerNameCenterLabel != null && playerName != null) {
             playerNameCenterLabel.setText(playerName);
         }
@@ -321,6 +386,22 @@ public class HelloController {
         if (enemyNameCenterLabel != null) {
             enemyNameCenterLabel.setText(enemyName);
         }
+        double fitW = enemySizeFor(key);
+        enemyImage.setFitWidth(fitW);
+        enemyImage.setFitHeight(0);
+        if (enemyViewport != null) {
+            enemyViewport.setPrefWidth(fitW + 40);
+        }
+    }
+
+    private double enemySizeFor(String key) {
+        return switch (key) {
+            case "cuore_dell_abisso", "drago_antico", "cavaliere_vacuo" -> 660;
+            case "negromante", "vampiro_lord", "re_ombra"               -> 580;
+            case "custode_delle_ombre", "sentinella_abissale",
+                 "sentinella_cremisi", "troll_rigenerante"               -> 520;
+            default -> PLAYER_SIZE;
+        };
     }
 
     private String toImageKey(String displayName) {
@@ -406,11 +487,18 @@ public class HelloController {
         ICard[]  hand    = gameService.getHand();
         Button[] buttons = {cardBtn0, cardBtn1, cardBtn2};
         for (int i = 0; i < buttons.length; i++) {
+            // Disable basato su stato slot e mana — fonte unica di verità (fix bug #7)
+            boolean slotGiocato    = playedThisTurn[i];
+            boolean manaInsuff     = !gameService.canPlayCard(i);
+            boolean deveEssereDisabilitato = slotGiocato || manaInsuff;
+
+            buttons[i].setDisable(deveEssereDisabilitato);
+            buttons[i].setOpacity(deveEssereDisabilitato ? 0.45 : 1.0);
+
             VBox cardGraphic = buildCardGraphic(hand[i]);
-            attachHoverAnimation(cardGraphic);
+            if (!deveEssereDisabilitato) attachHoverAnimation(cardGraphic);
             buttons[i].setGraphic(cardGraphic);
             buttons[i].setText("");
-            buttons[i].setDisable(false);
         }
     }
 
@@ -433,13 +521,10 @@ public class HelloController {
         descLabel.setStyle("-fx-text-fill: #a0a0c0; -fx-font-size: 11px;");
         descLabel.setMaxWidth(160); descLabel.setWrapText(true); descLabel.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Label costLabel = new Label("Mana: " + card.getManaCost());
-        costLabel.setStyle("-fx-text-fill: #a78bfa; -fx-font-size: 11px;");
-
         Label manaBarLabel = new Label(manaStr);
         manaBarLabel.setStyle("-fx-text-fill: #7c3aed; -fx-font-size: 10px; -fx-font-family: monospace;");
 
-        VBox cardBox = new VBox(8, symbolLabel, nameLabel, descLabel, costLabel, manaBarLabel);
+        VBox cardBox = new VBox(8, symbolLabel, nameLabel, descLabel, manaBarLabel);
         cardBox.setAlignment(Pos.CENTER);
         cardBox.setStyle(
                 "-fx-background-color: #1e1e3a;"

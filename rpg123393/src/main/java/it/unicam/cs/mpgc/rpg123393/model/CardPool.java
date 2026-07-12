@@ -11,9 +11,9 @@ public class CardPool {
     public static List<ICard> getStarterPool() {
         return List.of(
                 new StrikeCard(),
-                new StrikePlusCard(),
+                new StrikeCard(true),
                 new DefendCard(),
-                new DefendPlusCard()
+                new DefendCard(true)
         );
     }
 
@@ -22,65 +22,65 @@ public class CardPool {
         return switch (className) {
             case "Cavaliere" -> List.of(
                     new DevastatingStrikeCard(),
-                    new DevastatingStrikePlusCard(),
+                    new DevastatingStrikeCard(true),
                     new BattleCryCard(),
-                    new BattleCryPlusCard(),
+                    new BattleCryCard(true),
                     new WhirlwindCard(),
-                    new WhirlwindPlusCard(),
+                    new WhirlwindCard(true),
                     new BerserkerRageCard(),
-                    new BerserkerRagePlusCard(),
+                    new BerserkerRageCard(true),
                     new TauntCard(),
-                    new TauntPlusCard()
+                    new TauntCard(true)
             );
             case "Paladino" -> List.of(
                     new HolyShieldCard(),
-                    new HolyShieldPlusCard(),
+                    new HolyShieldCard(true),
                     new DivineLightCard(),
-                    new DivineLightPlusCard(),
+                    new DivineLightCard(true),
                     new RetributionCard(),
-                    new RetributionPlusCard(),
+                    new RetributionCard(true),
                     new ConsecrationCard(),
-                    new ConsecrationPlusCard(),
+                    new ConsecrationCard(true),
                     new IronVowCard(),
-                    new IronVowPlusCard(),
+                    new IronVowCard(true),
                     new SmiteCard(),
-                    new SmitePlusCard(),
+                    new SmiteCard(true),
                     new BlessingCard(),
-                    new BlessingPlusCard(),
+                    new BlessingCard(true),
                     new HammerOfJusticeCard(),
-                    new HammerOfJusticePlusCard()
+                    new HammerOfJusticeCard(true)
             );
             case "Mago" -> List.of(
                     new FireNovaCard(),
-                    new FireNovaPlusCard(),
+                    new FireNovaCard(true),
                     new ArcaneStormCard(),
-                    new ArcaneStormPlusCard(),
+                    new ArcaneStormCard(true),
                     new FrostboltCard(),
-                    new FrostboltPlusCard(),
+                    new FrostboltCard(true),
                     new ManaShieldCard(),
-                    new ManaShieldPlusCard()
+                    new ManaShieldCard(true)
             );
             case "Dracomante" -> List.of(
                     new DragonClawCard(),
-                    new DragonClawPlusCard(),
-                    new DragonBreathCard2(),
-                    new DragonBreathPlusCard(),
+                    new DragonClawCard(true),
+                    new DragonBreathCard(),
+                    new DragonBreathCard(true),
                     new ScaleArmorCard(),
-                    new ScaleArmorPlusCard(),
+                    new ScaleArmorCard(true),
                     new DragonFangCard(),
-                    new DragonFangPlusCard()
+                    new DragonFangCard(true)
             );
             case "Assassino" -> List.of(
                     new PoisonBladeCard(),
-                    new PoisonBladePlusCard(),
+                    new PoisonBladeCard(true),
                     new ShadowStepCard(),
-                    new ShadowStepPlusCard(),
+                    new ShadowStepCard(true),
                     new DeadlyStrikeCard(),
-                    new DeadlyStrikePlusCard(),
+                    new DeadlyStrikeCard(true),
                     new AcidPoisonCard(),
-                    new AcidPoisonPlusCard(),
+                    new AcidPoisonCard(true),
                     new DoubleBladCard(),
-                    new DoubleBladPlusCard()
+                    new DoubleBladCard(true)
             );
             default -> new ArrayList<>();
         };
@@ -102,7 +102,7 @@ public class CardPool {
         List<ICard> all = new ArrayList<>();
         all.addAll(getStarterPool());
         all.add(new FireballCard());
-        all.add(new FireballPlusCard());
+        all.add(new FireballCard(true));
         for (String cls : List.of("Cavaliere", "Paladino", "Mago", "Dracomante", "Assassino"))
             all.addAll(getClassPool(cls));
         all.addAll(getNeutralPool());
@@ -111,79 +111,79 @@ public class CardPool {
 
     public static List<ICard> getUpgradedPool() {
         List<ICard> all = new ArrayList<>();
-        all.add(new StrikePlusCard());
-        all.add(new DefendPlusCard());
-        all.add(new FireballPlusCard());
+        all.add(new StrikeCard(true));
+        all.add(new DefendCard(true));
+        all.add(new FireballCard(true));
         // Cavaliere
-        all.add(new DevastatingStrikePlusCard());
-        all.add(new BattleCryPlusCard());
-        all.add(new WhirlwindPlusCard());
-        all.add(new BerserkerRagePlusCard());
-        all.add(new TauntPlusCard());
+        all.add(new DevastatingStrikeCard(true));
+        all.add(new BattleCryCard(true));
+        all.add(new WhirlwindCard(true));
+        all.add(new BerserkerRageCard(true));
+        all.add(new TauntCard(true));
         // Paladino
-        all.add(new HolyShieldPlusCard());
-        all.add(new DivineLightPlusCard());
-        all.add(new RetributionPlusCard());
-        all.add(new ConsecrationPlusCard());
-        all.add(new IronVowPlusCard());
-        all.add(new SmitePlusCard());
-        all.add(new BlessingPlusCard());
-        all.add(new HammerOfJusticePlusCard());
+        all.add(new HolyShieldCard(true));
+        all.add(new DivineLightCard(true));
+        all.add(new RetributionCard(true));
+        all.add(new ConsecrationCard(true));
+        all.add(new IronVowCard(true));
+        all.add(new SmiteCard(true));
+        all.add(new BlessingCard(true));
+        all.add(new HammerOfJusticeCard(true));
         // Mago
-        all.add(new FireNovaPlusCard());
-        all.add(new ArcaneStormPlusCard());
-        all.add(new FrostboltPlusCard());
-        all.add(new ManaShieldPlusCard());
+        all.add(new FireNovaCard(true));
+        all.add(new ArcaneStormCard(true));
+        all.add(new FrostboltCard(true));
+        all.add(new ManaShieldCard(true));
         // Dracomante
-        all.add(new DragonClawPlusCard());
-        all.add(new DragonBreathPlusCard());
-        all.add(new ScaleArmorPlusCard());
-        all.add(new DragonFangPlusCard());
+        all.add(new DragonClawCard(true));
+        all.add(new DragonBreathCard(true));
+        all.add(new ScaleArmorCard(true));
+        all.add(new DragonFangCard(true));
         // Assassino
-        all.add(new PoisonBladePlusCard());
-        all.add(new ShadowStepPlusCard());
-        all.add(new DeadlyStrikePlusCard());
-        all.add(new AcidPoisonPlusCard());
-        all.add(new DoubleBladPlusCard());
+        all.add(new PoisonBladeCard(true));
+        all.add(new ShadowStepCard(true));
+        all.add(new DeadlyStrikeCard(true));
+        all.add(new AcidPoisonCard(true));
+        all.add(new DoubleBladCard(true));
         return all;
     }
 
     public static ICard getUpgradedCard(String name) {
         return switch (name) {
-            case "Colpo di Spada"           -> new StrikePlusCard();
-            case "Scudo di Legno"           -> new DefendPlusCard();
-            case "Palla di Fuoco"           -> new FireballPlusCard();
+            case "Colpo di Spada"           -> new StrikeCard(true);
+            case "Scudo di Legno"           -> new DefendCard(true);
+            case "Palla di Fuoco"           -> new FireballCard(true);
             // Cavaliere
-            case "Colpo Devastante"         -> new DevastatingStrikePlusCard();
-            case "Grida di Battaglia"       -> new BattleCryPlusCard();
-            case "Mulinello"                -> new WhirlwindPlusCard();
-            case "Furia Berserker"          -> new BerserkerRagePlusCard();
-            case "Sfida"                    -> new TauntPlusCard();
+            case "Colpo Devastante"         -> new DevastatingStrikeCard(true);
+            case "Grida di Battaglia"       -> new BattleCryCard(true);
+            case "Mulinello"                -> new WhirlwindCard(true);
+            case "Furia Berserker"          -> new BerserkerRageCard(true);
+            case "Sfida"                    -> new TauntCard(true);
             // Paladino
-            case "Scudo Sacro"              -> new HolyShieldPlusCard();
-            case "Luce Divina"              -> new DivineLightPlusCard();
-            case "Punizione Divina"         -> new RetributionPlusCard();
-            case "Consacrazione"            -> new ConsecrationPlusCard();
-            case "Voto di Ferro"            -> new IronVowPlusCard();
-            case "Castigo Sacro"            -> new SmitePlusCard();
-            case "Benedizione"              -> new BlessingPlusCard();
-            case "Martello della Giustizia" -> new HammerOfJusticePlusCard();
+            case "Scudo Sacro"              -> new HolyShieldCard(true);
+            case "Luce Divina"              -> new DivineLightCard(true);
+            case "Punizione Divina"         -> new RetributionCard(true);
+            case "Consacrazione"            -> new ConsecrationCard(true);
+            case "Voto di Ferro"            -> new IronVowCard(true);
+            case "Castigo Sacro"            -> new SmiteCard(true);
+            case "Benedizione"              -> new BlessingCard(true);
+            case "Martello della Giustizia" -> new HammerOfJusticeCard(true);
             // Mago
-            case "Nova di Fuoco"            -> new FireNovaPlusCard();
-            case "Tempesta Arcana"          -> new ArcaneStormPlusCard();
-            case "Dardo di Ghiaccio"        -> new FrostboltPlusCard();
-            case "Scudo di Mana"            -> new ManaShieldPlusCard();
+            case "Nova di Fuoco"            -> new FireNovaCard(true);
+            case "Tempesta Arcana"          -> new ArcaneStormCard(true);
+            case "Dardo di Ghiaccio"        -> new FrostboltCard(true);
+            case "Scudo di Mana"            -> new ManaShieldCard(true);
             // Dracomante
-            case "Artiglio del Drago"       -> new DragonClawPlusCard();
-            case "Soffio del Drago"         -> new DragonBreathPlusCard();
-            case "Armatura di Scaglie"      -> new ScaleArmorPlusCard();
-            case "Zanna di Drago"           -> new DragonFangPlusCard();
+            case "Artiglio del Drago"       -> new DragonClawCard(true);
+            case "Soffio del Drago"         -> new DragonBreathCard(true);
+            case "Armatura di Scaglie"      -> new ScaleArmorCard(true);
+            case "Zanna di Drago"           -> new DragonFangCard(true);
             // Assassino
-            case "Lama Avvelenata"          -> new PoisonBladePlusCard();
-            case "Passo nell'Ombra"         -> new ShadowStepPlusCard();
-            case "Colpo Letale"             -> new DeadlyStrikePlusCard();
-            case "Veleno Acido"             -> new AcidPoisonPlusCard();
-            case "Doppia Lama"              -> new DoubleBladPlusCard();
+            case "Lama Avvelenata"          -> new PoisonBladeCard(true);
+            case "Passo nell'Ombra"         -> new ShadowStepCard(true);
+            case "Colpo Letale"             -> new DeadlyStrikeCard(true);
+            case "Veleno Acido"             -> new AcidPoisonCard(true);
+            case "Doppia Lama"              -> new DoubleBladCard(true);
             default                         -> null;
         };
     }

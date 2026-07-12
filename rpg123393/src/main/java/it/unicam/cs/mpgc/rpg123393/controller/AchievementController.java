@@ -19,6 +19,9 @@ import java.util.List;
 
 public class AchievementController {
 
+    private static final String EMOJI_FONT_STYLE =
+            "-fx-font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;";
+
     @FXML private VBox  rootPane;
     @FXML private VBox  contentBox;
     @FXML private Label progressLabel;
@@ -80,7 +83,7 @@ public class AchievementController {
 
     private VBox buildCard(Achievement a, boolean unlocked) {
         Label icon = new Label(a.getDisplayIcon(unlocked));
-        icon.setStyle("-fx-font-size: 32px;");
+        icon.setStyle("-fx-font-size: 32px; " + EMOJI_FONT_STYLE);
 
         Label name = new Label(a.getDisplayName(unlocked));
         name.setWrapText(true);

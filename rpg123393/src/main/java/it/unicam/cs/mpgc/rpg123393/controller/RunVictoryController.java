@@ -38,15 +38,9 @@ public class RunVictoryController {
         cardsStatLabel.setText("\uD83C\uDCCF  Carte nel mazzo: " + gs.getDeck().size());
         upgradesStatLabel.setText("\u2728  Potenziamenti eseguiti: " + gs.getTotalUpgradesUsed());
 
-        // Hook achievement: run completata
-        gs.getAchievementService().onRunCompleted(
-                gs.getClassName(),
-                (int) cleared,
-                gs.getGold(),
-                gs.getTotalGoldEarned(),
-                gs.getUnlockedCards().size(),
-                p.getCurrentHp() == p.getMaxHp()
-        );
+        // NOTA: onRunCompleted() e' stato spostato in VictoryController.initData()
+        // per garantire che gli achievement vengano valutati indipendentemente
+        // da quale schermata viene visitata dopo la vittoria (fix bug #3).
     }
 
     private String buildEpilogue(String bossName, String playerName) {
