@@ -11,54 +11,58 @@
       style="-fx-background-color: #1a1a2e; -fx-padding: 60;">
 
     <Label text="&#x2694; ARENA MASTER &#x2694;"
-           style="-fx-font-size: 52px; -fx-font-weight: bold; -fx-text-fill: #e0c97f;
-                  -fx-effect: dropshadow(gaussian, #e0c97f, 18, 0.35, 0, 0);"/>
+           style="-fx-font-size: 52px; -fx-font-weight: bold; -fx-text-fill: #e8d48a;
+                  -fx-effect: dropshadow(gaussian, #e8d48a, 20, 0.4, 0, 0);"/>
 
     <Label text="La Forgia degli Eroi"
-           style="-fx-font-size: 18px; -fx-text-fill: #6a6a9a;"/>
+           style="-fx-font-size: 18px; -fx-text-fill: #8888bb;"/>
 
     <Label text="" style="-fx-pref-height: 20;"/>
 
+    <!-- Bottone primario: Nuova Partita -->
     <Button text="Nuova Partita" onAction="#onNewGame"
             prefWidth="300"
-            style="-fx-background-color: #4ecca3; -fx-text-fill: #1a1a2e;
+            style="-fx-background-color: #4ecca3; -fx-text-fill: #0e0e1f;
                    -fx-font-size: 18px; -fx-font-weight: bold;
                    -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;
-                   -fx-effect: dropshadow(gaussian, #4ecca3, 14, 0.3, 0, 0);"/>
+                   -fx-effect: dropshadow(gaussian, #4ecca3, 16, 0.35, 0, 0);"/>
 
-    <VBox alignment="CENTER" spacing="5">
+    <!-- Bottone primario: Continua (con info salvataggio sotto) -->
+    <VBox alignment="CENTER" spacing="6">
         <Button fx:id="continueBtn" text="Continua" onAction="#onContinue"
                 prefWidth="300"
-                style="-fx-background-color: #4ecca3; -fx-text-fill: #1a1a2e;
+                style="-fx-background-color: #4ecca3; -fx-text-fill: #0e0e1f;
                        -fx-font-size: 18px; -fx-font-weight: bold;
                        -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;
-                       -fx-effect: dropshadow(gaussian, #4ecca3, 14, 0.3, 0, 0);"/>
+                       -fx-effect: dropshadow(gaussian, #4ecca3, 16, 0.35, 0, 0);"/>
+        <!-- Bug #10: era #5a5a7a (quasi invisibile su #1a1a2e) -->
         <Label fx:id="saveInfoLabel" text=""
-               style="-fx-font-size: 12px; -fx-text-fill: #5a5a7a; -fx-font-style: italic;"/>
+               style="-fx-font-size: 12px; -fx-text-fill: #9898c4; -fx-font-style: italic;"/>
     </VBox>
 
+    <!-- Bottoni secondari: testo e bordi rinforzati per leggibilità (Bug #10) -->
     <Button text="&#x1F4D6; Collezione" onAction="#onCollection"
             prefWidth="300"
-            style="-fx-background-color: transparent; -fx-text-fill: #e0c97f;
+            style="-fx-background-color: rgba(30,30,60,0.5); -fx-text-fill: #e8d48a;
                    -fx-font-size: 18px; -fx-font-weight: bold;
-                   -fx-border-color: #6a5a20; -fx-border-radius: 10;
-                   -fx-padding: 16 32; -fx-cursor: hand;"/>
+                   -fx-border-color: #c4a84f; -fx-border-radius: 10; -fx-border-width: 1.5;
+                   -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;"/>
 
     <Button text="&#x1F3C6; Achievement" onAction="#onAchievements"
             prefWidth="300"
-            style="-fx-background-color: transparent; -fx-text-fill: #e0c97f;
+            style="-fx-background-color: rgba(30,30,60,0.5); -fx-text-fill: #e8d48a;
                    -fx-font-size: 18px; -fx-font-weight: bold;
-                   -fx-border-color: #6a5a20; -fx-border-radius: 10;
-                   -fx-padding: 16 32; -fx-cursor: hand;"/>
+                   -fx-border-color: #c4a84f; -fx-border-radius: 10; -fx-border-width: 1.5;
+                   -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;"/>
 
     <Label text="" style="-fx-pref-height: 10;"/>
 
+    <!-- Bottone Esci: era #8a3030 su nero = illeggibile; ora #e05555 con bordo visibile (Bug #10) -->
     <Button text="Esci" onAction="#onExit"
             prefWidth="300"
-            style="-fx-background-color: transparent; -fx-text-fill: #8a3030;
+            style="-fx-background-color: rgba(60,15,15,0.4); -fx-text-fill: #e05555;
                    -fx-font-size: 18px; -fx-font-weight: bold;
-                   -fx-padding: 16 32; -fx-background-radius: 10;
-                   -fx-cursor: hand; -fx-border-color: #5a2020; -fx-border-radius: 10;
-                   -fx-border-width: 1;"/>
+                   -fx-padding: 16 32; -fx-background-radius: 10; -fx-cursor: hand;
+                   -fx-border-color: #c03030; -fx-border-radius: 10; -fx-border-width: 1.5;"/>
 
 </VBox>
