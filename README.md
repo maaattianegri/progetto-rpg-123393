@@ -30,6 +30,8 @@ Il giocatore sceglie un personaggio, esplora una mappa a bivi, combatte nemici u
 ## Build e avvio
 
 ```bash
+# git clone github.com/maaattianegri/progetto-rpg-123393
+
 # Dalla root del progetto
 cd rpg123393
 
